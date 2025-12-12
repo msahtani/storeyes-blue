@@ -1,6 +1,7 @@
-import React from 'react';
-import { StyleSheet, View, Image, Pressable, StyleProp, ViewStyle } from 'react-native';
 import { Text } from '@/components/Themed';
+import { BluePalette } from '@/constants/Colors';
+import React from 'react';
+import { Image, Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
 export interface AlertItemProps {
   id: string;
@@ -24,9 +25,13 @@ export default function AlertItem({
 }: AlertItemProps) {
   return (
     <Pressable
-      style={[styles.container, style]}
+      style={({ pressed }) => [
+        styles.container,
+        style,
+        pressed && styles.containerPressed,
+      ]}
       onPress={onPress}
-      android_ripple={{ color: 'rgba(255, 255, 255, 0.1)' }}
+      android_ripple={{ color: 'rgba(99, 102, 241, 0.2)' }}
     >
       <View style={styles.imageContainer}>
         {imageSource ? (
@@ -34,19 +39,24 @@ export default function AlertItem({
         ) : imageUri ? (
           <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
         ) : (
-          <View style={[styles.image, styles.placeholderImage]} />
+          <View style={[styles.image, styles.placeholderImage]}>
+            <View style={styles.placeholderIcon} />
+          </View>
+        )}
+        {isNew && (
+          <View style={styles.alertBadge}>
+            <Text style={styles.alertBadgeText}>ALERT</Text>
+          </View>
         )}
       </View>
       
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={2}>{title}</Text>
-        <View style={styles.timestampContainer}>
-          <Text style={styles.timestamp}>{timestamp}</Text>
-          {isNew && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>NEW</Text>
-            </View>
-          )}
+        <View style={styles.footer}>
+          <View style={styles.timestampContainer}>
+            <View style={styles.timeIcon} />
+            <Text style={styles.timestamp}>{timestamp}</Text>
+          </View>
         </View>
       </View>
     </Pressable>
@@ -55,54 +65,104 @@ export default function AlertItem({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
+    backgroundColor: BluePalette.backgroundCard,
+    borderRadius: 18,
     width: '100%',
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: BluePalette.border,
+    shadowColor: BluePalette.textDark,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  containerPressed: {
+    transform: [{ scale: 0.98 }],
+    borderColor: BluePalette.selected,
+    shadowColor: BluePalette.selected,
+    shadowOpacity: 0.25,
   },
   imageContainer: {
     width: '100%',
+    position: 'relative',
   },
   image: {
     width: '100%',
-    height: 120,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    height: 140,
+    backgroundColor: BluePalette.surfaceDark,
   },
   placeholderImage: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: BluePalette.surfaceDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 140,
+  },
+  placeholderIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: BluePalette.surface,
+    opacity: 0.5,
+  },
+  alertBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: BluePalette.error,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    shadowColor: BluePalette.error,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  alertBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   content: {
-    padding: 12,
-    flex: 1,
-    gap: 8,
+    padding: 14,
+    gap: 10,
   },
   title: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: BluePalette.textPrimary,
+    lineHeight: 20,
+    letterSpacing: -0.2,
   },
-  timestampContainer: {
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  timestampContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timeIcon: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: BluePalette.merge,
+    opacity: 0.9,
+  },
   timestamp: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  badge: {
-    backgroundColor: '#2E7DDB',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    minWidth: 45,
-    alignItems: 'center',
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    color: BluePalette.textSecondary,
+    fontWeight: '500',
   },
 });
 

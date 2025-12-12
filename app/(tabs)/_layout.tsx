@@ -2,10 +2,11 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
 import React, { useCallback } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { BluePalette } from '@/constants/Colors';
 import { fetchAlerts } from '@/domains/alerts/store/alertsSlice';
 import { useAppDispatch } from '@/store/hooks';
 
@@ -20,6 +21,7 @@ function TabBarIcon(props: {
 export default function TabLayout() {
   const dispatch = useAppDispatch();
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   const handleRefresh = useCallback(() => {
     const today = new Date();
@@ -35,21 +37,43 @@ export default function TabLayout() {
     );
   }, [dispatch]);
 
+  // Calculate tab bar height with safe area insets
+  const tabBarBaseHeight = 60;
+  const tabBarTotalHeight = tabBarBaseHeight + insets.bottom;
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: BluePalette.merge,
+        tabBarInactiveTintColor: BluePalette.textTertiary,
+        tabBarStyle: {
+          backgroundColor: BluePalette.backgroundCard,
+          borderTopWidth: 1,
+          borderTopColor: BluePalette.border,
+          height: tabBarTotalHeight,
+          paddingBottom: Math.max(insets.bottom, 10),
+          paddingTop: 8,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
         headerStyle: {
-          backgroundColor: Colors[colorScheme ?? 'light'].secondary,
+          backgroundColor: BluePalette.backgroundCard,
           elevation: 0,
           shadowOpacity: 0,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: Colors[colorScheme ?? 'light'].secondary,
+          borderBottomWidth: 1,
+          borderBottomColor: BluePalette.border,
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: BluePalette.textPrimary,
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: '700',
           fontSize: 24,
+          letterSpacing: -0.5,
         },
         // Disable the static render of the header on web
         // to prevent a hydration error in React Navigation v6.
@@ -58,8 +82,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'alerts',
-          tabBarLabel: 'alerts',
+          title: 'Alerts',
+          tabBarLabel: 'Alerts',
           tabBarIcon: ({ color }) => <TabBarIcon name="bell" color={color} />,
           headerShown: true,
           headerRight: () => (
@@ -70,7 +94,7 @@ export default function TabLayout() {
                 pressed && styles.headerButtonPressed,
               ]}
             >
-              <FontAwesome name="refresh" size={24} color="#FFFFFF" />
+              <FontAwesome name="refresh" size={22} color={BluePalette.textPrimary} />
             </Pressable>
           ),
         }}
@@ -78,8 +102,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="two"
         options={{
-          title: 'counting',
-          tabBarLabel: 'counting',
+          title: 'Counting',
+          tabBarLabel: 'Counting',
           tabBarIcon: ({ color }) => <TabBarIcon name="bars" color={color} />,
           headerShown: true,
         }}
@@ -90,10 +114,14 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   headerButton: {
-    marginRight: 15,
-    padding: 4,
+    marginRight: 16,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: BluePalette.surface,
   },
   headerButtonPressed: {
-    opacity: 0.5,
+    opacity: 0.7,
+    backgroundColor: BluePalette.surfaceLight,
+    transform: [{ scale: 0.95 }],
   },
 });

@@ -3,6 +3,7 @@ import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/Themed';
+import { BluePalette } from '@/constants/Colors';
 import { useAppSelector } from '@/store/hooks';
 import AlertItem from './AlertItem';
 
@@ -68,19 +69,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: 12,
+    rowGap: 16,
+    backgroundColor: BluePalette.white,
+    borderRadius: 20,
   },
   card: {
     width: '48%',
   },
   messageContainer: {
-    paddingVertical: 24,
+    paddingVertical: 48,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
+    backgroundColor: BluePalette.white,
+    borderRadius: 20,
+    padding: 24,
   },
   message: {
-    color: 'rgba(255,255,255,0.8)',
+    color: BluePalette.textDark,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 
