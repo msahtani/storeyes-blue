@@ -8,7 +8,7 @@ import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { useColorScheme } from '@/components/useColorScheme';
 import { BluePalette } from '@/constants/Colors';
 import { fetchAlerts } from '@/domains/alerts/store/alertsSlice';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -20,14 +20,18 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const dispatch = useAppDispatch();
+  const selectedDate = useAppSelector((state) => state.alerts.selectedDate);
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
 
   const handleRefresh = useCallback(() => {
-    const today = new Date();
-    const start = new Date(today);
-    start.setDate(today.getDate() - 1);
-    const dateParam = start.toISOString().split('T')[0];
+    // Use the selected date from DateSelector, or fallback to yesterday
+    const dateParam = selectedDate || (() => {
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      return yesterday.toISOString().split('T')[0];
+    })();
 
     dispatch(
       fetchAlerts({
@@ -35,7 +39,7 @@ export default function TabLayout() {
         endDate: `${dateParam}T23:59:59`,
       })
     );
-  }, [dispatch]);
+  }, [dispatch, selectedDate]);
 
   // Calculate tab bar height with safe area insets
   const tabBarBaseHeight = 60;
