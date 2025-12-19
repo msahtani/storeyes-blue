@@ -1,12 +1,13 @@
 import Slider from '@react-native-community/slider';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useVideoPlayer, VideoPlayerStatus, VideoView } from 'expo-video';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
+import BottomBar from '@/domains/shared/components/BottomBar';
 import { useAppSelector } from '@/store/hooks';
 import Feather from '@expo/vector-icons/Feather';
 
@@ -31,23 +32,25 @@ export default function AlertDetailsScreen() {
     state.alerts.items.find((item) => String(item.id) === String(id))
   );
 
-  const navigation = useNavigation();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  useLayoutEffect(() => {
-    if (alert) {
-      const formattedDate = new Date(alert.alertDate).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
-      navigation.setOptions({
-        title: formattedDate,
-      });
-    }
-  }, [alert, navigation]);
+  // Bottom bar height: 15px + bottom safe area inset
+  const bottomBarHeight = 15;
+  const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
+
+  // Format date for header
+  const formattedDate = useMemo(() => {
+    if (!alert) return 'Alert';
+    return new Date(alert.alertDate).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }, [alert]);
 
   const videoSource = useMemo(() => {
     if (!alert) return null;
@@ -312,24 +315,50 @@ export default function AlertDetailsScreen() {
   if (!alert) {
     return (
       <SafeAreaView
-        edges={['left', 'right', 'bottom']}
-        style={[styles.container, { backgroundColor: BluePalette.background }]}
+        edges={['left', 'right']}
+        style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
       >
+        <View style={[styles.topHeader, { paddingTop: insets.top + 5 }]}>
+          <Pressable 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+          </Pressable>
+          <Text style={styles.headerTitle}>Alert</Text>
+          <View style={styles.headerSpacer} />
+        </View>
         <View style={styles.messageContainer}>
           <Text style={styles.message}>Alert not found</Text>
         </View>
+        <BottomBar />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView
-      edges={['left', 'right', 'bottom']}
-      style={[styles.container, { backgroundColor: BluePalette.white }]}
+      edges={['left', 'right']}
+      style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
     >
+      {/* Header with back button */}
+      <View style={[styles.topHeader, { paddingTop: insets.top + 5 }]}>
+        <Pressable 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+        </Pressable>
+        <Text style={styles.headerTitle} numberOfLines={1}>{formattedDate}</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: bottomBarTotalHeight + 24 }
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.videoContainer}>
@@ -590,9 +619,11 @@ export default function AlertDetailsScreen() {
               )}
             </>
           ) : (
-            <View style={styles.noVideo}>
-              <Feather name="video-off" size={48} color={BluePalette.textDark} />
-              <Text style={styles.message}>No video available</Text>
+            <View style={styles.videoWrapper}>
+              <View style={styles.noVideo}>
+                <Feather name="video-off" size={48} color="rgba(255, 255, 255, 0.7)" />
+                <Text style={styles.noVideoMessage}>No video available</Text>
+              </View>
             </View>
           )}
         </View>
@@ -638,6 +669,9 @@ export default function AlertDetailsScreen() {
           </View>
         </View>
       </ScrollView>
+      
+      {/* Bottom Bar */}
+      <BottomBar />
     </SafeAreaView>
   );
 }
@@ -645,7 +679,39 @@ export default function AlertDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BluePalette.white,
+    backgroundColor: BluePalette.background,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    backgroundColor: BluePalette.backgroundCard,
+    borderBottomWidth: 1,
+    borderBottomColor: BluePalette.border,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BluePalette.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BluePalette.border,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: BluePalette.textPrimary,
+    letterSpacing: -0.5,
+    flex: 1,
+    textAlign: 'center',
+    paddingHorizontal: 12,
+  },
+  headerSpacer: {
+    width: 40,
   },
   scrollView: {
     flex: 1,
@@ -653,6 +719,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 24,
+    paddingTop: 16,
   },
   videoContainer: {
     width: '100%',
@@ -781,10 +848,12 @@ const styles = StyleSheet.create({
     backgroundColor: BluePalette.overlayLight,
   },
   noVideo: {
-    flex: 1,
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
+    backgroundColor: '#000',
   },
   details: {
     padding: 20,
@@ -874,6 +943,11 @@ const styles = StyleSheet.create({
     color: BluePalette.textDark,
     fontSize: 16,
     marginTop: 12,
+  },
+  noVideoMessage: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

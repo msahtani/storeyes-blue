@@ -1,7 +1,5 @@
-import { BackgroundColors } from '@/constants/Colors';
-import HomeScreen from '@/domains/alerts/screens/AlertScreen';
+import HomeScreen from '@/domains/home/screens/HomeScreen';
 
-export default function TabOneScreen() {
-  // You can configure the background color here
-  return <HomeScreen backgroundColor={BackgroundColors.darkBlue} />;
+export default function HomeTabScreen() {
+  return <HomeScreen />;
 }

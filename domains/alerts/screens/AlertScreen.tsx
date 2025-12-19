@@ -1,29 +1,46 @@
+import { Text } from '@/components/Themed';
 import Colors, { BluePalette } from '@/constants/Colors';
 import AlertList from '@/domains/alerts/components/AlertList';
 import DateSelector from '@/domains/alerts/components/DateSelector';
+import BottomBar from '@/domains/shared/components/BottomBar';
+import Feather from '@expo/vector-icons/Feather';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-interface HomeScreenProps {
+interface AlertScreenProps {
   backgroundColor?: string;
 }
 
-export default function HomeScreen({ backgroundColor }: HomeScreenProps) {
+export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
   const bgColor = backgroundColor || Colors.dark.background || BluePalette.background;
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   
-  // Tab bar total height: 65px base + bottom safe area inset
-  // Add extra padding to ensure content doesn't overlap
-  const tabBarBaseHeight = 65;
-  const tabBarTotalHeight = tabBarBaseHeight + insets.bottom;
-  const bottomPadding = tabBarTotalHeight + 8; // Extra 8px for spacing
+  // Bottom bar height: 15px + bottom safe area inset
+  const bottomBarHeight = 15;
+  const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
+  const bottomPadding = bottomBarTotalHeight + 24;
 
   return (
     <SafeAreaView 
       style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
       edges={['left', 'right']}
     >
+      {/* Header with back button */}
+      <View style={[styles.topHeader, { paddingTop: insets.top + 5 }]}>
+        <Pressable 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Alertes</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      {/* Date Selector Blue Bar */}
       <View style={styles.headerSection}>
         <DateSelector />
       </View>
@@ -38,6 +55,9 @@ export default function HomeScreen({ backgroundColor }: HomeScreenProps) {
       >
         <AlertList />
       </ScrollView>
+      
+      {/* Bottom Bar */}
+      <BottomBar />
     </SafeAreaView>
   );
 }
@@ -45,7 +65,36 @@ export default function HomeScreen({ backgroundColor }: HomeScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BluePalette.white,
+    backgroundColor: BluePalette.background,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    backgroundColor: BluePalette.backgroundCard,
+    borderBottomWidth: 1,
+    borderBottomColor: BluePalette.border,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BluePalette.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BluePalette.border,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: BluePalette.textPrimary,
+    letterSpacing: -0.5,
+  },
+  headerSpacer: {
+    width: 40,
   },
   headerSection: {
     backgroundColor: BluePalette.backgroundCard,
