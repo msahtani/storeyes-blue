@@ -1,12 +1,13 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { StyleSheet } from 'react-native';
+import React, { useCallback } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-import { useColorScheme } from '@/components/useColorScheme';
 import { BluePalette } from '@/constants/Colors';
+import { fetchAlerts } from '@/domains/alerts/store/alertsSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -17,8 +18,28 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const dispatch = useAppDispatch();
+  const selectedDate = useAppSelector((state) => state.alerts.selectedDate);
   const insets = useSafeAreaInsets();
+
+  const handleRefresh = useCallback(() => {
+    // Use the selected date from DateSelector, or fallback to today
+    const dateParam = selectedDate || (() => {
+      const today = new Date();
+      // Format date in local timezone to avoid UTC conversion issues
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    })();
+
+    dispatch(
+      fetchAlerts({
+        date: `${dateParam}T00:00:00`,
+        endDate: `${dateParam}T23:59:59`,
+      })
+    );
+  }, [dispatch, selectedDate]);
 
   // Calculate tab bar height with safe area insets
   const tabBarBaseHeight = 60;
@@ -78,6 +99,17 @@ export default function TabLayout() {
           tabBarLabel: 'Support',
           tabBarIcon: ({ color }) => <TabBarIcon name="headphones" color={color} />,
           headerShown: true,
+          headerRight: () => (
+            <Pressable
+              onPress={handleRefresh}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && styles.headerButtonPressed,
+              ]}
+            >
+              <FontAwesome name="refresh" size={22} color={BluePalette.textPrimary} />
+            </Pressable>
+          ),
         }}
       />
       <Tabs.Screen
@@ -87,6 +119,17 @@ export default function TabLayout() {
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
           headerShown: true,
+          headerRight: () => (
+            <Pressable
+              onPress={handleRefresh}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && styles.headerButtonPressed,
+              ]}
+            >
+              <FontAwesome name="refresh" size={22} color={BluePalette.textPrimary} />
+            </Pressable>
+          ),
         }}
       />
     </Tabs>

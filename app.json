@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "storeyes-blue",
-    "slug": "storeyes-blue",
-    "version": "1.0.0",
+    "name": "Storeyes",
+    "slug": "storeyes",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
-    "scheme": "storeyesblue",
+    "scheme": "storeyes",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -14,7 +14,13 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "ma.advancedai.storeyes",
+      "icon": "./assets/images/logo.png",
+      "splash": {
+        "image": "./assets/images/logo.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +29,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.msahtani.storeyesblue"
+      "package": "ma.advancedai.storeyes"
     },
     "web": {
       "bundler": "metro",

@@ -55,13 +55,13 @@ const getWeekDaysFromDate = (dateString: string): DateItem[] => {
   const day = selectedDate.getDay();
   startOfWeek.setDate(selectedDate.getDate() - day);
   
-  // Get 7 days starting from Sunday, but only include past dates (exclude today)
+  // Get 7 days starting from Sunday, including today and past dates
   for (let i = 0; i < 7; i++) {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
     const dateKey = formatDate(d);
     
-    // Only include past dates (exclude today) and avoid duplicates
+    // Include today and past dates, avoid duplicates
     if (isPastDate(d) && !dateSet.has(dateKey)) {
       const month = d.toLocaleDateString('en-US', { month: 'short' });
       const dayNum = d.getDate().toString();
@@ -119,7 +119,7 @@ const getLast7DaysFromYesterday = (): DateItem[] => {
   const items: DateItem[] = [];
   const today = new Date();
 
-  for (let i = 1; i <= 7; i++) {
+  for (let i = 0; i < 7; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
 
@@ -163,29 +163,23 @@ const isPastDate = (date: Date): boolean => {
   today.setHours(0, 0, 0, 0); // Start of today
   const compareDate = new Date(date);
   compareDate.setHours(0, 0, 0, 0);
-  return compareDate < today; // Only dates before today (exclude today)
+  return compareDate <= today; // Include today and past dates
 };
 
 export default function DateSelector() {
   const dispatch = useAppDispatch();
   const selectedDateFromStore = useAppSelector((state) => state.alerts.selectedDate);
   
-  // Default to yesterday if no date is selected
-  const getYesterday = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return formatDate(yesterday);
+  // Default to today if no date is selected
+  const getToday = () => {
+    return formatDate(new Date());
   };
   
-  const selectedDate = selectedDateFromStore || getYesterday();
+  const selectedDate = selectedDateFromStore || getToday();
   
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(() => {
-    return selectedDate ? parseDateString(selectedDate) : (() => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      return yesterday;
-    })();
+    return selectedDate ? parseDateString(selectedDate) : new Date();
   });
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -197,13 +191,12 @@ export default function DateSelector() {
     return getDefaultDates();
   }, [selectedDate]);
 
-  // Initialize with yesterday if no date is set
+  // Initialize with today if no date is set
   useEffect(() => {
     if (!selectedDateFromStore) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = formatDate(yesterday);
-      dispatch(setSelectedDate(yesterdayStr));
+      const today = new Date();
+      const todayStr = formatDate(today);
+      dispatch(setSelectedDate(todayStr));
     }
   }, [dispatch, selectedDateFromStore]);
 
@@ -267,8 +260,8 @@ export default function DateSelector() {
   };
 
   const handleDateSelect = (date: Date) => {
-    // Exclude today - only allow past dates
-    if (!isPastDate(date) || isToday(date)) return;
+    // Allow today and past dates
+    if (!isPastDate(date)) return;
     const formattedDate = formatDate(date);
     dispatch(setSelectedDate(formattedDate));
     setShowCalendar(false);
@@ -317,7 +310,11 @@ export default function DateSelector() {
 
   const canNavigateNext = useMemo(() => {
     const nextMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1);
-    return isPastDate(nextMonth);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const nextMonthStart = new Date(nextMonth);
+    nextMonthStart.setHours(0, 0, 0, 0);
+    return nextMonthStart <= today;
   }, [calendarDate]);
 
   return (
@@ -415,7 +412,7 @@ export default function DateSelector() {
 
                 const isSelected = selectedDate ? isSameDay(date, parseDateString(selectedDate)) : false;
                 const isCurrentDay = isToday(date);
-                const isDisabled = !isPastDate(date) || isToday(date); // Disable today and future dates
+                const isDisabled = !isPastDate(date); // Disable only future dates
                 const uniqueKey = `${formatDate(date)}-${calendarDate.getFullYear()}-${calendarDate.getMonth()}-${index}`;
 
                 return (

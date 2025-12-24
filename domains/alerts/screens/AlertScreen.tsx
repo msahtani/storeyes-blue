@@ -3,11 +3,15 @@ import Colors, { BluePalette } from '@/constants/Colors';
 import AlertList from '@/domains/alerts/components/AlertList';
 import DateSelector from '@/domains/alerts/components/DateSelector';
 import BottomBar from '@/domains/shared/components/BottomBar';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { fetchAlerts } from '@/domains/alerts/store/alertsSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 interface AlertScreenProps {
   backgroundColor?: string;
@@ -17,11 +21,32 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
   const bgColor = backgroundColor || Colors.dark.background || BluePalette.background;
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const selectedDate = useAppSelector((state) => state.alerts.selectedDate);
   
   // Bottom bar height: 15px + bottom safe area inset
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
   const bottomPadding = bottomBarTotalHeight + 24;
+
+  const handleRefresh = useCallback(() => {
+    // Use the selected date from DateSelector, or fallback to today
+    const dateParam = selectedDate || (() => {
+      const today = new Date();
+      // Format date in local timezone to avoid UTC conversion issues
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    })();
+
+    dispatch(
+      fetchAlerts({
+        date: `${dateParam}T00:00:00`,
+        endDate: `${dateParam}T23:59:59`,
+      })
+    );
+  }, [dispatch, selectedDate]);
 
   return (
     <SafeAreaView 
@@ -37,7 +62,15 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
           <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Alertes</Text>
-        <View style={styles.headerSpacer} />
+        <Pressable 
+          style={({ pressed }) => [
+            styles.refreshButton,
+            pressed && styles.refreshButtonPressed,
+          ]}
+          onPress={handleRefresh}
+        >
+          <FontAwesome name="refresh" size={22} color={BluePalette.textPrimary} />
+        </Pressable>
       </View>
 
       {/* Date Selector Blue Bar */}
@@ -93,8 +126,20 @@ const styles = StyleSheet.create({
     color: BluePalette.textPrimary,
     letterSpacing: -0.5,
   },
-  headerSpacer: {
+  refreshButton: {
     width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BluePalette.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BluePalette.border,
+  },
+  refreshButtonPressed: {
+    opacity: 0.7,
+    backgroundColor: BluePalette.surfaceLight,
+    transform: [{ scale: 0.95 }],
   },
   headerSection: {
     backgroundColor: BluePalette.backgroundCard,
