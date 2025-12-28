@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import * as SecureStore from 'expo-secure-store';
+import { deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
 
 import {
   getUserFromToken,
@@ -50,12 +50,12 @@ const storeTokens = async (
   refreshToken: string,
   expiresIn: number
 ): Promise<void> => {
-  await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, accessToken);
-  await SecureStore.setItemAsync(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+  await setItemAsync(TOKEN_STORAGE_KEY, accessToken);
+  await setItemAsync(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
   
   // Store expiry time (in milliseconds)
   const expiryTime = Date.now() + expiresIn * 1000;
-  await SecureStore.setItemAsync(TOKEN_EXPIRY_KEY, expiryTime.toString());
+  await setItemAsync(TOKEN_EXPIRY_KEY, expiryTime.toString());
 };
 
 // Async thunks for authentication
@@ -173,9 +173,9 @@ export const logout = createAsyncThunk('auth/logout', async (_, { getState }) =>
     console.warn('Error during logout:', error);
   } finally {
     // Always clear stored tokens
-    await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
-    await SecureStore.deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
-    await SecureStore.deleteItemAsync(TOKEN_EXPIRY_KEY);
+    await deleteItemAsync(TOKEN_STORAGE_KEY);
+    await deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
+    await deleteItemAsync(TOKEN_EXPIRY_KEY);
   }
 });
 
@@ -188,7 +188,7 @@ export const refreshAccessToken = createAsyncThunk(
       let refreshToken = state.auth.refreshToken;
       
       if (!refreshToken) {
-        refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_STORAGE_KEY);
+        refreshToken = await getItemAsync(REFRESH_TOKEN_STORAGE_KEY);
       }
 
       if (!refreshToken) {
@@ -212,9 +212,9 @@ export const refreshAccessToken = createAsyncThunk(
       };
     } catch (error: any) {
       // If refresh fails, clear tokens
-      await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
-      await SecureStore.deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
-      await SecureStore.deleteItemAsync(TOKEN_EXPIRY_KEY);
+      await deleteItemAsync(TOKEN_STORAGE_KEY);
+      await deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
+      await deleteItemAsync(TOKEN_EXPIRY_KEY);
       
       const authError = error as AuthError;
       return rejectWithValue(
@@ -226,8 +226,8 @@ export const refreshAccessToken = createAsyncThunk(
 
 export const loadStoredTokens = createAsyncThunk('auth/loadStoredTokens', async () => {
   try {
-    const accessToken = await SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
-    const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_STORAGE_KEY);
+    const accessToken = await getItemAsync(TOKEN_STORAGE_KEY);
+    const refreshToken = await getItemAsync(REFRESH_TOKEN_STORAGE_KEY);
 
     if (accessToken) {
       // Check if token is expired
@@ -256,15 +256,15 @@ export const loadStoredTokens = createAsyncThunk('auth/loadStoredTokens', async 
             }
           } catch (refreshError) {
             // Refresh failed, clear tokens
-            await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
-            await SecureStore.deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
-            await SecureStore.deleteItemAsync(TOKEN_EXPIRY_KEY);
+            await deleteItemAsync(TOKEN_STORAGE_KEY);
+            await deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
+            await deleteItemAsync(TOKEN_EXPIRY_KEY);
             return null;
           }
         } else {
           // No refresh token, clear access token
-          await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
-          await SecureStore.deleteItemAsync(TOKEN_EXPIRY_KEY);
+          await deleteItemAsync(TOKEN_STORAGE_KEY);
+          await deleteItemAsync(TOKEN_EXPIRY_KEY);
           return null;
         }
       } else {
@@ -289,9 +289,9 @@ export const loadStoredTokens = createAsyncThunk('auth/loadStoredTokens', async 
             };
           } catch (error) {
             // API call failed, clear tokens
-            await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
-            await SecureStore.deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
-            await SecureStore.deleteItemAsync(TOKEN_EXPIRY_KEY);
+            await deleteItemAsync(TOKEN_STORAGE_KEY);
+            await deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
+            await deleteItemAsync(TOKEN_EXPIRY_KEY);
             return null;
           }
         }

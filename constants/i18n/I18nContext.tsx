@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import { getItemAsync, setItemAsync } from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 import enTranslations from './translations/en.json';
@@ -48,7 +48,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadLanguage = async () => {
       try {
-        const savedLanguage = await SecureStore.getItemAsync(LANGUAGE_STORAGE_KEY);
+        const savedLanguage = await getItemAsync(LANGUAGE_STORAGE_KEY);
         if (savedLanguage === 'fr' || savedLanguage === 'en') {
           setLanguageState(savedLanguage);
         }
@@ -64,7 +64,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const setLanguage = async (lang: Language) => {
     try {
-      await SecureStore.setItemAsync(LANGUAGE_STORAGE_KEY, lang);
+      await setItemAsync(LANGUAGE_STORAGE_KEY, lang);
       setLanguageState(lang);
     } catch (error) {
       console.error('Error saving language preference:', error);

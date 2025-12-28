@@ -1,6 +1,6 @@
 import { isTokenExpired, keycloakApi } from '@/domains/auth/services/keycloakService';
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
 
 const baseURL = 'https://api.storeyes.io/api';
 
@@ -23,7 +23,7 @@ export const apiClient = axios.create({
  */
 const isStoredTokenExpired = async (): Promise<boolean> => {
   try {
-    const expiryTime = await SecureStore.getItemAsync(TOKEN_EXPIRY_KEY);
+    const expiryTime = await getItemAsync(TOKEN_EXPIRY_KEY);
     if (!expiryTime) return true;
     
     // Add 30 second buffer to refresh before actual expiration
@@ -39,7 +39,7 @@ const isStoredTokenExpired = async (): Promise<boolean> => {
  */
 const refreshTokenIfNeeded = async (): Promise<string | null> => {
   try {
-    const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_STORAGE_KEY);
+    const refreshToken = await getItemAsync(REFRESH_TOKEN_STORAGE_KEY);
     if (!refreshToken) {
       return null;
     }
@@ -47,14 +47,14 @@ const refreshTokenIfNeeded = async (): Promise<string | null> => {
     const response = await keycloakApi.refreshToken(refreshToken);
     
     if (response.access_token) {
-      await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, response.access_token);
+      await setItemAsync(TOKEN_STORAGE_KEY, response.access_token);
       
       // Store expiry time
       const expiryTime = Date.now() + response.expires_in * 1000;
-      await SecureStore.setItemAsync(TOKEN_EXPIRY_KEY, expiryTime.toString());
+      await setItemAsync(TOKEN_EXPIRY_KEY, expiryTime.toString());
       
       if (response.refresh_token) {
-        await SecureStore.setItemAsync(REFRESH_TOKEN_STORAGE_KEY, response.refresh_token);
+        await setItemAsync(REFRESH_TOKEN_STORAGE_KEY, response.refresh_token);
       }
       
       return response.access_token;
@@ -62,9 +62,9 @@ const refreshTokenIfNeeded = async (): Promise<string | null> => {
   } catch (error) {
     console.error('Token refresh failed:', error);
     // Clear tokens on refresh failure
-    await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
-    await SecureStore.deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
-    await SecureStore.deleteItemAsync(TOKEN_EXPIRY_KEY);
+    await deleteItemAsync(TOKEN_STORAGE_KEY);
+    await deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
+    await deleteItemAsync(TOKEN_EXPIRY_KEY);
   }
   
   return null;
@@ -74,7 +74,7 @@ const refreshTokenIfNeeded = async (): Promise<string | null> => {
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
-      let token = await SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
+      let token = await getItemAsync(TOKEN_STORAGE_KEY);
       
       // Check if token is expired (by expiry time or by decoding)
       if (token) {
@@ -129,9 +129,9 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         } else {
           // Refresh failed, clear tokens
-          await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
-          await SecureStore.deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
-          await SecureStore.deleteItemAsync(TOKEN_EXPIRY_KEY);
+          await deleteItemAsync(TOKEN_STORAGE_KEY);
+          await deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
+          await deleteItemAsync(TOKEN_EXPIRY_KEY);
           
           // You might want to dispatch logout action here
           // For now, we'll reject the error
@@ -139,9 +139,9 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError) {
         // Refresh failed, clear tokens
-        await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
-        await SecureStore.deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
-        await SecureStore.deleteItemAsync(TOKEN_EXPIRY_KEY);
+        await deleteItemAsync(TOKEN_STORAGE_KEY);
+        await deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
+        await deleteItemAsync(TOKEN_EXPIRY_KEY);
         
         return Promise.reject(refreshError);
       }
