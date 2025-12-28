@@ -1,0 +1,43 @@
+{
+  "home": {
+    "camera": {
+      "title": "Live Camera",
+      "placeholder": "Video stream available after configuration",
+      "live": "LIVE"
+    },
+    "features": {
+      "alertes": {
+        "title": "Alerts",
+        "subtitle": "View alerts"
+      },
+      "cafe": {
+        "title": "Coffee",
+        "subtitle": "Coffee management"
+      },
+      "caisse": {
+        "title": "Cash Register",
+        "subtitle": "Cash register management"
+      },
+      "statistiques": {
+        "title": "Statistics",
+        "subtitle": "View statistics"
+      }
+    }
+  },
+  "alerts": {
+    "screen": {
+      "title": "Alerts"
+    },
+    "details": {
+      "title": "Alert",
+      "notFound": "Alert not found",
+      "noVideo": "No video available",
+      "status": "Status",
+      "comment": "Comment",
+      "notAvailable": "N/A",
+      "source1": "Source 1",
+      "source2": "Source 2"
+    }
+  }
+}
+

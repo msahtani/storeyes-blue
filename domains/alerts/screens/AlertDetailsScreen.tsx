@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
+import { useI18n } from '@/constants/i18n/I18nContext';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import { useAppSelector } from '@/store/hooks';
 import Feather from '@expo/vector-icons/Feather';
@@ -34,6 +35,7 @@ export default function AlertDetailsScreen() {
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useI18n();
 
   // Bottom bar height: 15px + bottom safe area inset
   const bottomBarHeight = 15;
@@ -41,7 +43,7 @@ export default function AlertDetailsScreen() {
 
   // Format date for header
   const formattedDate = useMemo(() => {
-    if (!alert) return 'Alert';
+    if (!alert) return t('alerts.details.title');
     return new Date(alert.alertDate).toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -50,7 +52,7 @@ export default function AlertDetailsScreen() {
       minute: '2-digit',
       hour12: true,
     });
-  }, [alert]);
+  }, [alert, t]);
 
   const videoSource = useMemo(() => {
     if (!alert) return null;
@@ -222,26 +224,26 @@ export default function AlertDetailsScreen() {
   const currentSourceLabel = useMemo(() => {
     if (!alert) return '';
     if (useSecondarySource && alert.secondaryVideoUrl) {
-      return 'Source 1';
+      return t('alerts.details.source1');
     }
     if (!useSecondarySource && alert.mainVideoUrl) {
-      return 'Source 2';
+      return t('alerts.details.source2');
     }
     return '';
-  }, [alert, useSecondarySource]);
+  }, [alert, useSecondarySource, t]);
 
   // Get available video sources
   const videoSources = useMemo(() => {
     if (!alert) return [];
     const sources: Array<{ uri: string; label: string }> = [];
     if (alert.secondaryVideoUrl) {
-      sources.push({ uri: alert.secondaryVideoUrl, label: 'Source 1' });
+      sources.push({ uri: alert.secondaryVideoUrl, label: t('alerts.details.source1') });
     }
     if (alert.mainVideoUrl) {
-      sources.push({ uri: alert.mainVideoUrl, label: 'Source 2' });
+      sources.push({ uri: alert.mainVideoUrl, label: t('alerts.details.source2') });
     }
     return sources;
-  }, [alert]);
+  }, [alert, t]);
 
   const currentSourceIndex = useMemo(() => {
     if (!alert) return 0;
@@ -262,7 +264,7 @@ export default function AlertDetailsScreen() {
     const source = videoSources[index];
     if (!source) return;
     
-    const isSecondary = source.label === 'Source 1' && !!alert.secondaryVideoUrl;
+    const isSecondary = source.label === t('alerts.details.source1') && !!alert.secondaryVideoUrl;
     setUseSecondarySource(isSecondary);
     setSourceScrollIndex(index);
     
@@ -279,7 +281,7 @@ export default function AlertDetailsScreen() {
         animated: true,
       });
     }
-  }, [alert, videoSources, player, showControlsWithAnimation]);
+  }, [alert, videoSources, player, showControlsWithAnimation, t]);
 
   const handleSourceScroll = useCallback((event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -325,11 +327,11 @@ export default function AlertDetailsScreen() {
           >
             <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
           </Pressable>
-          <Text style={styles.headerTitle}>Alert</Text>
+          <Text style={styles.headerTitle}>{t('alerts.details.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.messageContainer}>
-          <Text style={styles.message}>Alert not found</Text>
+          <Text style={styles.message}>{t('alerts.details.notFound')}</Text>
         </View>
         <BottomBar />
       </SafeAreaView>
@@ -622,7 +624,7 @@ export default function AlertDetailsScreen() {
             <View style={styles.videoWrapper}>
               <View style={styles.noVideo}>
                 <Feather name="video-off" size={48} color="rgba(255, 255, 255, 0.7)" />
-                <Text style={styles.noVideoMessage}>No video available</Text>
+                <Text style={styles.noVideoMessage}>{t('alerts.details.noVideo')}</Text>
               </View>
             </View>
           )}
@@ -630,7 +632,7 @@ export default function AlertDetailsScreen() {
 
         <View style={styles.details}>
           <View style={styles.detailsHeader}>
-            <Text style={styles.title}>{alert.productName || 'Alert'}</Text>
+            <Text style={styles.title}>{alert.productName || t('alerts.details.title')}</Text>
             <View style={styles.dateContainer}>
               <Feather name="calendar" size={14} color={BluePalette.textDark} />
               <Text style={styles.subtitle}>
@@ -646,11 +648,11 @@ export default function AlertDetailsScreen() {
             <View style={styles.detailCard}>
               <View style={styles.detailCardHeader}>
                 <Feather name="info" size={16} color={BluePalette.merge} />
-                <Text style={styles.detailCardLabel}>Status</Text>
+                <Text style={styles.detailCardLabel}>{t('alerts.details.status')}</Text>
               </View>
               <View style={styles.statusBadge}>
                 <Text style={styles.detailCardValue}>
-                  {alert.humanJudgement || 'N/A'}
+                  {alert.humanJudgement || t('alerts.details.notAvailable')}
                 </Text>
               </View>
             </View>
@@ -659,7 +661,7 @@ export default function AlertDetailsScreen() {
               <View style={styles.detailCard}>
                 <View style={styles.detailCardHeader}>
                   <Feather name="message-circle" size={16} color={BluePalette.merge} />
-                  <Text style={styles.detailCardLabel}>Comment</Text>
+                  <Text style={styles.detailCardLabel}>{t('alerts.details.comment')}</Text>
                 </View>
                 <Text style={styles.commentText}>
                   {alert.humanJudgementComment}

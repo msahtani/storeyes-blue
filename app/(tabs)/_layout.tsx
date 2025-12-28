@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { BluePalette } from '@/constants/Colors';
+import { FeatureFlags } from '@/constants/FeatureFlags';
 import { fetchAlerts } from '@/domains/alerts/store/alertsSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
@@ -92,6 +93,7 @@ export default function TabLayout() {
           headerShown: false,
         }}
       />
+      {/* Support tab - Hidden in v1 */}
       <Tabs.Screen
         name="support"
         options={{
@@ -99,6 +101,7 @@ export default function TabLayout() {
           tabBarLabel: 'Support',
           tabBarIcon: ({ color }) => <TabBarIcon name="headphones" color={color} />,
           headerShown: true,
+          href: FeatureFlags.SUPPORT_TAB_ENABLED ? undefined : null, // Hide tab from tab bar in v1
           headerRight: () => (
             <Pressable
               onPress={handleRefresh}
@@ -112,6 +115,7 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Profile tab - Hidden in v1 */}
       <Tabs.Screen
         name="profile"
         options={{
@@ -119,6 +123,7 @@ export default function TabLayout() {
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
           headerShown: true,
+          href: FeatureFlags.PROFILE_TAB_ENABLED ? undefined : null, // Hide tab from tab bar in v1
           headerRight: () => (
             <Pressable
               onPress={handleRefresh}

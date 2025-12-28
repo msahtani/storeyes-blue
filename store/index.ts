@@ -1,12 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 
-import appReducer from './slices/appSlice';
 import alertsReducer from '@/domains/alerts/store/alertsSlice';
+import authReducer from '@/domains/auth/store/authSlice';
+import appReducer from './slices/appSlice';
 
 export const store = configureStore({
   reducer: {
     app: appReducer,
     alerts: alertsReducer,
+    auth: authReducer,
   },
   devTools: process.env.NODE_ENV !== 'production',
 });

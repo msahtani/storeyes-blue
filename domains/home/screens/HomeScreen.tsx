@@ -1,9 +1,11 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
+import { FeatureFlags } from '@/constants/FeatureFlags';
+import { useI18n } from '@/constants/i18n/I18nContext';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import { Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,23 +17,26 @@ interface FeatureCardProps {
   subtitle: string;
   color: string;
   onPress: () => void;
+  disabled?: boolean;
 }
 
-function FeatureCard({ icon, title, subtitle, color, onPress }: FeatureCardProps) {
+function FeatureCard({ icon, title, subtitle, color, onPress, disabled = false }: FeatureCardProps) {
   return (
     <Pressable
       style={({ pressed }) => [
         styles.featureCard,
-        pressed && styles.featureCardPressed,
+        disabled && styles.featureCardDisabled,
+        pressed && !disabled && styles.featureCardPressed,
       ]}
-      onPress={onPress}
-      android_ripple={{ color: 'rgba(6, 182, 212, 0.2)' }}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      android_ripple={disabled ? undefined : { color: 'rgba(6, 182, 212, 0.2)' }}
     >
       <View style={[styles.featureIconContainer, { backgroundColor: `${color}15` }]}>
         <Feather name={icon as any} size={28} color={color} />
       </View>
-      <Text style={styles.featureTitle}>{title}</Text>
-      <Text style={styles.featureSubtitle}>{subtitle}</Text>
+      <Text style={[styles.featureTitle, disabled && styles.featureTitleDisabled]}>{title}</Text>
+      <Text style={[styles.featureSubtitle, disabled && styles.featureSubtitleDisabled]}>{subtitle}</Text>
     </Pressable>
   );
 }
@@ -39,45 +44,53 @@ function FeatureCard({ icon, title, subtitle, color, onPress }: FeatureCardProps
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [language, setLanguage] = useState<'fr' | 'en'>('fr');
+  const { language, setLanguage, t } = useI18n();
 
   // Tab bar total height: 65px base + bottom safe area inset
   const tabBarBaseHeight = 65;
   const tabBarTotalHeight = tabBarBaseHeight + insets.bottom;
   const bottomPadding = tabBarTotalHeight + 8;
 
-  const toggleLanguage = () => {
-    setLanguage(language === 'fr' ? 'en' : 'fr');
+  const toggleLanguage = async () => {
+    const newLanguage = language === 'fr' ? 'en' : 'fr';
+    await setLanguage(newLanguage);
   };
 
   const features = [
     {
       icon: 'bell',
-      title: 'Alertes',
-      subtitle: 'Voir les alertes',
+      title: t('home.features.alertes.title'),
+      subtitle: t('home.features.alertes.subtitle'),
       color: BluePalette.error,
       route: '/alerts' as const,
+      enabled: FeatureFlags.ALERTES_ENABLED,
     },
     {
       icon: 'coffee',
-      title: 'Café',
-      subtitle: 'Gestion café',
+      title: t('home.features.cafe.title'),
+      subtitle: t('home.features.cafe.subtitle'),
       color: BluePalette.warning,
       route: '/cafe' as const,
+      enabled: FeatureFlags.CAFE_ENABLED,
+      // Future module – not available in v1
     },
     {
       icon: 'credit-card',
-      title: 'Caisse',
-      subtitle: 'Gestion caisse',
+      title: t('home.features.caisse.title'),
+      subtitle: t('home.features.caisse.subtitle'),
       color: BluePalette.success,
       route: '/caisse' as const,
+      enabled: FeatureFlags.CAISSE_ENABLED,
+      // Future module – not available in v1
     },
     {
       icon: 'bar-chart-2',
-      title: 'Statistiques',
-      subtitle: 'Voir les stats',
+      title: t('home.features.statistiques.title'),
+      subtitle: t('home.features.statistiques.subtitle'),
       color: BluePalette.merge,
       route: '/statistiques' as const,
+      enabled: FeatureFlags.STATISTIQUES_ENABLED,
+      // Future module – not available in v1
     },
   ];
 
@@ -88,12 +101,10 @@ export default function HomeScreen() {
     >
       {/* Top Header */}
       <View style={[styles.topHeader, { paddingTop: insets.top + 5 }]}>
-        <Pressable 
-          style={styles.userCircle}
-          onPress={() => router.push('/(tabs)/profile' as any)}
-        >
+        {/* Profile button removed in v1 - Profile tab is hidden */}
+        <View style={styles.userCircle}>
           <FontAwesome name="user" size={20} color={BluePalette.textPrimary} />
-        </Pressable>
+        </View>
         
         <Pressable 
           style={styles.languageButton}
@@ -116,11 +127,20 @@ export default function HomeScreen() {
         <View style={styles.cameraCard}>
           <View style={styles.cameraPlaceholder}>
             <Feather name="video" size={48} color={BluePalette.textTertiary} />
-            <Text style={styles.cameraLabel}>Caméra en temps réel</Text>
-            <View style={styles.liveIndicator}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>LIVE</Text>
-            </View>
+            <Text style={styles.cameraLabel}>{t('home.camera.title')}</Text>
+            {/* LIVE badge only shown when stream is active */}
+            {FeatureFlags.LIVE_CAMERA_ACTIVE && (
+              <View style={styles.liveIndicator}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>{t('home.camera.live')}</Text>
+              </View>
+            )}
+            {/* Placeholder message when stream is inactive */}
+            {!FeatureFlags.LIVE_CAMERA_ACTIVE && (
+              <Text style={styles.cameraPlaceholderText}>
+                {t('home.camera.placeholder')}
+              </Text>
+            )}
           </View>
         </View>
 
@@ -133,13 +153,13 @@ export default function HomeScreen() {
               title={feature.title}
               subtitle={feature.subtitle}
               color={feature.color}
+              disabled={!feature.enabled}
               onPress={() => {
-                if (feature.route === '/alerts') {
+                // Only Alertes is enabled in v1
+                if (feature.enabled && feature.route === '/alerts') {
                   router.push('/alerts' as any);
-                } else {
-                  // Placeholder for other routes
-                  console.log(`Navigate to ${feature.route}`);
                 }
+                // Disabled features do nothing when tapped
               }}
             />
           ))}
@@ -229,6 +249,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: BluePalette.textTertiary,
   },
+  cameraPlaceholderText: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '400',
+    color: BluePalette.textTertiary,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
   liveIndicator: {
     position: 'absolute',
     top: 12,
@@ -282,6 +310,15 @@ const styles = StyleSheet.create({
     borderColor: BluePalette.merge,
     shadowColor: BluePalette.merge,
     shadowOpacity: 0.3,
+  },
+  featureCardDisabled: {
+    opacity: 0.5,
+  },
+  featureTitleDisabled: {
+    opacity: 0.7,
+  },
+  featureSubtitleDisabled: {
+    opacity: 0.6,
   },
   featureIconContainer: {
     width: 64,

@@ -1,0 +1,43 @@
+{
+  "home": {
+    "camera": {
+      "title": "Caméra en temps réel",
+      "placeholder": "Flux vidéo disponible après configuration",
+      "live": "LIVE"
+    },
+    "features": {
+      "alertes": {
+        "title": "Alertes",
+        "subtitle": "Voir les alertes"
+      },
+      "cafe": {
+        "title": "Café",
+        "subtitle": "Gestion café"
+      },
+      "caisse": {
+        "title": "Caisse",
+        "subtitle": "Gestion caisse"
+      },
+      "statistiques": {
+        "title": "Statistiques",
+        "subtitle": "Voir les stats"
+      }
+    }
+  },
+  "alerts": {
+    "screen": {
+      "title": "Alertes"
+    },
+    "details": {
+      "title": "Alerte",
+      "notFound": "Alerte introuvable",
+      "noVideo": "Aucune vidéo disponible",
+      "status": "Statut",
+      "comment": "Commentaire",
+      "notAvailable": "N/A",
+      "source1": "Source 1",
+      "source2": "Source 2"
+    }
+  }
+}
+

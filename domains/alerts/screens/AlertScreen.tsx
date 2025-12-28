@@ -1,10 +1,11 @@
 import { Text } from '@/components/Themed';
 import Colors, { BluePalette } from '@/constants/Colors';
+import { useI18n } from '@/constants/i18n/I18nContext';
 import AlertList from '@/domains/alerts/components/AlertList';
 import DateSelector from '@/domains/alerts/components/DateSelector';
 import BottomBar from '@/domains/shared/components/BottomBar';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Feather from '@expo/vector-icons/Feather';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import React, { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -23,6 +24,7 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const selectedDate = useAppSelector((state) => state.alerts.selectedDate);
+  const { t } = useI18n();
   
   // Bottom bar height: 15px + bottom safe area inset
   const bottomBarHeight = 15;
@@ -61,7 +63,7 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
         >
           <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Alertes</Text>
+        <Text style={styles.headerTitle}>{t('alerts.screen.title')}</Text>
         <Pressable 
           style={({ pressed }) => [
             styles.refreshButton,
