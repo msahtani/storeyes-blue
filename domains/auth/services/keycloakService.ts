@@ -1,15 +1,22 @@
 import axios, { AxiosError } from 'axios';
 
-// Keycloak configuration
-// Default values match the production Keycloak server configuration
+// Backend API configuration (using authentication proxy)
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.storeyes.io';
+
+// Legacy Keycloak configuration (kept for reference, not used for direct calls)
 const KEYCLOAK_BASE_URL = process.env.EXPO_PUBLIC_KEYCLOAK_URL || 'http://15.216.37.183';
 const KEYCLOAK_REALM = process.env.EXPO_PUBLIC_KEYCLOAK_REALM || 'storeyes';
 const KEYCLOAK_CLIENT_ID = process.env.EXPO_PUBLIC_KEYCLOAK_CLIENT_ID || 'storeyes-mobile';
 
-const KEYCLOAK_TOKEN_URL = `${KEYCLOAK_BASE_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
-const KEYCLOAK_USERINFO_URL = `${KEYCLOAK_BASE_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo`;
-const KEYCLOAK_REGISTRATION_URL = `${KEYCLOAK_BASE_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/registrations`;
+// Backend API response format (camelCase)
+interface BackendLoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  tokenType?: string;
+}
 
+// Internal response format (snake_case for backward compatibility)
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;
@@ -118,24 +125,31 @@ export const keycloakApi = {
    * Login with username and password
    * @param username - User username
    * @param password - User password
-   * @returns Token response from Keycloak
+   * @returns Token response (converted to snake_case format)
    * @throws AuthError if login fails
    */
   login: async (username: string, password: string): Promise<LoginResponse> => {
     try {
-      const formData = new URLSearchParams();
-      formData.append('grant_type', 'password');
-      formData.append('client_id', KEYCLOAK_CLIENT_ID);
-      formData.append('username', username);
-      formData.append('password', password);
-
-      const response = await axios.post<LoginResponse>(KEYCLOAK_TOKEN_URL, formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+      const response = await axios.post<BackendLoginResponse>(
+        `${API_BASE_URL}/auth/login`,
+        {
+          username: username,
+          password: password,
         },
-      });
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      return response.data;
+      // Convert backend response (camelCase) to internal format (snake_case)
+      return {
+        access_token: response.data.accessToken,
+        refresh_token: response.data.refreshToken,
+        expires_in: response.data.expiresIn,
+        token_type: response.data.tokenType || 'Bearer',
+      };
     } catch (error) {
       const axiosError = error as AxiosError<AuthError>;
       
@@ -160,49 +174,69 @@ export const keycloakApi = {
    * Register a new user
    */
   register: async (data: RegisterData): Promise<void> => {
-    // Keycloak registration endpoint
-    const registrationData = {
-      email: data.email,
-      username: data.username,
-      password: data.password,
-      firstName: data.firstName || '',
-      lastName: data.lastName || '',
-    };
+    try {
+      const registrationData = {
+        email: data.email,
+        username: data.username,
+        password: data.password,
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+      };
 
-    // Note: Keycloak registration endpoint may vary based on your setup
-    // This is a common pattern, but you may need to adjust based on your Keycloak configuration
-    const response = await axios.post(
-      `${KEYCLOAK_BASE_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/registrations`,
-      registrationData,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    // If registration requires email verification, you might need to handle that separately
-    return response.data;
+      await axios.post(
+        `${API_BASE_URL}/auth/register`,
+        registrationData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    } catch (error) {
+      const axiosError = error as AxiosError<AuthError>;
+      
+      throw {
+        error: axiosError.response?.data?.error || 'Registration failed',
+        error_description: axiosError.response?.data?.error_description || axiosError.message,
+        statusCode: axiosError.response?.status,
+      } as AuthError;
+    }
   },
 
   /**
    * Get user information from access token
    * Note: This makes an API call. For better performance, use getUserFromToken() instead
+   * This now tries the backend endpoint, but falls back to decoding the token if the endpoint is not available
    * @param accessToken - Access token
    * @returns User information
-   * @throws AuthError if request fails
+   * @throws AuthError if request fails and token cannot be decoded
    */
   getUserInfo: async (accessToken: string): Promise<UserInfo> => {
     try {
-      const response = await axios.get<UserInfo>(KEYCLOAK_USERINFO_URL, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      return response.data;
+      // Try backend endpoint first (if available)
+      try {
+        const response = await axios.get<UserInfo>(`${API_BASE_URL}/auth/user`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        return response.data;
+      } catch (backendError) {
+        // If backend endpoint doesn't exist, decode token instead
+        const decoded = getUserFromToken(accessToken);
+        if (decoded) {
+          return decoded;
+        }
+        throw backendError;
+      }
     } catch (error) {
       const axiosError = error as AxiosError<AuthError>;
+      
+      // Try to decode token as last resort
+      const decoded = getUserFromToken(accessToken);
+      if (decoded) {
+        return decoded;
+      }
       
       throw {
         error: axiosError.response?.data?.error || 'Failed to get user info',
@@ -215,23 +249,30 @@ export const keycloakApi = {
   /**
    * Refresh access token using refresh token
    * @param refreshToken - Refresh token
-   * @returns New token response
+   * @returns New token response (converted to snake_case format)
    * @throws AuthError if refresh fails
    */
   refreshToken: async (refreshToken: string): Promise<LoginResponse> => {
     try {
-      const formData = new URLSearchParams();
-      formData.append('grant_type', 'refresh_token');
-      formData.append('client_id', KEYCLOAK_CLIENT_ID);
-      formData.append('refresh_token', refreshToken);
-
-      const response = await axios.post<LoginResponse>(KEYCLOAK_TOKEN_URL, formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+      const response = await axios.post<BackendLoginResponse>(
+        `${API_BASE_URL}/auth/refresh`,
+        {
+          refreshToken: refreshToken,
         },
-      });
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      return response.data;
+      // Convert backend response (camelCase) to internal format (snake_case)
+      return {
+        access_token: response.data.accessToken,
+        refresh_token: response.data.refreshToken,
+        expires_in: response.data.expiresIn,
+        token_type: response.data.tokenType || 'Bearer',
+      };
     } catch (error) {
       const axiosError = error as AxiosError<AuthError>;
       
@@ -247,19 +288,24 @@ export const keycloakApi = {
    * Logout (revoke tokens)
    */
   logout: async (refreshToken: string): Promise<void> => {
-    const formData = new URLSearchParams();
-    formData.append('client_id', KEYCLOAK_CLIENT_ID);
-    formData.append('refresh_token', refreshToken);
-
-    await axios.post(
-      `${KEYCLOAK_BASE_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+    try {
+      await axios.post(
+        `${API_BASE_URL}/auth/logout`,
+        {
+          refreshToken: refreshToken,
         },
-      }
-    );
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    } catch (error) {
+      // Logout endpoint failure is not critical - tokens will be cleared locally anyway
+      const axiosError = error as AxiosError;
+      console.warn('Logout API call failed (non-critical):', axiosError.response?.data || axiosError.message);
+      // Don't throw - allow logout to succeed even if backend call fails
+    }
   },
 };
 
@@ -274,13 +320,12 @@ export const transformUserInfo = (userInfo: UserInfo) => {
   };
 };
 
-// Export constants for use in other modules
+// Export constants for use in other modules (legacy, kept for backward compatibility)
 export const KEYCLOAK_CONFIG = {
   BASE_URL: KEYCLOAK_BASE_URL,
   REALM: KEYCLOAK_REALM,
   CLIENT_ID: KEYCLOAK_CLIENT_ID,
-  TOKEN_URL: KEYCLOAK_TOKEN_URL,
-  USERINFO_URL: KEYCLOAK_USERINFO_URL,
+  API_BASE_URL: API_BASE_URL,
 } as const;
 
 

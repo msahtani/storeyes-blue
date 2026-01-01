@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Storeyes",
-    "slug": "storeyes-blue",
-    "version": "1.0.1",
+    "slug": "storeyes",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "storeyes",
@@ -23,13 +23,13 @@
       }
     },
     "android": {
+      "package": "com.msahtani.storeyesblue",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "ma.advancedai.storeyes"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "bundler": "metro",
@@ -46,8 +46,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "461fb548-7767-4f20-bfcf-99fc75577f85"
+        "projectId": "c39809d5-b753-4eeb-9fd1-df1665668e6d"
       }
-    }
+    },
+    "owner": "medmimid"
   }
 }
