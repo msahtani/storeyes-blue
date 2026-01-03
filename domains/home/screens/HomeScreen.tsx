@@ -6,10 +6,9 @@ import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import { useDeviceType, getMaxContentWidth } from '@/utils/useDeviceType';
 
 interface FeatureCardProps {
   icon: string;
@@ -18,13 +17,15 @@ interface FeatureCardProps {
   color: string;
   onPress: () => void;
   disabled?: boolean;
+  cardWidth: number;
 }
 
-function FeatureCard({ icon, title, subtitle, color, onPress, disabled = false }: FeatureCardProps) {
+function FeatureCard({ icon, title, subtitle, color, onPress, disabled = false, cardWidth }: FeatureCardProps) {
   return (
     <Pressable
       style={({ pressed }) => [
         styles.featureCard,
+        { width: cardWidth },
         disabled && styles.featureCardDisabled,
         pressed && !disabled && styles.featureCardPressed,
       ]}
@@ -45,11 +46,18 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { language, setLanguage, t } = useI18n();
+  const { isTablet, width } = useDeviceType();
+  const maxContentWidth = getMaxContentWidth(isTablet);
 
   // Tab bar total height: 65px base + bottom safe area inset
   const tabBarBaseHeight = 65;
   const tabBarTotalHeight = tabBarBaseHeight + insets.bottom;
   const bottomPadding = tabBarTotalHeight + 8;
+  
+  // Calculate card width responsively
+  // On tablets, use max content width; on phones, use full screen width
+  const contentWidth = isTablet ? Math.min(maxContentWidth, width - 40) : width - 40;
+  const cardWidth = (contentWidth - 16) / 2; // 16px gap between cards
 
   const toggleLanguage = async () => {
     const newLanguage = language === 'fr' ? 'en' : 'fr';
@@ -115,14 +123,15 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: bottomPadding }
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.scrollContainer}>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: bottomPadding, maxWidth: maxContentWidth }
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Camera Card */}
         <View style={styles.cameraCard}>
           <View style={styles.cameraPlaceholder}>
@@ -154,6 +163,7 @@ export default function HomeScreen() {
               subtitle={feature.subtitle}
               color={feature.color}
               disabled={!feature.enabled}
+              cardWidth={cardWidth}
               onPress={() => {
                 // Only Alertes is enabled in v1
                 if (feature.enabled && feature.route === '/alerts') {
@@ -164,7 +174,8 @@ export default function HomeScreen() {
             />
           ))}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -210,14 +221,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: BluePalette.textPrimary,
   },
-  scrollView: {
+  scrollContainer: {
     flex: 1,
     backgroundColor: BluePalette.white,
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
     gap: 26,
+    alignSelf: 'center',
+    width: '100%',
   },
   cameraCard: {
     width: '100%',
@@ -288,7 +304,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   featureCard: {
-    width: (SCREEN_WIDTH - 56) / 2, // Screen width - padding - gap
     backgroundColor: BluePalette.backgroundCard,
     borderRadius: 18,
     padding: 20,

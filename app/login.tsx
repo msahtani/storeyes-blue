@@ -4,25 +4,28 @@ import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { clearError, login, setSkipAuth } from '@/domains/auth/store/authSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { getMaxContentWidth, useDeviceType } from '@/utils/useDeviceType';
 
 export default function LoginScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
+  const { isTablet, width } = useDeviceType();
+  const maxContentWidth = getMaxContentWidth(isTablet);
   
   const { isLoading, error } = useAppSelector((state) => state.auth);
   
@@ -77,11 +80,12 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <View style={[styles.contentWrapper, { maxWidth: maxContentWidth }]}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           {/* Logo Section */}
           <View style={styles.logoContainer}>
             <View style={styles.logoWrapper}>
@@ -206,7 +210,8 @@ export default function LoginScreen() {
               </Pressable>
             </View> */}
           </View>
-        </ScrollView>
+          </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -219,6 +224,11 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'center',
   },
   scrollContent: {
     flexGrow: 1,

@@ -2,7 +2,7 @@ import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useVideoPlayer, VideoPlayerStatus, VideoView } from 'expo-video';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/Themed';
@@ -10,9 +10,8 @@ import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import { useAppSelector } from '@/store/hooks';
+import { getMaxContentWidth, useDeviceType } from '@/utils/useDeviceType';
 import Feather from '@expo/vector-icons/Feather';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function AlertDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -36,6 +35,9 @@ export default function AlertDetailsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
+  const { isTablet, width } = useDeviceType();
+  const maxContentWidth = getMaxContentWidth(isTablet);
+  const SCREEN_WIDTH = width; // Use responsive width instead of static Dimensions
 
   // Bottom bar height: 15px + bottom safe area inset
   const bottomBarHeight = 15;
@@ -363,6 +365,7 @@ export default function AlertDetailsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Video - Full width on all devices */}
         <View style={styles.videoContainer}>
           {videoSource && videoSources.length > 0 ? (
             <>
@@ -630,7 +633,9 @@ export default function AlertDetailsScreen() {
           )}
         </View>
 
-        <View style={styles.details}>
+        {/* Details Section - Constrained on tablets */}
+        <View style={[styles.contentWrapper, { maxWidth: maxContentWidth }]}>
+          <View style={styles.details}>
           <View style={styles.detailsHeader}>
             <Text style={styles.title}>{alert.productName || t('alerts.details.title')}</Text>
             <View style={styles.dateContainer}>
@@ -668,6 +673,7 @@ export default function AlertDetailsScreen() {
                 </Text>
               </View>
             ) : null}
+          </View>
           </View>
         </View>
       </ScrollView>
@@ -723,6 +729,10 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingTop: 16,
   },
+  contentWrapper: {
+    width: '100%',
+    alignSelf: 'center',
+  },
   videoContainer: {
     width: '100%',
     backgroundColor: BluePalette.backgroundCard,
@@ -733,7 +743,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   videoWrapper: {
-    width: SCREEN_WIDTH,
+    width: '100%',
     aspectRatio: 16/9,
     position: 'relative',
     backgroundColor: '#000',

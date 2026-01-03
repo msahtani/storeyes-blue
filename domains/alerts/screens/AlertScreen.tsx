@@ -13,6 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { fetchAlerts } from '@/domains/alerts/store/alertsSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { getMaxContentWidth, useDeviceType } from '@/utils/useDeviceType';
 
 interface AlertScreenProps {
   backgroundColor?: string;
@@ -25,6 +26,8 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
   const dispatch = useAppDispatch();
   const selectedDate = useAppSelector((state) => state.alerts.selectedDate);
   const { t } = useI18n();
+  const { isTablet } = useDeviceType();
+  const maxContentWidth = getMaxContentWidth(isTablet);
   
   // Bottom bar height: 15px + bottom safe area inset
   const bottomBarHeight = 15;
@@ -88,7 +91,9 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <AlertList />
+        <View style={[styles.contentWrapper, { maxWidth: maxContentWidth }]}>
+          <AlertList />
+        </View>
       </ScrollView>
       
       {/* Bottom Bar */}
@@ -157,6 +162,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
+    alignItems: 'center',
+  },
+  contentWrapper: {
+    width: '100%',
   },
 });
 
