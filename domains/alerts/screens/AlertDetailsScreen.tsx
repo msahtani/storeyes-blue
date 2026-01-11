@@ -389,7 +389,7 @@ export default function AlertDetailsScreen() {
                         key={index}
                         activeOpacity={1}
                         onPress={handleVideoPress}
-                        style={styles.videoWrapper}
+                        style={[styles.videoWrapper, { width: SCREEN_WIDTH }]}
                       >
                         {isCurrentSource ? (
                           <VideoView
@@ -508,7 +508,7 @@ export default function AlertDetailsScreen() {
                 <TouchableOpacity
                   activeOpacity={1}
                   onPress={handleVideoPress}
-                  style={styles.videoWrapper}
+                  style={[styles.videoWrapper, { width: SCREEN_WIDTH }]}
                 >
                   <VideoView
                     style={styles.video}
@@ -624,7 +624,7 @@ export default function AlertDetailsScreen() {
               )}
             </>
           ) : (
-            <View style={styles.videoWrapper}>
+            <View style={[styles.videoWrapper, { width: SCREEN_WIDTH }]}>
               <View style={styles.noVideo}>
                 <Feather name="video-off" size={48} color="rgba(255, 255, 255, 0.7)" />
                 <Text style={styles.noVideoMessage}>{t('alerts.details.noVideo')}</Text>
@@ -743,9 +743,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   videoWrapper: {
-    width: '100%',
     aspectRatio: 16/9,
-    position: 'relative',
     backgroundColor: '#000',
   },
   video: {
