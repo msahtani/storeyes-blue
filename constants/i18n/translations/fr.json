@@ -10,9 +10,9 @@
         "title": "Alertes",
         "subtitle": "Voir les alertes"
       },
-      "cafe": {
-        "title": "Café",
-        "subtitle": "Gestion café"
+      "charges": {
+        "title": "Charges",
+        "subtitle": "Gestion des dépenses"
       },
       "caisse": {
         "title": "Caisse",
@@ -37,6 +37,137 @@
       "notAvailable": "N/A",
       "source1": "Source 1",
       "source2": "Source 2"
+    }
+  },
+  "charges": {
+    "screen": {
+      "title": "Charges"
+    },
+    "tabs": {
+      "fixed": "Charges Fixes",
+      "variable": "Charges Variables"
+    },
+    "fixed": {
+      "empty": "Aucune charge fixe disponible",
+      "details": {
+        "title": "Détails de la Charge Fixe",
+        "notFound": "Charge introuvable",
+        "total": "Montant Total",
+        "previous": "Période Précédente",
+        "breakdown": "Répartition",
+        "personnel": "Personnel",
+        "chart": "Tendance",
+        "chartPlaceholder": "Visualisation graphique à venir",
+        "notes": "Notes",
+        "abnormalIncrease": "Augmentation Anormale Détectée",
+        "abnormalIncreaseDesc": "Cette charge a augmenté de manière significative par rapport aux périodes précédentes. Veuillez vérifier."
+      }
+    },
+    "variable": {
+      "empty": "Aucune charge variable disponible",
+      "details": {
+        "title": "Détails de la Charge Variable",
+        "notFound": "Charge introuvable",
+        "amount": "Montant",
+        "details": "Détails",
+        "date": "Date",
+        "category": "Catégorie",
+        "supplier": "Fournisseur",
+        "notes": "Notes",
+        "receipt": "Reçu",
+        "viewReceipt": "Voir le Reçu",
+        "noReceipt": "Aucun reçu disponible pour cette dépense",
+        "purchaseOrder": "Bon de Commande",
+        "viewPurchaseOrder": "Voir le Bon de Commande"
+      }
+    }
+  },
+  "statistics": {
+    "screen": {
+      "title": "Statistiques"
+    },
+    "kpi": {
+      "revenue": "Chiffre d'Affaires",
+      "charges": "Charges",
+      "profit": "Bénéfices",
+      "ofRevenue": "du CA"
+    },
+    "chart": {
+      "title": "Analyse des Tendances"
+    },
+    "chargesDetail": "Voir le Détail des Charges",
+    "chargesDetailScreen": {
+      "title": "Détail des Charges",
+      "fixed": "Charges Fixes",
+      "variable": "Charges Variables",
+      "distribution": "Répartition",
+      "details": "Détails",
+      "ofCharges": "Des Charges",
+      "ofRevenue": "Du CA"
+    },
+    "status": {
+      "good": "Bon",
+      "medium": "Moyen",
+      "critical": "Critique"
+    },
+    "dailyReport": {
+      "title": "Rapport KPI Quotidien",
+      "revenueMetrics": {
+        "title": "Aperçu des Métriques de Revenus",
+        "totalTTC": "Revenu Total (TTC)",
+        "totalHT": "Revenu Total (HT)",
+        "totalTransactions": "Total des Transactions",
+        "avgTransactionValue": "Valeur Moyenne de Transaction",
+        "perTransaction": "par transaction"
+      },
+      "insights": {
+        "title": "Insights Clés",
+        "peakHour": "Heure de Pointe",
+        "bestSellingProduct": "Produit le Plus Vendu",
+        "highestTransaction": "Transaction la Plus Élevée",
+        "busiestPeriod": "Période la Plus Occupée",
+        "revenueComparison": "Comparaison des Revenus",
+        "vsPreviousDay": "vs Jour Précédent",
+        "vsPreviousWeek": "vs Semaine Précédente",
+        "singleTransactionValue": "Valeur d'une transaction"
+      },
+      "peakPeriods": {
+        "title": "Analyse des Périodes de Pointe",
+        "periodPerformance": "Performance des Périodes"
+      },
+      "hourlyAnalysis": {
+        "title": "Analyse Horaire",
+        "hour": "Heure",
+        "revenue": "Revenu",
+        "transactions": "Transactions",
+        "items": "Articles",
+        "avg": "Moy"
+      },
+      "topProducts": {
+        "title": "Performance des Meilleurs Produits",
+        "byQuantity": "Par Quantité Vendue",
+        "byRevenue": "Par Revenu Généré",
+        "units": "unités"
+      },
+      "categoryAnalysis": {
+        "title": "Analyse par Catégorie",
+        "category": "Catégorie",
+        "revenue": "Revenu",
+        "quantity": "Quantité",
+        "transactions": "Transactions",
+        "share": "Part %"
+      },
+      "staffPerformance": {
+        "title": "Performance du Personnel/Serveurs",
+        "totalActiveServers": "Total des Serveurs Actifs",
+        "bestPerformer": "Meilleur Performeur",
+        "averagePerformance": "Performance Moyenne",
+        "server": "Serveur",
+        "avgValue": "Valeur Moy",
+        "share": "Part %",
+        "performance": "Performance",
+        "best": "Meilleur"
+      }
     }
   }
 }

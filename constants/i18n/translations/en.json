@@ -10,9 +10,9 @@
         "title": "Alerts",
         "subtitle": "View alerts"
       },
-      "cafe": {
-        "title": "Coffee",
-        "subtitle": "Coffee management"
+      "charges": {
+        "title": "Charges",
+        "subtitle": "Expense management"
       },
       "caisse": {
         "title": "Cash Register",
@@ -37,6 +37,137 @@
       "notAvailable": "N/A",
       "source1": "Source 1",
       "source2": "Source 2"
+    }
+  },
+  "charges": {
+    "screen": {
+      "title": "Charges"
+    },
+    "tabs": {
+      "fixed": "Fixed Charges",
+      "variable": "Variable Charges"
+    },
+    "fixed": {
+      "empty": "No fixed charges available",
+      "details": {
+        "title": "Fixed Charge Details",
+        "notFound": "Charge not found",
+        "total": "Total Amount",
+        "previous": "Previous Period",
+        "breakdown": "Breakdown",
+        "personnel": "Personnel",
+        "chart": "Trend",
+        "chartPlaceholder": "Chart visualization coming soon",
+        "notes": "Notes",
+        "abnormalIncrease": "Abnormal Increase Detected",
+        "abnormalIncreaseDesc": "This charge has increased significantly compared to previous periods. Please review."
+      }
+    },
+    "variable": {
+      "empty": "No variable charges available",
+      "details": {
+        "title": "Variable Charge Details",
+        "notFound": "Charge not found",
+        "amount": "Amount",
+        "details": "Details",
+        "date": "Date",
+        "category": "Category",
+        "supplier": "Supplier",
+        "notes": "Notes",
+        "receipt": "Receipt",
+        "viewReceipt": "View Receipt",
+        "noReceipt": "No receipt available for this expense",
+        "purchaseOrder": "Purchase Order",
+        "viewPurchaseOrder": "View Purchase Order"
+      }
+    }
+  },
+  "statistics": {
+    "screen": {
+      "title": "Statistics"
+    },
+    "kpi": {
+      "revenue": "Revenue",
+      "charges": "Charges",
+      "profit": "Profit",
+      "ofRevenue": "of Revenue"
+    },
+    "chart": {
+      "title": "Trend Analysis"
+    },
+    "chargesDetail": "View Charges Detail",
+    "chargesDetailScreen": {
+      "title": "Charges Detail",
+      "fixed": "Fixed Charges",
+      "variable": "Variable Charges",
+      "distribution": "Distribution",
+      "details": "Details",
+      "ofCharges": "Of Charges",
+      "ofRevenue": "Of Revenue"
+    },
+    "status": {
+      "good": "Good",
+      "medium": "Medium",
+      "critical": "Critical"
+    },
+    "dailyReport": {
+      "title": "Daily KPI Report",
+      "revenueMetrics": {
+        "title": "Revenue Metrics Overview",
+        "totalTTC": "Total Revenue (TTC)",
+        "totalHT": "Total Revenue (HT)",
+        "totalTransactions": "Total Transactions",
+        "avgTransactionValue": "Avg Transaction Value",
+        "perTransaction": "per transaction"
+      },
+      "insights": {
+        "title": "Key Insights",
+        "peakHour": "Peak Hour",
+        "bestSellingProduct": "Best Selling Product",
+        "highestTransaction": "Highest Transaction",
+        "busiestPeriod": "Busiest Period",
+        "revenueComparison": "Revenue Comparison",
+        "vsPreviousDay": "vs Previous Day",
+        "vsPreviousWeek": "vs Previous Week",
+        "singleTransactionValue": "Single transaction value"
+      },
+      "peakPeriods": {
+        "title": "Peak Periods Analysis",
+        "periodPerformance": "Period Performance"
+      },
+      "hourlyAnalysis": {
+        "title": "Hourly Analysis",
+        "hour": "Hour",
+        "revenue": "Revenue",
+        "transactions": "Transactions",
+        "items": "Items",
+        "avg": "Avg"
+      },
+      "topProducts": {
+        "title": "Top Products Performance",
+        "byQuantity": "By Quantity Sold",
+        "byRevenue": "By Revenue Generated",
+        "units": "units"
+      },
+      "categoryAnalysis": {
+        "title": "Category Analysis",
+        "category": "Category",
+        "revenue": "Revenue",
+        "quantity": "Quantity",
+        "transactions": "Transactions",
+        "share": "Share %"
+      },
+      "staffPerformance": {
+        "title": "Staff/Server Performance",
+        "totalActiveServers": "Total Active Servers",
+        "bestPerformer": "Best Performer",
+        "averagePerformance": "Average Performance",
+        "server": "Server",
+        "avgValue": "Avg Value",
+        "share": "Share %",
+        "performance": "Performance",
+        "best": "Best"
+      }
     }
   }
 }

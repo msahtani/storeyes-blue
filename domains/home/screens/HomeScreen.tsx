@@ -2,13 +2,13 @@ import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { FeatureFlags } from '@/constants/FeatureFlags';
 import { useI18n } from '@/constants/i18n/I18nContext';
+import { getMaxContentWidth, useDeviceType } from '@/utils/useDeviceType';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useDeviceType, getMaxContentWidth } from '@/utils/useDeviceType';
 
 interface FeatureCardProps {
   icon: string;
@@ -74,13 +74,12 @@ export default function HomeScreen() {
       enabled: FeatureFlags.ALERTES_ENABLED,
     },
     {
-      icon: 'coffee',
-      title: t('home.features.cafe.title'),
-      subtitle: t('home.features.cafe.subtitle'),
+      icon: 'dollar-sign',
+      title: t('home.features.charges.title'),
+      subtitle: t('home.features.charges.subtitle'),
       color: BluePalette.warning,
-      route: '/cafe' as const,
-      enabled: FeatureFlags.CAFE_ENABLED,
-      // Future module – not available in v1
+      route: '/charges' as const,
+      enabled: FeatureFlags.CHARGES_ENABLED,
     },
     {
       icon: 'credit-card',
@@ -165,9 +164,16 @@ export default function HomeScreen() {
               disabled={!feature.enabled}
               cardWidth={cardWidth}
               onPress={() => {
-                // Only Alertes is enabled in v1
-                if (feature.enabled && feature.route === '/alerts') {
-                  router.push('/alerts' as any);
+                if (feature.enabled) {
+                  if (feature.route === '/alerts') {
+                    router.push('/alerts' as any);
+                  } else if (feature.route === '/charges') {
+                    router.push('/charges' as any);
+                  } else if (feature.route === '/caisse') {
+                    router.push('/caisse/daily-report' as any);
+                  } else if (feature.route === '/statistiques') {
+                    router.push('/statistics' as any);
+                  }
                 }
                 // Disabled features do nothing when tapped
               }}

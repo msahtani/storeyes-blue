@@ -17,10 +17,10 @@ export const FeatureFlags = {
   LIVE_CAMERA_ACTIVE: false,
 
   // Feature Modules
-  ALERTES_ENABLED: true,           // Only active feature in v1
-  CAFE_ENABLED: false,             // Future module – not available in v1
-  CAISSE_ENABLED: false,           // Future module – not available in v1
-  STATISTIQUES_ENABLED: false,     // Future module – not available in v1
+  ALERTES_ENABLED: true,           // Active feature
+  CHARGES_ENABLED: true,           // Charges service - expense management
+  CAISSE_ENABLED: true,            // Cash Register service - daily KPI reports
+  STATISTIQUES_ENABLED: true,      // Statistics service - financial analytics
 
   // Navigation Tabs
   SUPPORT_TAB_ENABLED: false,      // Hidden in v1
