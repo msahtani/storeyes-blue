@@ -101,8 +101,11 @@ export default function VariableChargeDetailScreen() {
   };
 
   const handleImagePress = (url: string) => {
-    setSelectedImageUrl(url);
-    setImageModalVisible(true);
+    // Ensure url is a valid non-empty string before setting state
+    if (url && typeof url === 'string' && url.length > 0) {
+      setSelectedImageUrl(url);
+      setImageModalVisible(true);
+    }
   };
 
   if (!charge) {
@@ -286,7 +289,7 @@ export default function VariableChargeDetailScreen() {
             >
               <Feather name="x" size={24} color={BluePalette.textPrimary} />
             </Pressable>
-            {selectedImageUrl && (
+            {selectedImageUrl && typeof selectedImageUrl === 'string' && selectedImageUrl.length > 0 && (
               <Image
                 source={{ uri: selectedImageUrl }}
                 style={styles.modalImage}
