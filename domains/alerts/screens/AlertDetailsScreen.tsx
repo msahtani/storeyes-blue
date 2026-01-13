@@ -61,7 +61,8 @@ export default function AlertDetailsScreen() {
     const uri = useSecondarySource
       ? alert.secondaryVideoUrl
       : alert.mainVideoUrl;
-    return uri ? { uri } : null;
+    // Ensure uri is a valid non-empty string to prevent iOS nil crash
+    return uri && typeof uri === 'string' && uri.length > 0 ? { uri } : null;
   }, [alert, useSecondarySource]);
 
   const player = useVideoPlayer(videoSource, (playerInstance) => {
@@ -210,7 +211,8 @@ export default function AlertDetailsScreen() {
         ? alert.secondaryVideoUrl
         : alert.mainVideoUrl;
       
-      if (newUri) {
+      // Ensure uri is a valid non-empty string to prevent iOS nil crash
+      if (newUri && typeof newUri === 'string' && newUri.length > 0) {
         setUseSecondarySource(newUseSecondary);
         player.replace({ uri: newUri });
       }
@@ -270,8 +272,8 @@ export default function AlertDetailsScreen() {
     setUseSecondarySource(isSecondary);
     setSourceScrollIndex(index);
     
-    // Update player source
-    if (player && source.uri) {
+    // Update player source - ensure uri is valid to prevent iOS nil crash
+    if (player && source?.uri && typeof source.uri === 'string' && source.uri.length > 0) {
       player.replace({ uri: source.uri });
       // Show controls when switching source
       showControlsWithAnimation();
@@ -743,7 +745,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   videoWrapper: {
+    // Don't set width here - it's set dynamically inline
     aspectRatio: 16/9,
+    position: 'relative',
     backgroundColor: '#000',
   },
   video: {

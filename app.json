@@ -2,7 +2,7 @@
   "expo": {
     "name": "Storeyes",
     "slug": "storeyes",
-    "version": "1.0.4",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "storeyes",
@@ -14,7 +14,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "bundleIdentifier": "ma.advancedai.storeyes",
+      "supportsTablet": true,
+      "bundleIdentifier": "ma.advacedai.storeyes",
       "icon": "./assets/images/logo.png",
       "splash": {
         "image": "./assets/images/logo.png",
