@@ -2,9 +2,10 @@ import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { FeatureFlags } from '@/constants/FeatureFlags';
 import { useI18n } from '@/constants/i18n/I18nContext';
+import { useAppSelector } from '@/store/hooks';
 import { getMaxContentWidth, useDeviceType } from '@/utils/useDeviceType';
+import { getUserInitials } from '@/utils/userUtils';
 import Feather from '@expo/vector-icons/Feather';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -48,16 +49,21 @@ export default function HomeScreen() {
   const { language, setLanguage, t } = useI18n();
   const { isTablet, width } = useDeviceType();
   const maxContentWidth = getMaxContentWidth(isTablet);
+  const { user } = useAppSelector((state) => state.auth);
 
   // Tab bar total height: 65px base + bottom safe area inset
   const tabBarBaseHeight = 65;
   const tabBarTotalHeight = tabBarBaseHeight + insets.bottom;
   const bottomPadding = tabBarTotalHeight + 8;
   
-  // Calculate card width responsively
-  // On tablets, use max content width; on phones, use full screen width
-  const contentWidth = isTablet ? Math.min(maxContentWidth, width - 40) : width - 40;
-  const cardWidth = (contentWidth - 16) / 2; // 16px gap between cards
+  // Calculate card width responsively for 2-column grid
+  // Use maxContentWidth on tablets to constrain content, but use full width on phones
+  const contentWidthForGrid = isTablet 
+    ? Math.min(maxContentWidth, width - 40) 
+    : width - 40; // 20px padding on each side
+  const gapBetweenCards = 16;
+  // Calculate width for 2 columns: (contentWidth - gap) / 2
+  const cardWidth = (contentWidthForGrid - gapBetweenCards) / 2;
 
   const toggleLanguage = async () => {
     const newLanguage = language === 'fr' ? 'en' : 'fr';
@@ -108,10 +114,17 @@ export default function HomeScreen() {
     >
       {/* Top Header */}
       <View style={[styles.topHeader, { paddingTop: insets.top + 5 }]}>
-        {/* Profile button removed in v1 - Profile tab is hidden */}
-        <View style={styles.userCircle}>
-          <FontAwesome name="user" size={20} color={BluePalette.textPrimary} />
-        </View>
+        {/* Profile button - clickable user circle with initials */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.userCircle,
+            pressed && styles.userCirclePressed,
+          ]}
+          onPress={() => router.push('/(tabs)/profile' as any)}
+          android_ripple={{ color: BluePalette.merge }}
+        >
+          <Text style={styles.userCircleText}>{getUserInitials(user)}</Text>
+        </Pressable>
         
         <Pressable 
           style={styles.languageButton}
@@ -164,18 +177,18 @@ export default function HomeScreen() {
               disabled={!feature.enabled}
               cardWidth={cardWidth}
               onPress={() => {
-                if (feature.enabled) {
-                  if (feature.route === '/alerts') {
-                    router.push('/alerts' as any);
-                  } else if (feature.route === '/charges') {
-                    router.push('/charges' as any);
-                  } else if (feature.route === '/caisse') {
-                    router.push('/caisse/daily-report' as any);
-                  } else if (feature.route === '/statistiques') {
-                    router.push('/statistics' as any);
-                  }
+                if (!feature.enabled) return;
+                
+                const route: string = feature.route;
+                if (route === '/alerts') {
+                  router.push('/alerts' as any);
+                } else if (route === '/charges') {
+                  router.push('/charges' as any);
+                } else if (route === '/caisse') {
+                  router.push('/caisse/daily-report' as any);
+                } else if (route === '/statistiques') {
+                  router.push('/statistics' as any);
                 }
-                // Disabled features do nothing when tapped
               }}
             />
           ))}
@@ -205,11 +218,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: BluePalette.surface,
+    backgroundColor: BluePalette.merge,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: BluePalette.merge,
+    borderColor: BluePalette.mergeDark,
+    overflow: 'hidden',
+  },
+  userCirclePressed: {
+    transform: [{ scale: 0.95 }],
+    backgroundColor: BluePalette.mergeDark,
+  },
+  userCircleText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: BluePalette.white,
+    letterSpacing: 0.5,
   },
   languageButton: {
     flexDirection: 'row',
@@ -240,6 +264,7 @@ const styles = StyleSheet.create({
     gap: 26,
     alignSelf: 'center',
     width: '100%',
+    alignItems: 'stretch',
   },
   cameraCard: {
     width: '100%',
@@ -307,7 +332,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   featureCard: {
     backgroundColor: BluePalette.backgroundCard,

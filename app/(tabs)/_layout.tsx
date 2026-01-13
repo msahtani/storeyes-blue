@@ -122,19 +122,8 @@ export default function TabLayout() {
           title: 'Profile',
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-          headerShown: true,
+          headerShown: false, // Hide default header, using custom header instead
           href: FeatureFlags.PROFILE_TAB_ENABLED ? undefined : null, // Hide tab from tab bar in v1
-          headerRight: () => (
-            <Pressable
-              onPress={handleRefresh}
-              style={({ pressed }) => [
-                styles.headerButton,
-                pressed && styles.headerButtonPressed,
-              ]}
-            >
-              <FontAwesome name="refresh" size={22} color={BluePalette.textPrimary} />
-            </Pressable>
-          ),
         }}
       />
     </Tabs>

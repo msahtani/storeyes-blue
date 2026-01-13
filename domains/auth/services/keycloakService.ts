@@ -37,6 +37,15 @@ export interface UserInfo {
   aud?: string | string[];
 }
 
+// Backend /auth/me response format
+export interface CurrentUserResponse {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  preferredUsername: string;
+}
+
 export interface RegisterData {
   email: string;
   username: string;
@@ -204,6 +213,44 @@ export const keycloakApi = {
   },
 
   /**
+   * Get current authenticated user information from /auth/me endpoint
+   * @param accessToken - Access token
+   * @returns Current user information
+   * @throws AuthError if request fails
+   */
+  getCurrentUser: async (accessToken: string): Promise<CurrentUserResponse> => {
+    try {
+      const response = await axios.get<CurrentUserResponse>(
+        `${API_BASE_URL}/auth/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<AuthError>;
+      
+      // Handle 401 specifically (unauthorized)
+      if (axiosError.response?.status === 401) {
+        throw {
+          error: 'Unauthorized',
+          error_description: 'Token is missing, invalid, or expired',
+          statusCode: 401,
+        } as AuthError;
+      }
+      
+      throw {
+        error: axiosError.response?.data?.error || 'Failed to get current user',
+        error_description: axiosError.response?.data?.error_description || axiosError.message,
+        statusCode: axiosError.response?.status,
+      } as AuthError;
+    }
+  },
+
+  /**
    * Get user information from access token
    * Note: This makes an API call. For better performance, use getUserFromToken() instead
    * This now tries the backend endpoint, but falls back to decoding the token if the endpoint is not available
@@ -317,6 +364,17 @@ export const transformUserInfo = (userInfo: UserInfo) => {
     username: userInfo.preferred_username || userInfo.email,
     firstName: userInfo.given_name,
     lastName: userInfo.family_name,
+  };
+};
+
+// Helper function to transform CurrentUserResponse to our User type
+export const transformCurrentUser = (currentUser: CurrentUserResponse) => {
+  return {
+    id: currentUser.id,
+    email: currentUser.email,
+    username: currentUser.preferredUsername,
+    firstName: currentUser.firstName,
+    lastName: currentUser.lastName,
   };
 };
 

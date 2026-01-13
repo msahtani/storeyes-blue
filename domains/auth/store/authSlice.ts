@@ -6,6 +6,7 @@ import {
   isTokenExpired,
   keycloakApi,
   transformUserInfo,
+  transformCurrentUser,
   type AuthError
 } from '../services/keycloakService';
 
@@ -305,6 +306,38 @@ export const loadStoredTokens = createAsyncThunk('auth/loadStoredTokens', async 
   }
 });
 
+export const getCurrentUser = createAsyncThunk(
+  'auth/getCurrentUser',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { auth: AuthState };
+      const accessToken = state.auth.accessToken;
+      
+      if (!accessToken) {
+        // Try to get from storage
+        const storedToken = await getItemAsync(TOKEN_STORAGE_KEY);
+        if (!storedToken) {
+          return rejectWithValue('No access token available');
+        }
+        
+        // Use stored token to get current user
+        const currentUser = await keycloakApi.getCurrentUser(storedToken);
+        const transformedUser = transformCurrentUser(currentUser);
+        return transformedUser;
+      }
+      
+      const currentUser = await keycloakApi.getCurrentUser(accessToken);
+      const transformedUser = transformCurrentUser(currentUser);
+      return transformedUser;
+    } catch (error: any) {
+      const authError = error as AuthError;
+      return rejectWithValue(
+        authError.error_description || authError.error || 'Failed to get current user'
+      );
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -409,6 +442,22 @@ const authSlice = createSlice({
       .addCase(loadStoredTokens.rejected, (state) => {
         state.isLoading = false;
         state.isAuthenticated = false;
+      });
+
+    // Get current user
+    builder
+      .addCase(getCurrentUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getCurrentUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.error = null;
+      })
+      .addCase(getCurrentUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
       });
   },
 });
