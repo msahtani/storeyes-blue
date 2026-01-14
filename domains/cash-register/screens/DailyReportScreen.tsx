@@ -1,11 +1,13 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
+import DateSelector from '@/domains/alerts/components/DateSelector';
 import BottomBar from '@/domains/shared/components/BottomBar';
+import { useAppSelector } from '@/store/hooks';
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import PeakPeriodsLineChart from '../components/PeakPeriodsLineChart';
 import RevenueMetricsOverview from '../components/RevenueMetricsOverview';
@@ -19,6 +21,7 @@ export default function DailyReportScreen() {
 
   const {
     selectedDate,
+    setSelectedDate,
     showDatePicker,
     setShowDatePicker,
     calendarDate,
@@ -37,6 +40,24 @@ export default function DailyReportScreen() {
     handleMonthChange,
     handleDateSelect,
   } = useDailyReport();
+
+  // Sync DateSelector (alerts store) with daily report date
+  const alertsSelectedDate = useAppSelector((state) => state.alerts.selectedDate);
+  
+  useEffect(() => {
+    if (alertsSelectedDate) {
+      const year = parseInt(alertsSelectedDate.split('-')[0]);
+      const month = parseInt(alertsSelectedDate.split('-')[1]) - 1;
+      const day = parseInt(alertsSelectedDate.split('-')[2]);
+      const date = new Date(year, month, day);
+      
+      // Only update if the date is different to avoid infinite loops
+      const currentDateString = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+      if (currentDateString !== alertsSelectedDate && isPastDate(date)) {
+        setSelectedDate(date);
+      }
+    }
+  }, [alertsSelectedDate, selectedDate, setSelectedDate, isPastDate]);
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
@@ -58,6 +79,11 @@ export default function DailyReportScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
+      {/* Date Selector Blue Bar */}
+      <View style={styles.headerSection}>
+        <DateSelector />
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -66,116 +92,6 @@ export default function DailyReportScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Date Selector */}
-        <Pressable
-          style={styles.dateSelector}
-          onPress={() => {
-            setCalendarDate(selectedDate);
-            setShowDatePicker(true);
-          }}
-        >
-          <View style={styles.dateSelectorContent}>
-            <View style={styles.calendarIconWrapper}>
-              <Feather name="calendar" size={20} color={BluePalette.merge} />
-            </View>
-            <View style={styles.dateTextContainer}>
-              <Text style={styles.dateLabel}>{t('statistics.dailyReport.date')}</Text>
-              <Text style={styles.dateValue}>{formatDate(selectedDate)}</Text>
-            </View>
-            <View style={styles.chevronIconWrapper}>
-              <Feather name="chevron-down" size={20} color={BluePalette.textTertiary} />
-            </View>
-          </View>
-        </Pressable>
-
-        {/* Date Picker Modal */}
-        <Modal
-          visible={showDatePicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowDatePicker(false)}
-        >
-          <TouchableOpacity
-            style={styles.datePickerOverlay}
-            activeOpacity={1}
-            onPress={() => setShowDatePicker(false)}
-          >
-            <Pressable onPress={(e) => e.stopPropagation()} style={styles.calendarContainer}>
-              <View style={styles.calendarHeader}>
-                <Text style={styles.calendarTitle}>{t('statistics.dailyReport.date')}</Text>
-                <Pressable onPress={() => setShowDatePicker(false)}>
-                  <Feather name="x" size={24} color={BluePalette.textPrimary} />
-                </Pressable>
-              </View>
-
-              <View style={styles.calendarNavigation}>
-                <Pressable
-                  onPress={() => handleMonthChange('prev')}
-                  style={styles.navButton}
-                >
-                  <Feather name="chevron-left" size={20} color={BluePalette.textPrimary} />
-                </Pressable>
-                <Text style={styles.monthYearText}>{monthYearLabel}</Text>
-                <Pressable
-                  onPress={() => handleMonthChange('next')}
-                  style={styles.navButton}
-                  disabled={!canNavigateNext}
-                >
-                  <Feather
-                    name="chevron-right"
-                    size={20}
-                    color={canNavigateNext ? BluePalette.textPrimary : BluePalette.textTertiary}
-                  />
-                </Pressable>
-              </View>
-
-              <View style={styles.calendarWeekDays}>
-                {weekDayLabels.map((day) => (
-                  <View key={day} style={styles.weekDayHeader}>
-                    <Text style={styles.weekDayText}>{day}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.calendarGrid}>
-                {calendarDays.map((date, index) => {
-                  if (!date) {
-                    return <View key={`empty-${index}`} style={styles.calendarDay} />;
-                  }
-
-                  const isSelected = isSameDay(date, selectedDate);
-                  const isCurrentDay = isToday(date);
-                  const isDisabled = !isPastDate(date);
-
-                  return (
-                    <Pressable
-                      key={`${date.getTime()}-${index}`}
-                      onPress={() => handleDateSelect(date)}
-                      disabled={isDisabled}
-                      style={[
-                        styles.calendarDay,
-                        isSelected && styles.calendarDaySelected,
-                        isCurrentDay && !isSelected && styles.calendarDayToday,
-                        isDisabled && styles.calendarDayDisabled,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.calendarDayText,
-                          isSelected && styles.calendarDayTextSelected,
-                          isCurrentDay && !isSelected && styles.calendarDayTextToday,
-                          isDisabled && styles.calendarDayTextDisabled,
-                        ]}
-                      >
-                        {date.getDate()}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </Pressable>
-          </TouchableOpacity>
-        </Modal>
 
         {/* Loading State */}
         {loading && (
@@ -298,168 +214,12 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     gap: 24,
   },
-  dateSelector: {
-    backgroundColor: BluePalette.white,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: BluePalette.border,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  dateSelectorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  calendarIconWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 24,
-    height: 24,
-  },
-  dateTextContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 4,
-  },
-  dateLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: BluePalette.textDark,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    lineHeight: 14,
-  },
-  dateValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: BluePalette.textDark,
-    letterSpacing: -0.3,
-    lineHeight: 20,
-  },
-  chevronIconWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 24,
-    height: 24,
-  },
-  datePickerOverlay: {
-    flex: 1,
-    backgroundColor: BluePalette.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  calendarContainer: {
+  headerSection: {
     backgroundColor: BluePalette.backgroundCard,
-    borderRadius: 20,
-    padding: 20,
-    width: '90%',
-    maxWidth: 400,
-    borderWidth: 1,
-    borderColor: BluePalette.border,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: BluePalette.divider,
-  },
-  calendarTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: BluePalette.textPrimary,
-  },
-  calendarNavigation: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 8,
-  },
-  navButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: BluePalette.surface,
-  },
-  monthYearText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: BluePalette.textPrimary,
-  },
-  calendarWeekDays: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  weekDayHeader: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  weekDayText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: BluePalette.textTertiary,
-    textTransform: 'uppercase',
-  },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  calendarDay: {
-    width: '14.28%',
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-    margin: 2,
-  },
-  calendarDaySelected: {
-    backgroundColor: BluePalette.selected || BluePalette.merge,
-    borderWidth: 2,
-    borderColor: BluePalette.mergeLight || BluePalette.merge,
-  },
-  calendarDayToday: {
-    backgroundColor: BluePalette.surface,
-    borderWidth: 1,
-    borderColor: BluePalette.merge,
-  },
-  calendarDayDisabled: {
-    opacity: 0.3,
-  },
-  calendarDayText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: BluePalette.textDark,
-  },
-  calendarDayTextSelected: {
-    color: BluePalette.white,
-    fontWeight: '700',
-  },
-  calendarDayTextToday: {
-    color: BluePalette.merge,
-    fontWeight: '700',
-  },
-  calendarDayTextDisabled: {
-    color: BluePalette.textTertiary,
+    borderBottomColor: BluePalette.border,
+    marginTop: 0,
+    paddingTop: 10,
   },
   loadingContainer: {
     flex: 1,
