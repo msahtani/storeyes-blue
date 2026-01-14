@@ -18,9 +18,9 @@ export const FeatureFlags = {
 
   // Feature Modules
   ALERTES_ENABLED: true,           // Active feature
-  CHARGES_ENABLED: false,          // Charges service - expense management (Disabled in v1)
-  CAISSE_ENABLED: false,           // Cash Register service - daily KPI reports (Disabled in v1)
-  STATISTIQUES_ENABLED: false,     // Statistics service - financial analytics (Disabled in v1)
+  CHARGES_ENABLED: true,          // Charges service - expense management (Disabled in v1)
+  CAISSE_ENABLED: true,           // Cash Register service - daily KPI reports (Disabled in v1)
+  STATISTIQUES_ENABLED: true,     // Statistics service - financial analytics (Disabled in v1)
 
   // Navigation Tabs
   SUPPORT_TAB_ENABLED: false,      // Hidden in v1

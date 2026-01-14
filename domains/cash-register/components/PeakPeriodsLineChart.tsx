@@ -1,7 +1,7 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import React, { useMemo } from 'react';
-import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { HourlyData, PeakPeriod } from '../types/dailyReport';
 
@@ -24,12 +24,21 @@ export default function PeakPeriodsLineChart({
   currency = 'MAD',
 }: PeakPeriodsLineChartProps) {
   const screenWidth = Dimensions.get('window').width;
-  const containerPadding = 32; // 16px on each side
-  const chartContainerWidth = screenWidth - containerPadding;
-  const chartWidth = chartContainerWidth - CHART_PADDING_LEFT - CHART_PADDING_RIGHT;
+  // ScrollView paddingHorizontal: 20px each side = 40px total
+  // ChartContainer padding: 16px each side = 32px total
+  // Available width for chart wrapper: screenWidth - 40 - 32 = screenWidth - 72
+  const chartWrapperWidth = screenWidth - 72;
+
+  // Filter hourlyData to show only 8:00 AM to 10:00 PM (08:00 to 22:00)
+  const filteredHourlyData = useMemo(() => {
+    return hourlyData.filter((data) => {
+      const hour = parseInt(data.hour.split(':')[0], 10);
+      return hour >= 8 && hour <= 22;
+    });
+  }, [hourlyData]);
 
   const { pathData, areaPath, points, maxValue, yAxisLabels, xAxisLabels } = useMemo(() => {
-    if (hourlyData.length === 0) {
+    if (filteredHourlyData.length === 0) {
       return {
         pathData: '',
         areaPath: '',
@@ -41,16 +50,16 @@ export default function PeakPeriodsLineChart({
     }
 
     // Find max revenue value
-    const max = Math.max(...hourlyData.map((d) => d.revenue));
+    const max = Math.max(...filteredHourlyData.map((d) => d.revenue));
     const adjustedMax = max * 1.15; // 15% padding
 
-    // Calculate chart dimensions (chartWidth already excludes padding)
-    const plotWidth = chartWidth;
+    // Calculate chart dimensions
+    const plotWidth = chartWrapperWidth - CHART_PADDING_LEFT - CHART_PADDING_RIGHT;
     const plotHeight = CHART_HEIGHT - CHART_PADDING_TOP - CHART_PADDING_BOTTOM;
 
-    // Generate points
-    const points = hourlyData.map((data, index) => {
-      const x = CHART_PADDING_LEFT + (index / (hourlyData.length - 1)) * plotWidth;
+    // Generate points - 8 AM starts at CHART_PADDING_LEFT (leftmost position)
+    const points = filteredHourlyData.map((data, index) => {
+      const x = CHART_PADDING_LEFT + (index / Math.max(filteredHourlyData.length - 1, 1)) * plotWidth;
       const y =
         CHART_PADDING_TOP +
         plotHeight -
@@ -83,18 +92,31 @@ export default function PeakPeriodsLineChart({
     } L ${points[0]?.x || 0} ${CHART_PADDING_TOP + plotHeight} Z`;
 
     // Generate Y-axis labels (5 labels)
-    const labelCount = 5;
-    const yAxisLabels = Array.from({ length: labelCount }, (_, i) => {
-      const value = adjustedMax - (adjustedMax / (labelCount - 1)) * i;
+    const yAxisLabelCount = 5;
+    const yAxisLabels = Array.from({ length: yAxisLabelCount }, (_, i) => {
+      const value = adjustedMax - (adjustedMax / (yAxisLabelCount - 1)) * i;
       return value;
     });
 
-    // Generate X-axis labels (show every 2nd hour or key hours)
-    const xAxisLabels = hourlyData.map((d, index) => ({
-      hour: d.hour,
-      x: CHART_PADDING_LEFT + (index / (hourlyData.length - 1)) * plotWidth,
-      show: index % 2 === 0 || index === hourlyData.length - 1, // Show every 2nd hour
-    }));
+    // Generate X-axis labels - show exactly 5 labels with equal spacing: 8 AM, 12 PM, 4 PM, 8 PM, 10 PM
+    const targetHours = [8, 12, 16, 20, 22]; // 8 AM, 12 PM, 4 PM, 8 PM, 10 PM
+    const xAxisLabelCount = targetHours.length;
+    
+    // Calculate evenly spaced positions across the plot width
+    const xAxisLabels = targetHours.map((targetHour, labelIndex) => {
+      // Format hour for display
+      const hourStr = targetHour.toString().padStart(2, '0');
+      const displayHour = `${hourStr}:00`;
+      
+      // Calculate evenly spaced X position (0 to plotWidth)
+      const xPosition = (labelIndex / (xAxisLabelCount - 1)) * plotWidth;
+      
+      return {
+        hour: displayHour,
+        x: CHART_PADDING_LEFT + xPosition,
+        show: true,
+      };
+    });
 
     return {
       pathData: path,
@@ -104,7 +126,7 @@ export default function PeakPeriodsLineChart({
       yAxisLabels,
       xAxisLabels,
     };
-  }, [hourlyData, chartWidth, chartContainerWidth]);
+  }, [filteredHourlyData, chartWrapperWidth]);
 
   const formatCurrency = (amount: number) => {
     // For Y-axis, show actual numbers clearly
@@ -140,7 +162,7 @@ export default function PeakPeriodsLineChart({
     }
   };
 
-  if (hourlyData.length === 0) {
+  if (filteredHourlyData.length === 0) {
     return null;
   }
 
@@ -149,13 +171,12 @@ export default function PeakPeriodsLineChart({
       <Text style={styles.sectionTitle}>Peak Periods Analysis</Text>
       <View style={styles.chartContainer}>
         {/* Chart */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={[styles.chartScrollContent, { minWidth: chartContainerWidth }]}>
-          <View style={[styles.chartWrapper, { width: chartContainerWidth }]}>
-            <Svg width={chartContainerWidth} height={CHART_HEIGHT} viewBox={`0 0 ${chartContainerWidth} ${CHART_HEIGHT}`}>
+        <View style={[styles.chartWrapper, { width: chartWrapperWidth }]}>
+          <Svg width={chartWrapperWidth} height={CHART_HEIGHT} viewBox={`0 0 ${chartWrapperWidth} ${CHART_HEIGHT}`}>
             <Defs>
               <LinearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <Stop offset="0%" stopColor={BluePalette.merge} stopOpacity="0.3" />
-                <Stop offset="100%" stopColor={BluePalette.merge} stopOpacity="0.05" />
+                <Stop offset="0%" stopColor={BluePalette.backgroundCard} stopOpacity="0.8" />
+                <Stop offset="100%" stopColor={BluePalette.backgroundCard} stopOpacity="0.1" />
               </LinearGradient>
             </Defs>
 
@@ -169,7 +190,7 @@ export default function PeakPeriodsLineChart({
               return (
                 <Path
                   key={index}
-                  d={`M ${CHART_PADDING_LEFT} ${y} L ${chartContainerWidth - CHART_PADDING_RIGHT} ${y}`}
+                  d={`M ${CHART_PADDING_LEFT} ${y} L ${chartWrapperWidth - CHART_PADDING_RIGHT} ${y}`}
                   stroke={BluePalette.border}
                   strokeWidth={1}
                   strokeOpacity={0.2}
@@ -188,7 +209,7 @@ export default function PeakPeriodsLineChart({
             <Path
               d={pathData}
               fill="none"
-              stroke={BluePalette.merge}
+              stroke={BluePalette.backgroundCard}
               strokeWidth={3}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -201,7 +222,7 @@ export default function PeakPeriodsLineChart({
                 cx={point.x}
                 cy={point.y}
                 r={5}
-                fill={BluePalette.merge}
+                fill={BluePalette.backgroundCard}
                 stroke={BluePalette.white}
                 strokeWidth={2}
               />
@@ -230,23 +251,29 @@ export default function PeakPeriodsLineChart({
           {/* X-axis labels with hours */}
           <View style={styles.xAxisContainer}>
             {xAxisLabels.map(
-              (label, index) =>
-                label.show && (
+              (label, index) => {
+                if (!label.show) return null;
+                // Calculate position relative to xAxisContainer (which starts at CHART_PADDING_LEFT)
+                const relativeX = label.x - CHART_PADDING_LEFT;
+                const availableWidth = chartWrapperWidth - CHART_PADDING_LEFT - CHART_PADDING_RIGHT;
+                // Clamp label position to stay within bounds (label container width is 50, so center it)
+                const labelLeft = Math.max(0, Math.min(relativeX - 25, availableWidth - 50));
+                return (
                   <View
                     key={index}
-                    style={[styles.xAxisLabelContainer, { left: label.x - 25 }]}
+                    style={[styles.xAxisLabelContainer, { left: labelLeft }]}
                   >
                     <View style={styles.xAxisTickLine} />
                     <Text style={styles.xAxisLabel}>{label.hour}</Text>
                   </View>
-                )
+                );
+              }
             )}
           </View>
-          </View>
-        </ScrollView>
+        </View>
 
         {/* Peak Periods Cards */}
-        <View style={styles.periodsContainer}>
+        {/* <View style={styles.periodsContainer}>
           <Text style={styles.periodsTitle}>Period Performance</Text>
           <View style={styles.periodsGrid}>
             {peakPeriods.map((period, index) => (
@@ -284,7 +311,7 @@ export default function PeakPeriodsLineChart({
               </View>
             ))}
           </View>
-        </View>
+        </View> */}
       </View>
     </View>
   );
@@ -314,9 +341,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
-  },
-  chartScrollContent: {
-    paddingRight: 16,
   },
   chartWrapper: {
     position: 'relative',

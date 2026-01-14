@@ -111,6 +111,7 @@
       "critical": "Critique"
     },
     "dailyReport": {
+      "date": "Date",
       "title": "Rapport KPI Quotidien",
       "revenueMetrics": {
         "title": "Aperçu des Métriques de Revenus",

@@ -7,12 +7,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import CategoryAnalysisChart from '../components/CategoryAnalysisChart';
-import HourlyAnalysisTable from '../components/HourlyAnalysisTable';
 import PeakPeriodsLineChart from '../components/PeakPeriodsLineChart';
 import RevenueMetricsOverview from '../components/RevenueMetricsOverview';
 import StaffPerformanceTable from '../components/StaffPerformanceTable';
-import TopProductsRanking from '../components/TopProductsRanking';
 import { DailyReportData } from '../types/dailyReport';
 
 // Mock data - replace with actual data fetching
@@ -27,9 +24,7 @@ const mockDailyReportData: DailyReportData = {
     revenuePerTransaction: 30.59,
   },
   hourlyData: [
-    { hour: '05:00', revenue: 57.0, transactions: 2, itemsSold: 3 },
-    { hour: '06:00', revenue: 89.0, transactions: 3, itemsSold: 4 },
-    { hour: '07:00', revenue: 145.0, transactions: 5, itemsSold: 7 },
+    
     { hour: '08:00', revenue: 234.0, transactions: 8, itemsSold: 12 },
     { hour: '09:00', revenue: 312.0, transactions: 10, itemsSold: 15 },
     { hour: '10:00', revenue: 278.0, transactions: 9, itemsSold: 13 },
@@ -39,7 +34,12 @@ const mockDailyReportData: DailyReportData = {
     { hour: '14:00', revenue: 567.0, transactions: 19, itemsSold: 28 },
     { hour: '15:00', revenue: 563.0, transactions: 18, itemsSold: 27 },
     { hour: '16:00', revenue: 412.0, transactions: 13, itemsSold: 19 },
-    { hour: '17:00', revenue: 198.0, transactions: 6, itemsSold: 9 },
+    { hour: '17:00', revenue: 350.0, transactions: 11, itemsSold: 15 },
+    { hour: '18:00', revenue: 280.0, transactions: 9, itemsSold: 12 },
+    { hour: '19:00', revenue: 220.0, transactions: 7, itemsSold: 10 },
+    { hour: '20:00', revenue: 180.0, transactions: 6, itemsSold: 8 },
+    { hour: '21:00', revenue: 150.0, transactions: 5, itemsSold: 7 },
+    { hour: '22:00', revenue: 120.0, transactions: 4, itemsSold: 6 },
   ],
   topProductsByQuantity: [
     { rank: 1, name: 'ESPRESSO STANDARD', quantity: 78 },
@@ -105,10 +105,17 @@ const mockDailyReportData: DailyReportData = {
   staffPerformance: [
     {
       name: 'MASTFA',
-      revenue: 4038.0,
-      transactions: 132,
-      avgValue: 30.59,
-      share: 100.0,
+      revenue: 2238.0,
+      transactions: 73,
+      avgValue: 30.66,
+      share: 55.4,
+    },
+    {
+      name: 'AHMED',
+      revenue: 1800.0,
+      transactions: 59,
+      avgValue: 30.51,
+      share: 44.6,
     },
   ],
   peakPeriods: [
@@ -460,20 +467,20 @@ export default function DailyReportScreen() {
         />
 
         {/* Hourly Analysis Table */}
-        <HourlyAnalysisTable hourlyData={reportData.hourlyData} currency="MAD" />
+        {/* <HourlyAnalysisTable hourlyData={reportData.hourlyData} currency="MAD" /> */}
 
         {/* Top Products Ranking */}
-        <TopProductsRanking
+        {/* <TopProductsRanking
           productsByQuantity={reportData.topProductsByQuantity}
           productsByRevenue={reportData.topProductsByRevenue}
           currency="MAD"
-        />
+        /> */}
 
         {/* Category Analysis */}
-        <CategoryAnalysisChart
+        {/* <CategoryAnalysisChart
           categories={reportData.categoryAnalysis}
           currency="MAD"
-        />
+        /> */}
 
         {/* Staff Performance */}
         <StaffPerformanceTable staff={reportData.staffPerformance} currency="MAD" />
