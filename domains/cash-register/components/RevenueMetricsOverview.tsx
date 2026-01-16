@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 22,
     fontWeight: '700',
-    color: BluePalette.backgroundCard,
+    color: BluePalette.primaryDark,
     letterSpacing: -0.5,
     textAlign: 'center',
     flexShrink: 1,

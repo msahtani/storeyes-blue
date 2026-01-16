@@ -46,7 +46,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView 
-      style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
+      style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
       edges={['left', 'right']}
     >
       {/* Header with back button */}
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
   },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   userCard: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 24,
     padding: 32,
     alignItems: 'center',
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     color: BluePalette.white,
   },
   detailsSection: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 20,
     padding: 20,
     marginBottom: 24,

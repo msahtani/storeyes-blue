@@ -55,7 +55,7 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
 
   return (
     <SafeAreaView 
-      style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
+      style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
       edges={['left', 'right']}
     >
       {/* Header with back button */}
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
   },
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
   },
   headerSection: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
     marginTop: 0,

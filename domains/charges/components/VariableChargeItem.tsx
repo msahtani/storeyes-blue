@@ -55,10 +55,10 @@ export default function VariableChargeItem({ charge, onPress }: VariableChargeIt
         </View>
       </View>
 
-      {!charge.hasReceipt && (
+      {!charge.purchaseOrderUrl && (
         <View style={styles.missingReceiptBadge}>
           <Feather name="alert-circle" size={12} color={BluePalette.warning} />
-          <Text style={styles.missingReceiptText}>No receipt</Text>
+          <Text style={styles.missingReceiptText}>No purchase order</Text>
         </View>
       )}
     </Pressable>
@@ -67,7 +67,7 @@ export default function VariableChargeItem({ charge, onPress }: VariableChargeIt
 
 const styles = StyleSheet.create({
   item: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,

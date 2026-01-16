@@ -96,7 +96,7 @@ export default function FixedChargeCard({ charge, onPress }: FixedChargeCardProp
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,

@@ -6,9 +6,14 @@ export const BluePalette = {
   whiteDark: '#F5F5F5',
   
   // Primary Blues - Dark Blue (Main)
-  primary: '#1E3A8A',        // Deep dark blue (primary actions)
-  primaryLight: '#3B82F6',  // Medium blue
-  primaryDark: '#1E40AF',   // Darker blue (pressed states)
+  // primary: '#1E3A8A',        // Deep dark blue (primary actions)
+  // primaryLight: '#3B82F6',  // Medium blue
+  // primaryDark: '#1E40AF',   // Darker blue (pressed states)
+
+  // Primary Blues - Tuned to match backgroundNew
+  primary: '#2563EB',        // Vibrant royal blue (main actions)
+  primaryLight: '#60A5FA',  // Soft light blue (hover, secondary)
+  primaryDark: '#1E40AF',   // Deep blue (pressed / active)
   
   // Merging Color - Light Cyan/Blue (Merges white and blue)
   merge: '#06B6D4',         // Cyan-blue (merging color)
@@ -23,7 +28,7 @@ export const BluePalette = {
   // Background Colors - Dark Blue Theme
   background: '#0A1F3A',     // Very dark blue (main background)
   backgroundElevated: '#0F2D5C', // Elevated surfaces
-  backgroundCard: '#1A3A6B',    // Card backgrounds (lighter dark blue)
+  backgroundNew : '#1A3A6B',    // lighter dark blue (new background)
   
   // Surface Colors
   surface: '#1E3A8A',        // Surface elements (dark blue)

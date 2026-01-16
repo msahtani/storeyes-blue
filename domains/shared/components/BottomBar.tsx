@@ -25,7 +25,7 @@ export default function BottomBar() {
 
 const styles = StyleSheet.create({
   bottomBar: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderTopWidth: 1,
     borderTopColor: BluePalette.border,
     position: 'absolute',

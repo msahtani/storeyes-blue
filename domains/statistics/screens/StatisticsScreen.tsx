@@ -110,7 +110,7 @@ export default function StatisticsScreen() {
   return (
     <SafeAreaView
       edges={['left', 'right']}
-      style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
+      style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
   },
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,

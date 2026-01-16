@@ -4,9 +4,10 @@ import { useI18n } from '@/constants/i18n/I18nContext';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import Feather from '@expo/vector-icons/Feather';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import WeekSelector from '../components/WeekSelector';
 import { FixedChargeCategory, FixedChargeDetail } from '../types/charge';
 
 // Mock data - replace with actual data fetching
@@ -116,6 +117,84 @@ const mockFixedChargeDetails: Record<string, FixedChargeDetail> = {
     trendPercentage: 0,
     previousAmount: 120,
   },
+  // Current month personnel data
+  '13': {
+    id: '13',
+    category: 'personnel',
+    amount: 4600,
+    period: 'month',
+    trend: 'up',
+    trendPercentage: 2.2,
+    previousAmount: 4500,
+    personnelData: [
+      {
+        type: 'server',
+        totalAmount: 1900,
+        employees: [
+          {
+            id: 'p1',
+            name: 'John Doe',
+            salary: 950,
+            hours: 160,
+            position: 'Senior Server',
+            startDate: '2023-01-15',
+          },
+          {
+            id: 'p2',
+            name: 'Jane Smith',
+            salary: 950,
+            hours: 160,
+            position: 'Server',
+            startDate: '2023-03-20',
+          },
+        ],
+      },
+      {
+        type: 'barman',
+        totalAmount: 1500,
+        employees: [
+          {
+            id: 'p3',
+            name: 'Mike Johnson',
+            salary: 1500,
+            hours: 160,
+            position: 'Head Bartender',
+            startDate: '2022-11-10',
+          },
+        ],
+      },
+      {
+        type: 'cleaner',
+        totalAmount: 1200,
+        employees: [
+          {
+            id: 'p4',
+            name: 'Sarah Williams',
+            salary: 800,
+            hours: 120,
+            position: 'Cleaner',
+            startDate: '2023-06-01',
+          },
+          {
+            id: 'p5',
+            name: 'Tom Brown',
+            salary: 400,
+            hours: 60,
+            position: 'Part-time Cleaner',
+            startDate: '2023-09-15',
+          },
+        ],
+      },
+    ],
+    notes: 'Current month payroll. Includes recent salary adjustments.',
+    chartData: [
+      { period: 'Nov 2023', amount: 4200 },
+      { period: 'Dec 2023', amount: 4250 },
+      { period: 'Jan 2024', amount: 4278 },
+      { period: 'Feb 2024', amount: 4500 },
+      { period: 'Mar 2024', amount: 4600 },
+    ],
+  },
 };
 
 const categoryLabels: Record<FixedChargeCategory, string> = {
@@ -126,10 +205,11 @@ const categoryLabels: Record<FixedChargeCategory, string> = {
 };
 
 export default function FixedChargeDetailScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, month } = useLocalSearchParams<{ id?: string; month?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
+  const [selectedWeek, setSelectedWeek] = useState<string | undefined>();
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
@@ -138,6 +218,18 @@ export default function FixedChargeDetailScreen() {
     if (!id) return null;
     return mockFixedChargeDetails[id] || null;
   }, [id]);
+
+  // Get month key for week selector - use passed month param or default to current month
+  const monthKey = useMemo(() => {
+    if (month) {
+      return month;
+    }
+    // Fallback to current month if no month param
+    const now = new Date();
+    const year = now.getFullYear();
+    const monthNum = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${monthNum}`;
+  }, [month]);
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -152,7 +244,7 @@ export default function FixedChargeDetailScreen() {
     return (
       <SafeAreaView
         edges={['left', 'right']}
-        style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
+        style={[styles.container, { backgroundColor: BluePalette.white }]}
       >
         <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
@@ -178,7 +270,7 @@ export default function FixedChargeDetailScreen() {
   return (
     <SafeAreaView
       edges={['left', 'right']}
-      style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
+      style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
     >
       <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
@@ -187,8 +279,24 @@ export default function FixedChargeDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {categoryLabel}
         </Text>
-        <View style={styles.headerSpacer} />
+        <Pressable
+          style={styles.editButton}
+          onPress={() => router.push(`/charges/fixed/edit/${id}` as any)}
+        >
+          <Feather name="edit-2" size={20} color={BluePalette.merge} />
+        </Pressable>
       </View>
+
+      {/* Week Selector - Only for personnel category, at the top */}
+      {charge.category === 'personnel' && (
+        <View style={styles.weekSelectorContainer}>
+          <WeekSelector
+            monthKey={monthKey}
+            selectedWeek={selectedWeek}
+            onWeekSelect={setSelectedWeek}
+          />
+        </View>
+      )}
 
       <ScrollView
         style={styles.scrollView}
@@ -387,7 +495,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
   },
@@ -413,6 +521,23 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
   },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BluePalette.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BluePalette.border,
+  },
+  weekSelectorContainer: {
+    backgroundColor: BluePalette.backgroundNew,
+    paddingTop: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: BluePalette.border,
+  },
   scrollView: {
     flex: 1,
     backgroundColor: BluePalette.white,
@@ -422,7 +547,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   totalCard: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,
@@ -439,7 +564,7 @@ const styles = StyleSheet.create({
   totalAmount: {
     fontSize: 36,
     fontWeight: '700',
-    color: BluePalette.textDark,
+    color: BluePalette.white,
     letterSpacing: -1,
   },
   comparisonContainer: {
@@ -458,7 +583,7 @@ const styles = StyleSheet.create({
   },
   comparisonValue: {
     fontSize: 16,
-    color: BluePalette.textDark,
+    color: BluePalette.white,
     fontWeight: '600',
   },
   changeBadge: {
@@ -519,7 +644,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   breakdownContainer: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -560,7 +685,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   notesCard: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -568,7 +693,7 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: 15,
-    color: BluePalette.textDark,
+    color: BluePalette.textTertiary,
     lineHeight: 22,
   },
   messageContainer: {
@@ -577,9 +702,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   message: {
-    color: BluePalette.textDark,
-    fontSize: 16,
-    marginTop: 12,
+    color: BluePalette.primaryDark,
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   personnelTypeContainer: {
     marginBottom: 24,
@@ -602,7 +728,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: `${BluePalette.merge}20`,
+    backgroundColor: BluePalette.backgroundNew,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -614,7 +740,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   personnelTypeTotalBadge: {
-    backgroundColor: BluePalette.selectedBackground,
+    backgroundColor: BluePalette.backgroundNew,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -624,7 +750,7 @@ const styles = StyleSheet.create({
   personnelTypeTotal: {
     fontSize: 18,
     fontWeight: '700',
-    color: BluePalette.merge,
+    color: BluePalette.white,
     letterSpacing: -0.3,
   },
   employeesContainer: {
@@ -663,7 +789,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   employeeSalaryBadge: {
-    backgroundColor: `${BluePalette.merge}15`,
+    backgroundColor: BluePalette.backgroundNew,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
@@ -673,7 +799,7 @@ const styles = StyleSheet.create({
   employeeSalary: {
     fontSize: 16,
     fontWeight: '700',
-    color: BluePalette.merge,
+    color: BluePalette.white,
     letterSpacing: -0.2,
   },
   employeePosition: {
@@ -700,7 +826,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: `${BluePalette.merge}15`,
+    backgroundColor: BluePalette.backgroundNew,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -73,7 +73,7 @@ export default function AnalysisPhrases({ kpi, charges = [] }: AnalysisPhrasesPr
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,

@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: `${BluePalette.backgroundCard}15`,
+    backgroundColor: `${BluePalette.backgroundNew}15`,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -174,17 +174,17 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: BluePalette.mergeDark,
+    color: BluePalette.primaryLight,
   },
   progressBarContainer: {
     height: 6,
-    backgroundColor: `${BluePalette.backgroundCard}20`,
+    backgroundColor: `${BluePalette.backgroundNew}20`,
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.surface,
     borderRadius: 3,
   },
   progressText: {

@@ -52,7 +52,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: BluePalette.merge,
         tabBarInactiveTintColor: BluePalette.textTertiary,
         tabBarStyle: {
-          backgroundColor: BluePalette.backgroundCard,
+          backgroundColor: BluePalette.backgroundNew,
           borderTopWidth: 1,
           borderTopColor: BluePalette.border,
           height: tabBarTotalHeight,
@@ -68,7 +68,7 @@ export default function TabLayout() {
           fontWeight: '600',
         },
         headerStyle: {
-          backgroundColor: BluePalette.backgroundCard,
+          backgroundColor: BluePalette.backgroundNew,
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 1,

@@ -1,20 +1,20 @@
-import React, { useMemo, useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  View,
-  Pressable,
-  Image,
-  Modal,
-  Dimensions,
-} from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
+import BottomBar from '@/domains/shared/components/BottomBar';
 import Feather from '@expo/vector-icons/Feather';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import BottomBar from '@/domains/shared/components/BottomBar';
+import React, { useMemo, useState } from 'react';
+import {
+  Dimensions,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VariableChargeDetail } from '../types/charge';
 
 // Mock data - replace with actual data fetching
@@ -27,8 +27,7 @@ const mockVariableChargeDetails: Record<string, VariableChargeDetail> = {
     category: 'Supplies',
     supplier: 'Coffee Distributors Inc.',
     notes: 'Monthly order of premium blend coffee beans',
-    hasReceipt: true,
-    receiptUrl: 'https://example.com/receipt1.jpg',
+    purchaseOrderUrl: 'https://example.com/po1.jpg',
   },
   '2': {
     id: '2',
@@ -37,7 +36,6 @@ const mockVariableChargeDetails: Record<string, VariableChargeDetail> = {
     date: '2024-01-14',
     category: 'Maintenance',
     supplier: 'Supply Co.',
-    hasReceipt: false,
   },
   '3': {
     id: '3',
@@ -46,8 +44,7 @@ const mockVariableChargeDetails: Record<string, VariableChargeDetail> = {
     date: '2024-01-13',
     category: 'Supplies',
     supplier: 'Dairy Farm',
-    hasReceipt: true,
-    receiptUrl: 'https://example.com/receipt3.jpg',
+    purchaseOrderUrl: 'https://example.com/po3.jpg',
   },
   '4': {
     id: '4',
@@ -57,8 +54,6 @@ const mockVariableChargeDetails: Record<string, VariableChargeDetail> = {
     category: 'Maintenance',
     supplier: 'Tech Services',
     notes: 'Espresso machine maintenance and repair',
-    hasReceipt: true,
-    receiptUrl: 'https://example.com/receipt4.jpg',
     purchaseOrderUrl: 'https://example.com/po4.jpg',
   },
 };
@@ -112,7 +107,7 @@ export default function VariableChargeDetailScreen() {
     return (
       <SafeAreaView
         edges={['left', 'right']}
-        style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
+        style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
       >
         <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
@@ -136,7 +131,7 @@ export default function VariableChargeDetailScreen() {
   return (
     <SafeAreaView
       edges={['left', 'right']}
-      style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
+      style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
     >
       <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
@@ -145,7 +140,12 @@ export default function VariableChargeDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {charge.name}
         </Text>
-        <View style={styles.headerSpacer} />
+        <Pressable
+          style={styles.editButton}
+          onPress={() => router.push(`/charges/variable/edit/${id}` as any)}
+        >
+          <Feather name="edit-2" size={20} color={BluePalette.merge} />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -216,42 +216,12 @@ export default function VariableChargeDetailScreen() {
           </View>
         )}
 
-        {/* Receipt Section */}
+        {/* Purchase Order Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {t('charges.variable.details.receipt')}
+            {t('charges.variable.details.purchaseOrder')}
           </Text>
-          {charge.hasReceipt && charge.receiptUrl ? (
-            <Pressable
-              style={({ pressed }) => [
-                styles.imageCard,
-                pressed && styles.imageCardPressed,
-              ]}
-              onPress={() => handleImagePress(charge.receiptUrl!)}
-            >
-              <View style={styles.imagePlaceholder}>
-                <Feather name="file-text" size={32} color={BluePalette.merge} />
-                <Text style={styles.imagePlaceholderText}>
-                  {t('charges.variable.details.viewReceipt')}
-                </Text>
-              </View>
-            </Pressable>
-          ) : (
-            <View style={styles.missingReceiptCard}>
-              <Feather name="alert-circle" size={24} color={BluePalette.warning} />
-              <Text style={styles.missingReceiptText}>
-                {t('charges.variable.details.noReceipt')}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Purchase Order Section */}
-        {charge.purchaseOrderUrl && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {t('charges.variable.details.purchaseOrder')}
-            </Text>
+          {charge.purchaseOrderUrl ? (
             <Pressable
               style={({ pressed }) => [
                 styles.imageCard,
@@ -266,8 +236,15 @@ export default function VariableChargeDetailScreen() {
                 </Text>
               </View>
             </Pressable>
-          </View>
-        )}
+          ) : (
+            <View style={styles.missingReceiptCard}>
+              <Feather name="alert-circle" size={24} color={BluePalette.warning} />
+              <Text style={styles.missingReceiptText}>
+                No purchase order available
+              </Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       {/* Fullscreen Image Modal */}
@@ -316,7 +293,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
   },
@@ -342,6 +319,16 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
   },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BluePalette.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BluePalette.border,
+  },
   scrollView: {
     flex: 1,
     backgroundColor: BluePalette.white,
@@ -351,7 +338,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   amountCard: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,
@@ -369,7 +356,7 @@ const styles = StyleSheet.create({
   amountValue: {
     fontSize: 36,
     fontWeight: '700',
-    color: BluePalette.textDark,
+    color: BluePalette.white,
     letterSpacing: -1,
   },
   section: {
@@ -382,7 +369,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   detailsCard: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -407,13 +394,13 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: 15,
-    color: BluePalette.textDark,
+    color: BluePalette.white,
     fontWeight: '600',
     flex: 1,
     textAlign: 'right',
   },
   notesCard: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -421,11 +408,11 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: 15,
-    color: BluePalette.textDark,
+    color: BluePalette.textTertiary,
     lineHeight: 22,
   },
   imageCard: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: BluePalette.border,

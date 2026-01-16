@@ -65,7 +65,7 @@ export default function AlertItem({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 18,
     width: '100%',
     overflow: 'hidden',

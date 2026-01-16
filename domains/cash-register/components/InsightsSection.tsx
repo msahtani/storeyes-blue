@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   },
   comparisonCard: {
     flex: 1,
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,

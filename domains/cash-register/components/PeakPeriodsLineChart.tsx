@@ -175,8 +175,8 @@ export default function PeakPeriodsLineChart({
           <Svg width={chartWrapperWidth} height={CHART_HEIGHT} viewBox={`0 0 ${chartWrapperWidth} ${CHART_HEIGHT}`}>
             <Defs>
               <LinearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <Stop offset="0%" stopColor={BluePalette.backgroundCard} stopOpacity="0.8" />
-                <Stop offset="100%" stopColor={BluePalette.backgroundCard} stopOpacity="0.1" />
+                <Stop offset="0%" stopColor={BluePalette.surface} stopOpacity="0.8" />
+                <Stop offset="100%" stopColor={BluePalette.surfaceLight} stopOpacity="0.1" />
               </LinearGradient>
             </Defs>
 
@@ -209,7 +209,7 @@ export default function PeakPeriodsLineChart({
             <Path
               d={pathData}
               fill="none"
-              stroke={BluePalette.backgroundCard}
+              stroke={BluePalette.primaryDark}
               strokeWidth={3}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -222,7 +222,7 @@ export default function PeakPeriodsLineChart({
                 cx={point.x}
                 cy={point.y}
                 r={5}
-                fill={BluePalette.backgroundCard}
+                fill={BluePalette.surface}
                 stroke={BluePalette.white}
                 strokeWidth={2}
               />

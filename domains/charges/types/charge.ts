@@ -53,9 +53,7 @@ export interface VariableCharge {
   category: string;
   supplier?: string;
   notes?: string;
-  receiptUrl?: string;
   purchaseOrderUrl?: string;
-  hasReceipt: boolean;
 }
 
 export interface VariableChargeDetail extends VariableCharge {

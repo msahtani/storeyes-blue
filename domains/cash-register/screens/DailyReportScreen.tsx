@@ -1,7 +1,6 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
-import DateSelector from '@/domains/alerts/components/DateSelector';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import { useAppSelector } from '@/store/hooks';
 import Feather from '@expo/vector-icons/Feather';
@@ -9,6 +8,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import DailyReportDateSelector from '../components/DailyReportDateSelector';
 import PeakPeriodsLineChart from '../components/PeakPeriodsLineChart';
 import RevenueMetricsOverview from '../components/RevenueMetricsOverview';
 import StaffPerformanceTable from '../components/StaffPerformanceTable';
@@ -228,7 +228,7 @@ export default function DailyReportScreen() {
   return (
     <SafeAreaView
       edges={['left', 'right']}
-      style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
+      style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
@@ -244,7 +244,7 @@ export default function DailyReportScreen() {
 
       {/* Date Selector Blue Bar */}
       <View style={styles.headerSection}>
-        <DateSelector />
+        <DailyReportDateSelector />
       </View>
 
       <ScrollView
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
   },
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   headerSection: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
     marginTop: 0,

@@ -114,7 +114,7 @@ export default function KPICard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,

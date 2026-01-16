@@ -322,7 +322,7 @@ export default function AlertDetailsScreen() {
     return (
       <SafeAreaView
         edges={['left', 'right']}
-        style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
+        style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
       >
         <View style={[styles.topHeader, { paddingTop: insets.top + 5 }]}>
           <Pressable 
@@ -345,7 +345,7 @@ export default function AlertDetailsScreen() {
   return (
     <SafeAreaView
       edges={['left', 'right']}
-      style={[styles.container, { backgroundColor: BluePalette.backgroundCard }]}
+      style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
     >
       {/* Header with back button */}
       <View style={[styles.topHeader, { paddingTop: insets.top + 5 }]}>
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
   },
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
   },
   videoContainer: {
     width: '100%',
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 0,
     overflow: 'hidden',
   },
@@ -840,7 +840,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingVertical: 12,
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
   },
   paginationDotWrapper: {
     padding: 4,
@@ -899,7 +899,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   detailCard: {
-    backgroundColor: BluePalette.backgroundCard,
+    backgroundColor: BluePalette.backgroundNew,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
