@@ -55,12 +55,13 @@ export default function VariableChargeItem({ charge, onPress }: VariableChargeIt
         </View>
       </View>
 
-      {!charge.purchaseOrderUrl && (
+      {/* Purchase Order Badge - HIDDEN FOR NOW */}
+      {/* {!charge.purchaseOrderUrl && (
         <View style={styles.missingReceiptBadge}>
           <Feather name="alert-circle" size={12} color={BluePalette.warning} />
           <Text style={styles.missingReceiptText}>No purchase order</Text>
         </View>
-      )}
+      )} */}
     </Pressable>
   );
 }

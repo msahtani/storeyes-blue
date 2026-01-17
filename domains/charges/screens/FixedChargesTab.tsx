@@ -1,15 +1,13 @@
-import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
 import BottomBar from '@/domains/shared/components/BottomBar';
-import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ChargesDateSelector from '../components/ChargesDateSelector';
 import FixedChargeCard from '../components/FixedChargeCard';
-import { FixedCharge } from '../types/charge';
+import { FixedCharge, FixedChargeCategory } from '../types/charge';
 
 // Helper to get month key
 const getMonthKey = (monthsAgo: number): string => {
@@ -159,6 +157,18 @@ const getAllMockFixedCharges = (): FixedCharge[] => {
   return Object.values(mockFixedChargesByMonth).flat();
 };
 
+// All fixed charge categories
+const ALL_CATEGORIES: FixedChargeCategory[] = ['water', 'electricity', 'wifi', 'personnel'];
+
+// Helper to check if a month has ended
+const isMonthEnded = (monthKey: string): boolean => {
+  const [year, month] = monthKey.split('-').map(Number);
+  const monthDate = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+  const now = new Date();
+  return now > monthEnd;
+};
+
 export default function FixedChargesTab() {
   const { t } = useI18n();
   const router = useRouter();
@@ -168,33 +178,47 @@ export default function FixedChargesTab() {
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
 
-  // Filter charges based on selected month
-  // Month selection: show ALL fixed charges (wifi, water, electricity, personnel) for that month
-  const filteredCharges = useMemo(() => {
-    if (selectedMonth) {
-      // Show charges for the selected month
-      return mockFixedChargesByMonth[selectedMonth] || [];
-    }
-    // If no month selected, default to current month
-    const currentMonthKey = getMonthKey(0);
-    return mockFixedChargesByMonth[currentMonthKey] || [];
+  // Get charges for selected month
+  const monthCharges = useMemo(() => {
+    const monthKey = selectedMonth || getMonthKey(0);
+    return mockFixedChargesByMonth[monthKey] || [];
   }, [selectedMonth]);
 
-  const handleCardPress = (chargeId: string) => {
-    // Get the current month key to pass to detail screen
-    const monthKey = selectedMonth || getMonthKey(0);
-    router.push({
-      pathname: `/charges/fixed/${chargeId}` as any,
-      params: { month: monthKey },
+  // Create a map of category -> charge for easy lookup
+  const chargesByCategory = useMemo(() => {
+    const map = new Map<FixedChargeCategory, FixedCharge>();
+    monthCharges.forEach((charge) => {
+      map.set(charge.category, charge);
     });
+    return map;
+  }, [monthCharges]);
+
+  // Get current month key
+  const currentMonthKey = useMemo(() => selectedMonth || getMonthKey(0), [selectedMonth]);
+  
+  // Check if current month has ended
+  const monthEnded = useMemo(() => isMonthEnded(currentMonthKey), [currentMonthKey]);
+
+  const handleCardPress = (category: FixedChargeCategory, charge: FixedCharge | null) => {
+    const monthKey = currentMonthKey;
+    
+    if (charge) {
+      // Navigate to detail screen (which has edit button)
+      router.push({
+        pathname: `/charges/fixed/${charge.id}` as any,
+        params: { month: monthKey },
+      });
+    } else {
+      // Navigate to create form
+      router.push({
+        pathname: `/charges/fixed/create` as any,
+        params: { month: monthKey, category },
+      });
+    }
   };
 
   const handleMonthSelect = (monthKey: string) => {
     setSelectedMonth(monthKey);
-  };
-
-  const handleCreatePress = () => {
-    router.push('/charges/fixed/create' as any);
   };
 
   return (
@@ -204,20 +228,6 @@ export default function FixedChargesTab() {
         onMonthSelect={handleMonthSelect}
       />
 
-      {/* Create Button */}
-      <View style={styles.createButtonContainer}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.createButton,
-            pressed && styles.createButtonPressed,
-          ]}
-          onPress={handleCreatePress}
-        >
-          <Feather name="plus" size={20} color={BluePalette.white} />
-          <Text style={styles.createButtonText}>New Fixed Charge</Text>
-        </Pressable>
-      </View>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -226,23 +236,22 @@ export default function FixedChargesTab() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {filteredCharges.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              {t('charges.fixed.empty')}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.cardsContainer}>
-            {filteredCharges.map((charge) => (
+        <View style={styles.cardsContainer}>
+          {ALL_CATEGORIES.map((category) => {
+            const charge = chargesByCategory.get(category) || null;
+            const isWarned = !charge && monthEnded;
+            
+            return (
               <FixedChargeCard
-                key={charge.id}
+                key={category}
+                category={category}
                 charge={charge}
-                onPress={() => handleCardPress(charge.id)}
+                isWarned={isWarned}
+                onPress={() => handleCardPress(category, charge)}
               />
-            ))}
-          </View>
-        )}
+            );
+          })}
+        </View>
       </ScrollView>
 
       <BottomBar />
@@ -264,49 +273,6 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     gap: 0,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: BluePalette.textTertiary,
-    fontWeight: '500',
-  },
-  createButtonContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: BluePalette.merge,
-    borderRadius: 12,
-    paddingVertical: 14,
-    shadowColor: BluePalette.merge,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  createButtonPressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
-  },
-  createButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: BluePalette.white,
-    letterSpacing: -0.3,
   },
 });
 

@@ -281,7 +281,10 @@ export default function FixedChargeDetailScreen() {
         </Text>
         <Pressable
           style={styles.editButton}
-          onPress={() => router.push(`/charges/fixed/edit/${id}` as any)}
+          onPress={() => router.push({
+            pathname: `/charges/fixed/edit/${id}` as any,
+            params: { category: charge.category, month: monthKey },
+          })}
         >
           <Feather name="edit-2" size={20} color={BluePalette.merge} />
         </Pressable>

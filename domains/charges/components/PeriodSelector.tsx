@@ -49,12 +49,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   periodButton: {
+    flex: 1,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: BluePalette.surface,
     borderWidth: 1,
     borderColor: BluePalette.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   periodButtonActive: {
     backgroundColor: BluePalette.selectedBackground,

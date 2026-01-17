@@ -27,6 +27,7 @@ export default function RevenueMetricsOverview({
     return new Intl.NumberFormat('en-US').format(num);
   };
 
+  // Removed HT metric - only showing TTC, Transactions, and Avg Transaction Value
   const metrics = [
     {
       label: 'Total Revenue (TTC)',
@@ -34,13 +35,7 @@ export default function RevenueMetricsOverview({
       icon: 'dollar-sign',
       format: 'currency',
       color: BluePalette.merge,
-    },
-    {
-      label: 'Total Revenue (HT)',
-      value: revenue.totalHT,
-      icon: 'dollar-sign',
-      format: 'currency',
-      color: BluePalette.primaryLight,
+      isFullWidth: true, // TTC takes full width
     },
     {
       label: 'Total Transactions',
@@ -63,7 +58,13 @@ export default function RevenueMetricsOverview({
       <Text style={styles.sectionTitle}>Revenue Metrics Overview</Text>
       <View style={styles.grid}>
         {metrics.map((metric, index) => (
-          <View key={index} style={styles.card}>
+          <View 
+            key={index} 
+            style={[
+              styles.card,
+              metric.isFullWidth && styles.cardFullWidth
+            ]}
+          >
             <View style={[styles.iconContainer, { backgroundColor: `${metric.color}15` }]}>
               <Feather name={metric.icon as any} size={24} color={metric.color} />
             </View>
@@ -116,6 +117,10 @@ const styles = StyleSheet.create({
     minHeight: 150,
     justifyContent: 'flex-start',
     alignItems: 'center',
+  },
+  cardFullWidth: {
+    minWidth: '100%',
+    flexBasis: '100%',
   },
   iconContainer: {
     width: 48,

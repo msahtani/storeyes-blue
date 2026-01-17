@@ -39,7 +39,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you add purchase order images.",
+          "cameraPermission": "The app accesses your camera to let you take photos of purchase orders."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

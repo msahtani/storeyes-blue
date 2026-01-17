@@ -6,13 +6,13 @@ import Feather from '@expo/vector-icons/Feather';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
-  Dimensions,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
+    Dimensions,
+    Image,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VariableChargeDetail } from '../types/charge';
@@ -216,8 +216,8 @@ export default function VariableChargeDetailScreen() {
           </View>
         )}
 
-        {/* Purchase Order Section */}
-        <View style={styles.section}>
+        {/* Purchase Order Section - HIDDEN FOR NOW */}
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>
             {t('charges.variable.details.purchaseOrder')}
           </Text>
@@ -244,7 +244,7 @@ export default function VariableChargeDetailScreen() {
               </Text>
             </View>
           )}
-        </View>
+        </View> */}
       </ScrollView>
 
       {/* Fullscreen Image Modal */}

@@ -6,20 +6,18 @@ import { setSelectedDate } from '@/domains/alerts/store/alertsSlice';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import Feather from '@expo/vector-icons/Feather';
-import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VariableCharge } from '../types/charge';
@@ -64,19 +62,8 @@ export default function VariableChargeFormScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
 
-  // Request camera and media library permissions
-  useEffect(() => {
-    (async () => {
-      const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-      const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (cameraStatus !== 'granted' || mediaStatus !== 'granted') {
-        Alert.alert(
-          'Permissions Required',
-          'Camera and photo library permissions are needed to add purchase orders.'
-        );
-      }
-    })();
-  }, []);
+  // Image Picker - DISABLED (Purchase Order section is hidden)
+  // Removed ImagePicker code since purchase order functionality is commented out
 
   // Load existing data if editing
   useEffect(() => {
@@ -141,39 +128,15 @@ export default function VariableChargeFormScreen() {
   };
 
   const handleTakePhoto = async () => {
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setFormData((prev) => ({ ...prev, purchaseOrderUri: result.assets[0].uri }));
-        setShowImagePicker(false);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
-    }
+    // DISABLED - Purchase Order section is hidden
+    // ImagePicker code removed to prevent native module errors
+    Alert.alert('Info', 'Purchase order functionality is currently disabled.');
   };
 
   const handlePickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setFormData((prev) => ({ ...prev, purchaseOrderUri: result.assets[0].uri }));
-        setShowImagePicker(false);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
-    }
+    // DISABLED - Purchase Order section is hidden
+    // ImagePicker code removed to prevent native module errors
+    Alert.alert('Info', 'Purchase order functionality is currently disabled.');
   };
 
   const handleRemoveImage = () => {
@@ -384,8 +347,8 @@ export default function VariableChargeFormScreen() {
             </View>
           </View>
 
-          {/* Purchase Order Image */}
-          <View style={styles.inputGroup}>
+          {/* Purchase Order Image - HIDDEN FOR NOW */}
+          {/* <View style={styles.inputGroup}>
             <Text style={styles.label}>Purchase Order</Text>
             {formData.purchaseOrderUri ? (
               <View style={styles.imageContainer}>
@@ -418,10 +381,10 @@ export default function VariableChargeFormScreen() {
                 <Text style={styles.addImageSubtext}>Take photo or upload from gallery</Text>
               </Pressable>
             )}
-          </View>
+          </View> */}
 
-          {/* Image Picker Action Sheet */}
-          {showImagePicker && (
+          {/* Image Picker Action Sheet - HIDDEN FOR NOW */}
+          {false && showImagePicker && (
             <View style={styles.imagePickerOverlay}>
               <Pressable
                 style={styles.imagePickerBackdrop}

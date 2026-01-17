@@ -1,8 +1,6 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
-import PeriodSelector from '@/domains/charges/components/PeriodSelector';
-import { PeriodType as ChargesPeriodType } from '@/domains/charges/types/charge';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
@@ -12,6 +10,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import AnalysisPhrases from '../components/AnalysisPhrases';
 import DoughnutChart from '../components/DoughnutChart';
 import KPICard from '../components/KPICard';
+import StatisticsDateSelector from '../components/StatisticsDateSelector';
 import { PeriodType, StatisticsData } from '../types/statistics';
 import { calculateKPIMetrics } from '../utils/statusCalculator';
 
@@ -25,7 +24,7 @@ function createStatisticsData(
   chartData: Array<{ period: string; revenue: number; charges: number; profit: number }>
 ): StatisticsData {
   const metrics = calculateKPIMetrics(revenue, charges, profit);
-  
+
   return {
     period,
     kpi: {
@@ -94,14 +93,17 @@ export default function StatisticsScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('month');
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('month'); // Default to month
+  const [selectedDate, setSelectedDate] = useState<string | undefined>();
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
 
   const statistics = useMemo(() => {
+    // Filter by selected date if provided, otherwise use default data for period
+    // In real implementation, this would filter the data based on selectedDate
     return mockStatisticsData[selectedPeriod];
-  }, [selectedPeriod]);
+  }, [selectedPeriod, selectedDate]);
 
   const handleChargesDetailPress = () => {
     router.push(`/statistics/charges?period=${selectedPeriod}` as any);
@@ -124,6 +126,18 @@ export default function StatisticsScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
+      {/* Date Selector - Includes Period Selector and Date Selection */}
+      <StatisticsDateSelector
+        period={selectedPeriod}
+        selectedDate={selectedDate}
+        onDateSelect={setSelectedDate}
+        onPeriodChange={(period) => {
+          setSelectedPeriod(period);
+          // Reset selected date when period changes
+          setSelectedDate(undefined);
+        }}
+      />
+      
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -132,12 +146,7 @@ export default function StatisticsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Period Selector */}
-        <PeriodSelector
-          periods={['day', 'week', 'month'] as ChargesPeriodType[]}
-          selectedPeriod={selectedPeriod as ChargesPeriodType}
-          onPeriodChange={(period) => setSelectedPeriod(period as PeriodType)}
-        />
+        
 
         {/* KPI Cards - Horizontal Scroll */}
         <ScrollView

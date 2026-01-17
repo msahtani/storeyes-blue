@@ -6,7 +6,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { FixedCharge, FixedChargeCategory } from '../types/charge';
 
 interface FixedChargeCardProps {
-  charge: FixedCharge;
+  category: FixedChargeCategory;
+  charge: FixedCharge | null;
+  isWarned?: boolean;
   onPress: () => void;
 }
 
@@ -24,9 +26,10 @@ const categoryLabels: Record<FixedChargeCategory, string> = {
   wifi: 'Wi-Fi',
 };
 
-export default function FixedChargeCard({ charge, onPress }: FixedChargeCardProps) {
-  const icon = categoryIcons[charge.category];
-  const label = categoryLabels[charge.category];
+export default function FixedChargeCard({ category, charge, isWarned = false, onPress }: FixedChargeCardProps) {
+  const icon = categoryIcons[category];
+  const label = categoryLabels[category];
+  const isEmpty = !charge;
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -38,7 +41,7 @@ export default function FixedChargeCard({ charge, onPress }: FixedChargeCardProp
   };
 
   const getTrendIcon = () => {
-    if (!charge.trend) return null;
+    if (!charge?.trend) return null;
     switch (charge.trend) {
       case 'up':
         return <Feather name="trending-up" size={14} color={BluePalette.error} />;
@@ -55,38 +58,71 @@ export default function FixedChargeCard({ charge, onPress }: FixedChargeCardProp
     <Pressable
       style={({ pressed }) => [
         styles.card,
-        charge.abnormalIncrease && styles.cardAbnormal,
+        isEmpty && styles.cardEmpty,
+        isWarned && styles.cardWarned,
+        charge?.abnormalIncrease && styles.cardAbnormal,
         pressed && styles.cardPressed,
       ]}
       onPress={onPress}
       android_ripple={{ color: 'rgba(6, 182, 212, 0.2)' }}
     >
       <View style={styles.cardContent}>
-        <View style={[styles.iconContainer, { backgroundColor: `${BluePalette.merge}15` }]}>
-          <Feather name={icon as any} size={24} color={BluePalette.merge} />
+        <View style={[
+          styles.iconContainer,
+          { backgroundColor: isEmpty ? `${BluePalette.textTertiary}15` : `${BluePalette.merge}15` }
+        ]}>
+          <Feather 
+            name={icon as any} 
+            size={24} 
+            color={isEmpty ? BluePalette.textTertiary : BluePalette.merge} 
+          />
         </View>
         
         <View style={styles.cardInfo}>
-          <Text style={styles.categoryLabel}>{label}</Text>
-          <View style={styles.amountRow}>
-            <Text style={styles.amount}>{formatAmount(charge.amount)}</Text>
-            {charge.trend && (
-              <View style={styles.trendContainer}>
-                {getTrendIcon()}
-                {charge.trendPercentage !== undefined && (
-                  <Text style={styles.trendText}>
-                    {charge.trendPercentage > 0 ? '+' : ''}
-                    {charge.trendPercentage.toFixed(1)}%
-                  </Text>
-                )}
-              </View>
-            )}
-          </View>
+          <Text style={[
+            styles.categoryLabel,
+            isEmpty && styles.categoryLabelEmpty
+          ]}>
+            {label}
+          </Text>
+          {isEmpty ? (
+            <View style={styles.emptyState}>
+              {isWarned ? (
+                <>
+                  <Feather name="alert-circle" size={14} color={BluePalette.warning} />
+                  <Text style={styles.warnedText}>Not filled - Month ended</Text>
+                </>
+              ) : (
+                <Text style={styles.emptyText}>Not filled</Text>
+              )}
+            </View>
+          ) : (
+            <View style={styles.amountRow}>
+              <Text style={styles.amount}>{formatAmount(charge.amount)}</Text>
+              {charge.trend && (
+                <View style={styles.trendContainer}>
+                  {getTrendIcon()}
+                  {charge.trendPercentage !== undefined && (
+                    <Text style={styles.trendText}>
+                      {charge.trendPercentage > 0 ? '+' : ''}
+                      {charge.trendPercentage.toFixed(1)}%
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
-        {charge.abnormalIncrease && (
+        {charge?.abnormalIncrease && (
           <View style={styles.alertBadge}>
             <Feather name="alert-circle" size={16} color={BluePalette.error} />
+          </View>
+        )}
+        
+        {isWarned && (
+          <View style={styles.warnedBadge}>
+            <Feather name="alert-triangle" size={18} color={BluePalette.warning} />
           </View>
         )}
       </View>
@@ -110,6 +146,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+  },
+  cardEmpty: {
+    borderStyle: 'dashed',
+    opacity: 0.7,
+  },
+  cardWarned: {
+    borderColor: BluePalette.warning,
+    borderWidth: 2,
+    backgroundColor: BluePalette.backgroundNew,
   },
   cardAbnormal: {
     borderColor: BluePalette.error,
@@ -140,6 +185,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: BluePalette.textPrimary,
   },
+  categoryLabelEmpty: {
+    color: BluePalette.textTertiary,
+  },
+  emptyState: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: BluePalette.textTertiary,
+    fontWeight: '500',
+    fontStyle: 'italic',
+  },
+  warnedText: {
+    fontSize: 13,
+    color: BluePalette.warning,
+    fontWeight: '600',
+  },
   amountRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -162,6 +227,9 @@ const styles = StyleSheet.create({
     color: BluePalette.textTertiary,
   },
   alertBadge: {
+    padding: 4,
+  },
+  warnedBadge: {
     padding: 4,
   },
 });

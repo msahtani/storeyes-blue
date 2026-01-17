@@ -4,7 +4,7 @@ import { useI18n } from '@/constants/i18n/I18nContext';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import Feather from '@expo/vector-icons/Feather';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -180,7 +180,11 @@ const getMonthKey = (monthsAgo: number): string => {
 };
 
 export default function FixedChargeFormScreen() {
-  const { id, category: categoryParam } = useLocalSearchParams<{ id?: string; category?: string }>();
+  const { id, category: categoryParam, month: monthParam } = useLocalSearchParams<{ 
+    id?: string; 
+    category?: string;
+    month?: string;
+  }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
@@ -189,14 +193,32 @@ export default function FixedChargeFormScreen() {
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
 
+  // Determine initial category - use param if provided, or load from charge if editing, otherwise default to personnel
+  const initialCategory = useMemo(() => {
+    if (categoryParam) {
+      return categoryParam as FixedChargeCategory;
+    }
+    if (isEditMode && id) {
+      // Load category from existing charge
+      const existingCharge = mockFixedCharges[id];
+      if (existingCharge) {
+        return existingCharge.category;
+      }
+    }
+    return 'personnel';
+  }, [categoryParam, isEditMode, id]);
+  
   const [formData, setFormData] = useState({
-    category: (categoryParam as FixedChargeCategory) || 'personnel',
+    category: initialCategory,
     amount: '',
     period: 'month' as 'week' | 'month',
     notes: '',
   });
-
-  const [selectedMonth, setSelectedMonth] = useState<string>(getMonthKey(0));
+  
+  // Set selected month from params if provided, otherwise use current month
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    monthParam || getMonthKey(0)
+  );
   const [selectedWeek, setSelectedWeek] = useState<string | undefined>();
   const [employees, setEmployees] = useState<PersonnelEmployee[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -226,19 +248,22 @@ export default function FixedChargeFormScreen() {
     if (isEditMode && id) {
       const existingCharge = mockFixedCharges[id];
       if (existingCharge) {
+        const chargeCategory = existingCharge.category;
+        const chargeIsPersonnel = chargeCategory === 'personnel';
+        
         setFormData({
-          category: existingCharge.category,
+          category: chargeCategory,
           amount: existingCharge.amount.toString(),
           period: existingCharge.period,
           notes: '',
         });
         // Set month/week based on period
-        if (existingCharge.period === 'week' && isPersonnel) {
+        if (existingCharge.period === 'week' && chargeIsPersonnel) {
           // In real app, extract week from charge data
           setSelectedWeek(undefined);
         }
         // Load employees if personnel (in real app, fetch from API)
-        if (isPersonnel) {
+        if (chargeIsPersonnel) {
           const detailData = mockFixedChargeDetailsForForm[id];
           if (detailData?.personnelData) {
             // Flatten all employees from all personnel types
@@ -247,10 +272,13 @@ export default function FixedChargeFormScreen() {
           } else {
             setEmployees([]);
           }
+        } else {
+          // Clear employees if not personnel
+          setEmployees([]);
         }
       }
     }
-  }, [id, isEditMode, isPersonnel]);
+  }, [id, isEditMode]);
 
   const updateField = (field: string, value: string | 'week' | 'month') => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -361,10 +389,11 @@ export default function FixedChargeFormScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Category Selector */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Category *</Text>
-            <View style={styles.categoryGrid}>
+          {/* Category Selector (Hide if category provided in params or in edit mode) */}
+          {!isEditMode && !categoryParam && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Category *</Text>
+              <View style={styles.categoryGrid}>
               {fixedCategories.map((cat) => (
                 <Pressable
                   key={cat.value}
@@ -402,7 +431,8 @@ export default function FixedChargeFormScreen() {
                 </Pressable>
               ))}
             </View>
-          </View>
+            </View>
+          )}
 
           {/* Period Selector (Only for Personnel) */}
           {isPersonnel && (
@@ -625,6 +655,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   weekSelectorContainer: {
+    backgroundColor: BluePalette.backgroundNew,
+    paddingTop: 12,
     borderRadius: 12,
     overflow: 'hidden',
   },
