@@ -4,59 +4,21 @@ import { useI18n } from '@/constants/i18n/I18nContext';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import Feather from '@expo/vector-icons/Feather';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Dimensions,
-    Image,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getVariableChargeById } from '../services/chargesService';
 import { VariableChargeDetail } from '../types/charge';
-
-// Mock data - replace with actual data fetching
-const mockVariableChargeDetails: Record<string, VariableChargeDetail> = {
-  '1': {
-    id: '1',
-    name: 'Coffee Beans - Premium Blend',
-    amount: 245.50,
-    date: '2024-01-15',
-    category: 'Supplies',
-    supplier: 'Coffee Distributors Inc.',
-    notes: 'Monthly order of premium blend coffee beans',
-    purchaseOrderUrl: 'https://example.com/po1.jpg',
-  },
-  '2': {
-    id: '2',
-    name: 'Cleaning Supplies',
-    amount: 89.99,
-    date: '2024-01-14',
-    category: 'Maintenance',
-    supplier: 'Supply Co.',
-  },
-  '3': {
-    id: '3',
-    name: 'Milk Delivery',
-    amount: 156.00,
-    date: '2024-01-13',
-    category: 'Supplies',
-    supplier: 'Dairy Farm',
-    purchaseOrderUrl: 'https://example.com/po3.jpg',
-  },
-  '4': {
-    id: '4',
-    name: 'Equipment Repair',
-    amount: 320.00,
-    date: '2024-01-12',
-    category: 'Maintenance',
-    supplier: 'Tech Services',
-    notes: 'Espresso machine maintenance and repair',
-    purchaseOrderUrl: 'https://example.com/po4.jpg',
-  },
-};
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -67,14 +29,67 @@ export default function VariableChargeDetailScreen() {
   const { t } = useI18n();
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [charge, setCharge] = useState<VariableChargeDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
 
-  const charge = useMemo(() => {
-    if (!id) return null;
-    return mockVariableChargeDetails[id] || null;
+  // Fetch charge detail function
+  const fetchCharge = useCallback(async () => {
+    if (!id) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const chargeId = parseInt(id, 10);
+      if (isNaN(chargeId)) {
+        throw new Error('Invalid charge ID');
+      }
+
+      const response = await getVariableChargeById(chargeId);
+
+      // Convert to frontend format
+      const frontendCharge: VariableChargeDetail = {
+        id: response.id.toString(),
+        name: response.name,
+        amount: response.amount,
+        date: response.date,
+        category: response.category,
+        supplier: response.supplier,
+        notes: response.notes,
+        purchaseOrderUrl: response.purchaseOrderUrl,
+        createdAt: response.createdAt,
+        updatedAt: response.updatedAt,
+      };
+
+      setCharge(frontendCharge);
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to load charge details';
+      setError(errorMessage);
+      console.error('Error fetching variable charge:', err);
+      setCharge(null);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  // Fetch charge detail when id changes
+  useEffect(() => {
+    fetchCharge();
+  }, [fetchCharge]);
+
+  // Refetch when screen comes into focus (after edit)
+  useFocusEffect(
+    useCallback(() => {
+      fetchCharge();
+    }, [fetchCharge])
+  );
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -103,7 +118,30 @@ export default function VariableChargeDetailScreen() {
     }
   };
 
-  if (!charge) {
+  if (loading) {
+    return (
+      <SafeAreaView
+        edges={['left', 'right']}
+        style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
+      >
+        <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+          </Pressable>
+          <Text style={styles.headerTitle}>
+            {t('charges.variable.details.title')}
+          </Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={BluePalette.merge} />
+        </View>
+        <BottomBar />
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !charge) {
     return (
       <SafeAreaView
         edges={['left', 'right']}
@@ -120,7 +158,7 @@ export default function VariableChargeDetailScreen() {
         </View>
         <View style={styles.messageContainer}>
           <Text style={styles.message}>
-            {t('charges.variable.details.notFound')}
+            {error || t('charges.variable.details.notFound')}
           </Text>
         </View>
         <BottomBar />
@@ -477,6 +515,12 @@ const styles = StyleSheet.create({
   modalImage: {
     width: SCREEN_WIDTH - 40,
     height: SCREEN_HEIGHT - 100,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
   },
   messageContainer: {
     flex: 1,

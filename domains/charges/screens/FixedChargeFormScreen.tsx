@@ -20,148 +20,23 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import ChargesDateSelector from '../components/ChargesDateSelector';
 import EmployeeManager from '../components/EmployeeManager';
 import WeekSelector from '../components/WeekSelector';
-import { FixedCharge, FixedChargeCategory, PersonnelEmployee, PersonnelTypeData } from '../types/charge';
+import {
+  convertCategoryFromFrontend,
+  convertEmployeeTypeFromFrontend,
+  convertFixedChargeDetailToFrontend,
+  convertPeriodFromFrontend,
+  createFixedCharge,
+  getFixedChargeById,
+  updateFixedCharge,
+} from '../services/chargesService';
+import {
+  ChargeCategory,
+  ChargePeriod,
+  FixedChargeCategory,
+  PersonnelEmployeeUI
+} from '../types/charge';
+import { getMonthForWeek, validateWeekKey, validateWeekMonth } from '../utils/weekUtils';
 
-// Mock data - replace with actual data fetching
-const mockFixedCharges: Record<string, FixedCharge> = {
-  '1': {
-    id: '1',
-    category: 'personnel',
-    amount: 4500,
-    period: 'month',
-    trend: 'up',
-    trendPercentage: 5.2,
-    abnormalIncrease: false,
-  },
-};
-
-// Mock detail data for loading employees when editing
-const mockFixedChargeDetailsForForm: Record<string, { personnelData?: PersonnelTypeData[] }> = {
-  '1': {
-    personnelData: [
-      {
-        type: 'server',
-        totalAmount: 1800,
-        employees: [
-          {
-            id: 'p1',
-            name: 'John Doe',
-            salary: 900,
-            hours: 160,
-            position: 'Senior Server',
-            startDate: '2023-01-15',
-          },
-          {
-            id: 'p2',
-            name: 'Jane Smith',
-            salary: 900,
-            hours: 160,
-            position: 'Server',
-            startDate: '2023-03-20',
-          },
-        ],
-      },
-      {
-        type: 'barman',
-        totalAmount: 1500,
-        employees: [
-          {
-            id: 'p3',
-            name: 'Mike Johnson',
-            salary: 1500,
-            hours: 160,
-            position: 'Head Bartender',
-            startDate: '2022-11-10',
-          },
-        ],
-      },
-      {
-        type: 'cleaner',
-        totalAmount: 1200,
-        employees: [
-          {
-            id: 'p4',
-            name: 'Sarah Williams',
-            salary: 800,
-            hours: 120,
-            position: 'Cleaner',
-            startDate: '2023-06-01',
-          },
-          {
-            id: 'p5',
-            name: 'Tom Brown',
-            salary: 400,
-            hours: 60,
-            position: 'Part-time Cleaner',
-            startDate: '2023-09-15',
-          },
-        ],
-      },
-    ],
-  },
-  '13': {
-    personnelData: [
-      {
-        type: 'server',
-        totalAmount: 1900,
-        employees: [
-          {
-            id: 'p1',
-            name: 'John Doe',
-            salary: 950,
-            hours: 160,
-            position: 'Senior Server',
-            startDate: '2023-01-15',
-          },
-          {
-            id: 'p2',
-            name: 'Jane Smith',
-            salary: 950,
-            hours: 160,
-            position: 'Server',
-            startDate: '2023-03-20',
-          },
-        ],
-      },
-      {
-        type: 'barman',
-        totalAmount: 1500,
-        employees: [
-          {
-            id: 'p3',
-            name: 'Mike Johnson',
-            salary: 1500,
-            hours: 160,
-            position: 'Head Bartender',
-            startDate: '2022-11-10',
-          },
-        ],
-      },
-      {
-        type: 'cleaner',
-        totalAmount: 1200,
-        employees: [
-          {
-            id: 'p4',
-            name: 'Sarah Williams',
-            salary: 800,
-            hours: 120,
-            position: 'Cleaner',
-            startDate: '2023-06-01',
-          },
-          {
-            id: 'p5',
-            name: 'Tom Brown',
-            salary: 400,
-            hours: 60,
-            position: 'Part-time Cleaner',
-            startDate: '2023-09-15',
-          },
-        ],
-      },
-    ],
-  },
-};
 
 const fixedCategories: Array<{ value: FixedChargeCategory; label: string; icon: string }> = [
   { value: 'personnel', label: 'Personnel', icon: 'users' },
@@ -180,8 +55,8 @@ const getMonthKey = (monthsAgo: number): string => {
 };
 
 export default function FixedChargeFormScreen() {
-  const { id, category: categoryParam, month: monthParam } = useLocalSearchParams<{ 
-    id?: string; 
+  const { id, category: categoryParam, month: monthParam } = useLocalSearchParams<{
+    id?: string;
     category?: string;
     month?: string;
   }>();
@@ -193,34 +68,27 @@ export default function FixedChargeFormScreen() {
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
 
-  // Determine initial category - use param if provided, or load from charge if editing, otherwise default to personnel
+  // Determine initial category - use param if provided, otherwise default to personnel
   const initialCategory = useMemo(() => {
     if (categoryParam) {
       return categoryParam as FixedChargeCategory;
     }
-    if (isEditMode && id) {
-      // Load category from existing charge
-      const existingCharge = mockFixedCharges[id];
-      if (existingCharge) {
-        return existingCharge.category;
-      }
-    }
     return 'personnel';
-  }, [categoryParam, isEditMode, id]);
-  
+  }, [categoryParam]);
+
   const [formData, setFormData] = useState({
     category: initialCategory,
     amount: '',
     period: 'month' as 'week' | 'month',
     notes: '',
   });
-  
+
   // Set selected month from params if provided, otherwise use current month
   const [selectedMonth, setSelectedMonth] = useState<string>(
     monthParam || getMonthKey(0)
   );
   const [selectedWeek, setSelectedWeek] = useState<string | undefined>();
-  const [employees, setEmployees] = useState<PersonnelEmployee[]>([]);
+  const [employees, setEmployees] = useState<PersonnelEmployeeUI[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -238,47 +106,116 @@ export default function FixedChargeFormScreen() {
   // Auto-update amount when employees change (for personnel)
   useEffect(() => {
     if (isPersonnel && employees.length > 0) {
-      const total = employees.reduce((sum, emp) => sum + emp.salary, 0);
+      const total = employees.reduce((sum, emp) => {
+        if (formData.period === 'month') {
+          // For month view, use monthSalary or calculate from weekSalaries
+          if (emp.monthSalary !== undefined) {
+            return sum + emp.monthSalary;
+          }
+          // Calculate from week salaries if available (only weeks belonging to this month)
+          if (emp.weekSalaries) {
+            const weekTotal = Object.entries(emp.weekSalaries).reduce((s, [weekKey, amount]) => {
+              // Only count weeks that belong to the selected month
+              if (selectedMonth) {
+                const weekMonthKey = getMonthForWeek(weekKey);
+                if (weekMonthKey === selectedMonth) {
+                  return s + amount;
+                }
+              } else {
+                // If no month selected, sum all weeks
+                return s + amount;
+              }
+              return s;
+            }, 0);
+            return sum + weekTotal;
+          }
+          return sum + (emp.salary || 0);
+        } else {
+          // For week view, use salary for selected week or weekSalary
+          if (selectedWeek && emp.weekSalaries && emp.weekSalaries[selectedWeek] !== undefined) {
+            return sum + emp.weekSalaries[selectedWeek];
+          }
+          return sum + (emp.weekSalary || emp.salary || 0);
+        }
+      }, 0);
       setFormData((prev) => ({ ...prev, amount: total.toFixed(2) }));
     }
-  }, [employees, isPersonnel]);
+  }, [employees, isPersonnel, formData.period, selectedWeek]);
 
   // Load existing data if editing
   useEffect(() => {
-    if (isEditMode && id) {
-      const existingCharge = mockFixedCharges[id];
-      if (existingCharge) {
-        const chargeCategory = existingCharge.category;
+    const loadCharge = async () => {
+      if (!isEditMode || !id) return;
+
+      try {
+        const chargeId = parseInt(id, 10);
+        if (isNaN(chargeId)) {
+          Alert.alert('Error', 'Invalid charge ID');
+          router.back();
+          return;
+        }
+
+        const response = await getFixedChargeById(chargeId, selectedMonth);
+        const frontendCharge = convertFixedChargeDetailToFrontend(response);
+
+        const chargeCategory = frontendCharge.category;
         const chargeIsPersonnel = chargeCategory === 'personnel';
-        
+
         setFormData({
           category: chargeCategory,
-          amount: existingCharge.amount.toString(),
-          period: existingCharge.period,
-          notes: '',
+          amount: frontendCharge.amount.toString(),
+          period: frontendCharge.period,
+          notes: frontendCharge.notes || '',
         });
-        // Set month/week based on period
-        if (existingCharge.period === 'week' && chargeIsPersonnel) {
-          // In real app, extract week from charge data
-          setSelectedWeek(undefined);
+
+        setSelectedMonth(frontendCharge.monthKey || selectedMonth);
+        if (frontendCharge.weekKey) {
+          setSelectedWeek(frontendCharge.weekKey);
         }
-        // Load employees if personnel (in real app, fetch from API)
-        if (chargeIsPersonnel) {
-          const detailData = mockFixedChargeDetailsForForm[id];
-          if (detailData?.personnelData) {
-            // Flatten all employees from all personnel types
-            const allEmployees = detailData.personnelData.flatMap((typeData) => typeData.employees);
-            setEmployees(allEmployees);
-          } else {
-            setEmployees([]);
-          }
+
+        // Load employees if personnel
+        if (chargeIsPersonnel && frontendCharge.personnelData) {
+          // Flatten all employees from all personnel types
+          const allEmployees: PersonnelEmployeeUI[] = frontendCharge.personnelData.flatMap(
+            (typeData) => typeData.employees
+          );
+
+          // When loading employees, filter weekSalaries to only include weeks for the selected month
+          // This ensures switching periods doesn't show data from other months
+          const filteredEmployees = allEmployees.map((emp) => {
+            if (emp.weekSalaries && selectedMonth) {
+              const filteredWeekSalaries: Record<string, number> = {};
+              for (const [weekKey, amount] of Object.entries(emp.weekSalaries)) {
+                const weekMonthKey = getMonthForWeek(weekKey);
+                if (weekMonthKey === selectedMonth) {
+                  filteredWeekSalaries[weekKey] = amount;
+                }
+              }
+              return {
+                ...emp,
+                weekSalaries: Object.keys(filteredWeekSalaries).length > 0 ? filteredWeekSalaries : undefined,
+              };
+            }
+            return emp;
+          });
+
+          setEmployees(filteredEmployees);
         } else {
-          // Clear employees if not personnel
           setEmployees([]);
         }
+      } catch (err: any) {
+        const errorMessage =
+          err?.response?.data?.message ||
+          err?.message ||
+          'Failed to load charge data';
+        Alert.alert('Error', errorMessage);
+        console.error('Error loading charge:', err);
+        router.back();
       }
-    }
-  }, [id, isEditMode]);
+    };
+
+    loadCharge();
+  }, [id, isEditMode, selectedMonth, router]);
 
   const updateField = (field: string, value: string | 'week' | 'month') => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -288,11 +225,65 @@ export default function FixedChargeFormScreen() {
     }
   };
 
+  /**
+   * Handle changing period between month and week for personnel charges.
+   * To avoid inconsistent data, switching period will clear employee salary data
+   * and require the user to fill again for the selected period.
+   */
+  const handlePeriodChange = (nextPeriod: 'week' | 'month') => {
+    if (!isPersonnel) {
+      updateField('period', nextPeriod);
+      return;
+    }
+
+    if (formData.period === nextPeriod) {
+      return;
+    }
+
+    Alert.alert(
+      'Change Period',
+      'Changing between month and week will reset employee salary data for this charge. You will need to fill the salaries again for the new period.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            // Update period
+            updateField('period', nextPeriod);
+
+            // Clear employees and amount to avoid mixing monthly and weekly data
+            setEmployees([]);
+            setFormData((prev) => ({ ...prev, amount: '' }));
+
+            // Reset selected week when switching back to month
+            if (nextPeriod === 'month') {
+              setSelectedWeek(undefined);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (isPersonnel && employees.length === 0) {
       newErrors.employees = 'At least one employee is required for personnel charges';
+    }
+
+    // Check if all employees have salary set
+    if (isPersonnel && employees.length > 0) {
+      const employeesWithoutSalary = employees.filter(emp => emp.salary === undefined || emp.salary === null);
+      if (employeesWithoutSalary.length > 0) {
+        // Warning but not blocking - user can set salary later
+        // Just ensure amount is set if employees have salary
+        const hasAnySalary = employees.some(emp => emp.salary !== undefined && emp.salary !== null);
+        if (!hasAnySalary && !formData.amount.trim()) {
+          newErrors.amount = 'Please set salary for employees or enter total amount';
+        }
+      }
     }
 
     if (!formData.amount.trim()) {
@@ -324,22 +315,113 @@ export default function FixedChargeFormScreen() {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (isPersonnel) {
+        // Validate week key if creating/updating weekly charge
+        if (formData.period === 'week' && selectedWeek) {
+          if (!validateWeekKey(selectedWeek)) {
+            Alert.alert('Error', 'Invalid week selected. Week key must be a Monday date.');
+            setIsSubmitting(false);
+            return;
+          }
+          if (!validateWeekMonth(selectedWeek, selectedMonth)) {
+            Alert.alert('Error', 'Selected week does not belong to the selected month.');
+            setIsSubmitting(false);
+            return;
+          }
+        }
 
-      // In production, call API here
-      const chargeData = {
-        id: isEditMode ? id : Date.now().toString(),
-        category: formData.category,
-        amount: parseFloat(formData.amount),
-        period: isPersonnel ? formData.period : 'month', // Utilities are always monthly
-        monthKey: selectedMonth,
-        weekKey: isPersonnel && formData.period === 'week' ? selectedWeek : undefined,
-        notes: formData.notes.trim() || undefined,
-        employees: isPersonnel ? employees : undefined,
-      };
+        // Convert employees to backend format
+        // Include weekSalaries for updates so backend can update specific weeks
+        const employeeRequests = employees.map((emp) => {
+          const baseRequest: any = {
+            // Only send id if it's a valid Employee ID (from getAvailableEmployees)
+            // Don't send id if it's a PersonnelEmployee ID (from charge detail) - backend will match by name/type/position/startDate
+            id: emp.employeeId !== undefined ? emp.employeeId : undefined,
+            name: emp.name,
+            type: convertEmployeeTypeFromFrontend(emp.type!),
+            position: emp.position,
+            startDate: emp.startDate,
+            hours: emp.hours,
+          };
 
-      console.log(isEditMode ? 'Updating charge:' : 'Creating charge:', chargeData);
+          // For monthly charges, send salary to redistribute or weekSalaries to update specific weeks
+          if (formData.period === 'month') {
+            if (emp.salary !== undefined) {
+              baseRequest.salary = parseFloat(emp.salary.toString());
+            }
+            // Include weekSalaries if they exist (allows updating specific weeks)
+            // Only include weekSalaries for the selected month
+            if (emp.weekSalaries && Object.keys(emp.weekSalaries).length > 0 && selectedMonth) {
+              const monthWeekSalaries: Record<string, number> = {};
+              for (const [weekKey, amount] of Object.entries(emp.weekSalaries)) {
+                const weekMonthKey = getMonthForWeek(weekKey);
+                if (weekMonthKey === selectedMonth) {
+                  monthWeekSalaries[weekKey] = amount;
+                }
+              }
+              if (Object.keys(monthWeekSalaries).length > 0) {
+                baseRequest.weekSalaries = monthWeekSalaries;
+              }
+            }
+          } else {
+            // For weekly charges, send only the selected week's salary
+            // Don't send weekSalaries map - backend will handle it based on weekKey
+            if (selectedWeek && emp.weekSalaries && emp.weekSalaries[selectedWeek] !== undefined) {
+              baseRequest.salary = parseFloat(emp.weekSalaries[selectedWeek].toString());
+            } else {
+              baseRequest.salary = parseFloat((emp.weekSalary || emp.salary || 0).toString());
+            }
+          }
+
+          return baseRequest;
+        });
+
+        if (isEditMode && id) {
+          // Update existing charge
+          const updateRequest = {
+            period: convertPeriodFromFrontend(formData.period) as ChargePeriod,
+            monthKey: selectedMonth,
+            weekKey: formData.period === 'week' ? selectedWeek || undefined : undefined,
+            notes: formData.notes.trim() || undefined,
+            employees: employeeRequests,
+          };
+
+          await updateFixedCharge(parseInt(id, 10), updateRequest);
+        } else {
+          // Create new charge
+          const createRequest = {
+            category: convertCategoryFromFrontend(formData.category) as ChargeCategory,
+            period: convertPeriodFromFrontend(formData.period) as ChargePeriod,
+            monthKey: selectedMonth,
+            weekKey: formData.period === 'week' ? (selectedWeek || null) : null,
+            notes: formData.notes.trim() || undefined,
+            employees: employeeRequests,
+          };
+
+          await createFixedCharge(createRequest);
+        }
+      } else {
+        // Utility charge (water, electricity, wifi)
+        if (isEditMode && id) {
+          const updateRequest = {
+            amount: parseFloat(formData.amount),
+            notes: formData.notes.trim() || undefined,
+          };
+
+          await updateFixedCharge(parseInt(id, 10), updateRequest);
+        } else {
+          const createRequest = {
+            category: convertCategoryFromFrontend(formData.category) as ChargeCategory,
+            period: ChargePeriod.MONTH, // Utilities are always monthly
+            monthKey: selectedMonth,
+            weekKey: null as string | null,
+            amount: parseFloat(formData.amount),
+            notes: formData.notes.trim() || undefined,
+          };
+
+          await createFixedCharge(createRequest);
+        }
+      }
 
       // Show success message
       Alert.alert(
@@ -352,8 +434,19 @@ export default function FixedChargeFormScreen() {
           },
         ]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save charge. Please try again.');
+    } catch (err: any) {
+      // Extract detailed error message from backend
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        'Failed to save charge';
+
+      // Log full error for debugging
+      console.error('Error saving charge:', err);
+      console.error('Error response data:', err?.response?.data);
+
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -394,43 +487,43 @@ export default function FixedChargeFormScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Category *</Text>
               <View style={styles.categoryGrid}>
-              {fixedCategories.map((cat) => (
-                <Pressable
-                  key={cat.value}
-                  style={({ pressed }) => [
-                    styles.categoryCard,
-                    formData.category === cat.value && styles.categoryCardActive,
-                    pressed && styles.categoryCardPressed,
-                  ]}
-                  onPress={() => updateField('category', cat.value)}
-                >
-                  <View
-                    style={[
-                      styles.categoryIconContainer,
-                      formData.category === cat.value && styles.categoryIconContainerActive,
+                {fixedCategories.map((cat) => (
+                  <Pressable
+                    key={cat.value}
+                    style={({ pressed }) => [
+                      styles.categoryCard,
+                      formData.category === cat.value && styles.categoryCardActive,
+                      pressed && styles.categoryCardPressed,
                     ]}
+                    onPress={() => updateField('category', cat.value)}
                   >
-                    <Feather
-                      name={cat.icon as any}
-                      size={24}
-                      color={
-                        formData.category === cat.value
-                          ? BluePalette.white
-                          : BluePalette.merge
-                      }
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.categoryLabel,
-                      formData.category === cat.value && styles.categoryLabelActive,
-                    ]}
-                  >
-                    {cat.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+                    <View
+                      style={[
+                        styles.categoryIconContainer,
+                        formData.category === cat.value && styles.categoryIconContainerActive,
+                      ]}
+                    >
+                      <Feather
+                        name={cat.icon as any}
+                        size={24}
+                        color={
+                          formData.category === cat.value
+                            ? BluePalette.white
+                            : BluePalette.merge
+                        }
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.categoryLabel,
+                        formData.category === cat.value && styles.categoryLabelActive,
+                      ]}
+                    >
+                      {cat.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
           )}
 
@@ -445,7 +538,7 @@ export default function FixedChargeFormScreen() {
                     formData.period === 'month' && styles.periodButtonActive,
                     pressed && styles.periodButtonPressed,
                   ]}
-                  onPress={() => updateField('period', 'month')}
+                  onPress={() => handlePeriodChange('month')}
                 >
                   <Text
                     style={[
@@ -462,7 +555,7 @@ export default function FixedChargeFormScreen() {
                     formData.period === 'week' && styles.periodButtonActive,
                     pressed && styles.periodButtonPressed,
                   ]}
-                  onPress={() => updateField('period', 'week')}
+                  onPress={() => handlePeriodChange('week')}
                 >
                   <Text
                     style={[
@@ -510,12 +603,42 @@ export default function FixedChargeFormScreen() {
               <EmployeeManager
                 employees={employees}
                 onEmployeesChange={setEmployees}
+                period={formData.period}
+                selectedMonth={selectedMonth}
+                selectedWeek={selectedWeek}
               />
               {/* Auto-calculate amount from employees */}
               {employees.length > 0 && (
                 <View style={styles.autoAmountContainer}>
                   <Text style={styles.autoAmountText}>
-                    Total calculated from employees: {employees.reduce((sum, emp) => sum + emp.salary, 0).toFixed(2)}
+                    Total calculated from employees ({formData.period}): {employees.reduce((sum, emp) => {
+                      if (formData.period === 'month') {
+                        if (emp.monthSalary !== undefined) {
+                          return sum + emp.monthSalary;
+                        }
+                        if (emp.weekSalaries) {
+                          // Calculate from week salaries (only weeks belonging to this month)
+                          const weekTotal = Object.entries(emp.weekSalaries).reduce((s, [weekKey, amount]) => {
+                            if (selectedMonth) {
+                              const weekMonthKey = getMonthForWeek(weekKey);
+                              if (weekMonthKey === selectedMonth) {
+                                return s + amount;
+                              }
+                            } else {
+                              return s + amount;
+                            }
+                            return s;
+                          }, 0);
+                          return sum + weekTotal;
+                        }
+                        return sum + (emp.salary || 0);
+                      } else {
+                        if (selectedWeek && emp.weekSalaries && emp.weekSalaries[selectedWeek] !== undefined) {
+                          return sum + emp.weekSalaries[selectedWeek];
+                        }
+                        return sum + (emp.weekSalary || emp.salary || 0);
+                      }
+                    }, 0).toFixed(2)}
                   </Text>
                 </View>
               )}
@@ -534,8 +657,35 @@ export default function FixedChargeFormScreen() {
               />
               <TextInput
                 style={styles.input}
-                placeholder={isPersonnel && employees.length > 0 
-                  ? employees.reduce((sum, emp) => sum + emp.salary, 0).toFixed(2)
+                placeholder={isPersonnel && employees.length > 0
+                  ? employees.reduce((sum, emp) => {
+                    if (formData.period === 'month') {
+                      if (emp.monthSalary !== undefined) {
+                        return sum + emp.monthSalary;
+                      }
+                      if (emp.weekSalaries) {
+                        // Calculate from week salaries (only weeks belonging to this month)
+                        const weekTotal = Object.entries(emp.weekSalaries).reduce((s, [weekKey, amount]) => {
+                          if (selectedMonth) {
+                            const weekMonthKey = getMonthForWeek(weekKey);
+                            if (weekMonthKey === selectedMonth) {
+                              return s + amount;
+                            }
+                          } else {
+                            return s + amount;
+                          }
+                          return s;
+                        }, 0);
+                        return sum + weekTotal;
+                      }
+                      return sum + (emp.salary || 0);
+                    } else {
+                      if (selectedWeek && emp.weekSalaries && emp.weekSalaries[selectedWeek] !== undefined) {
+                        return sum + emp.weekSalaries[selectedWeek];
+                      }
+                      return sum + (emp.weekSalary || emp.salary || 0);
+                    }
+                  }, 0).toFixed(2)
                   : "0.00"}
                 placeholderTextColor="rgba(10, 31, 58, 0.5)"
                 value={formData.amount}

@@ -95,15 +95,17 @@ export const decodeToken = (token: string): DecodedToken | null => {
 
 /**
  * Check if a token is expired
+ * Uses 60-second buffer to align with backend's clock skew tolerance
  */
 export const isTokenExpired = (token: string): boolean => {
   const decoded = decodeToken(token);
   if (!decoded || !decoded.exp) {
     return true;
   }
-  // Add 30 second buffer to refresh before actual expiration
+  // Add 60 second buffer to refresh before actual expiration
+  // This aligns with backend's 60-second clock skew tolerance
   const expirationTime = decoded.exp * 1000;
-  const bufferTime = 30 * 1000; // 30 seconds
+  const bufferTime = 60 * 1000; // 60 seconds
   return Date.now() >= expirationTime - bufferTime;
 };
 
@@ -161,7 +163,7 @@ export const keycloakApi = {
       };
     } catch (error) {
       const axiosError = error as AxiosError<AuthError>;
-      
+
       // Handle specific error cases
       if (axiosError.response?.status === 401) {
         throw {
@@ -203,7 +205,7 @@ export const keycloakApi = {
       );
     } catch (error) {
       const axiosError = error as AxiosError<AuthError>;
-      
+
       throw {
         error: axiosError.response?.data?.error || 'Registration failed',
         error_description: axiosError.response?.data?.error_description || axiosError.message,
@@ -232,7 +234,7 @@ export const keycloakApi = {
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<AuthError>;
-      
+
       // Handle 401 specifically (unauthorized)
       if (axiosError.response?.status === 401) {
         throw {
@@ -241,7 +243,7 @@ export const keycloakApi = {
           statusCode: 401,
         } as AuthError;
       }
-      
+
       throw {
         error: axiosError.response?.data?.error || 'Failed to get current user',
         error_description: axiosError.response?.data?.error_description || axiosError.message,
@@ -278,13 +280,13 @@ export const keycloakApi = {
       }
     } catch (error) {
       const axiosError = error as AxiosError<AuthError>;
-      
+
       // Try to decode token as last resort
       const decoded = getUserFromToken(accessToken);
       if (decoded) {
         return decoded;
       }
-      
+
       throw {
         error: axiosError.response?.data?.error || 'Failed to get user info',
         error_description: axiosError.response?.data?.error_description || axiosError.message,
@@ -321,12 +323,50 @@ export const keycloakApi = {
         token_type: response.data.tokenType || 'Bearer',
       };
     } catch (error) {
-      const axiosError = error as AxiosError<AuthError>;
-      
+      const axiosError = error as AxiosError<any>;
+
+      // Extract error information - handle nested error structures
+      let errorCode = axiosError.response?.data?.error || 'Token refresh failed';
+      let errorDescription = axiosError.response?.data?.error_description || axiosError.message;
+      const statusCode = axiosError.response?.status;
+
+      // Try to parse nested error if error_description is a JSON string or nested object
+      try {
+        // Check if error_description contains nested error info
+        if (typeof errorDescription === 'string' && errorDescription.includes('{')) {
+          const jsonMatch = errorDescription.match(/\{.*\}/);
+          if (jsonMatch) {
+            const nestedError = JSON.parse(jsonMatch[0]);
+            if (nestedError.error) {
+              errorCode = nestedError.error;
+            }
+            if (nestedError.error_description) {
+              errorDescription = nestedError.error_description;
+            }
+          }
+        }
+
+        // Also check response.data for nested error structure
+        if (axiosError.response?.data?.error && typeof axiosError.response.data.error === 'string') {
+          const dataErrorMatch = axiosError.response.data.error.match(/\{.*\}/);
+          if (dataErrorMatch) {
+            const nestedError = JSON.parse(dataErrorMatch[0]);
+            if (nestedError.error) {
+              errorCode = nestedError.error;
+            }
+            if (nestedError.error_description) {
+              errorDescription = nestedError.error_description;
+            }
+          }
+        }
+      } catch (parseError) {
+        // If parsing fails, use original values
+      }
+
       throw {
-        error: axiosError.response?.data?.error || 'Token refresh failed',
-        error_description: axiosError.response?.data?.error_description || axiosError.message,
-        statusCode: axiosError.response?.status,
+        error: errorCode,
+        error_description: errorDescription,
+        statusCode: statusCode,
       } as AuthError;
     }
   },

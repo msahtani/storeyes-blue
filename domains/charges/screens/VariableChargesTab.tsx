@@ -7,105 +7,14 @@ import BottomBar from '@/domains/shared/components/BottomBar';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import VariableChargeItem from '../components/VariableChargeItem';
+import { getVariableCharges } from '../services/chargesService';
 import { VariableCharge } from '../types/charge';
 
-// Mock data with dates for testing - replace with actual data fetching
-const mockVariableCharges: VariableCharge[] = [
-  // Recent charges (last 7 days)
-  {
-    id: '1',
-    name: 'Coffee Beans - Premium Blend',
-    amount: 245.50,
-    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Yesterday
-    category: 'Supplies',
-    supplier: 'Coffee Distributors Inc.',
-    purchaseOrderUrl: 'https://example.com/po1.jpg',
-  },
-  {
-    id: '2',
-    name: 'Cleaning Supplies',
-    amount: 89.99,
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days ago
-    category: 'Maintenance',
-    supplier: 'Supply Co.',
-  },
-  {
-    id: '3',
-    name: 'Milk Delivery',
-    amount: 156.00,
-    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
-    category: 'Supplies',
-    supplier: 'Dairy Farm',
-    purchaseOrderUrl: 'https://example.com/po3.jpg',
-  },
-  {
-    id: '4',
-    name: 'Equipment Repair',
-    amount: 320.00,
-    date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 4 days ago
-    category: 'Maintenance',
-    supplier: 'Tech Services',
-    notes: 'Espresso machine maintenance',
-    purchaseOrderUrl: 'https://example.com/po4.jpg',
-  },
-  {
-    id: '5',
-    name: 'Sugar & Sweeteners',
-    amount: 45.75,
-    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 5 days ago
-    category: 'Supplies',
-    supplier: 'Bulk Foods Co.',
-    purchaseOrderUrl: 'https://example.com/po5.jpg',
-  },
-  {
-    id: '6',
-    name: 'Paper Products',
-    amount: 78.20,
-    date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 6 days ago
-    category: 'Supplies',
-    supplier: 'Office Depot',
-  },
-  {
-    id: '7',
-    name: 'Light Bulbs Replacement',
-    amount: 32.50,
-    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days ago
-    category: 'Maintenance',
-    supplier: 'Hardware Store',
-    purchaseOrderUrl: 'https://example.com/po7.jpg',
-  },
-  // Previous week charges
-  {
-    id: '8',
-    name: 'Syrups & Flavors',
-    amount: 125.00,
-    date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 10 days ago
-    category: 'Supplies',
-    supplier: 'Flavor Distributors',
-    purchaseOrderUrl: 'https://example.com/po8.jpg',
-  },
-  {
-    id: '9',
-    name: 'Window Cleaning Service',
-    amount: 150.00,
-    date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 12 days ago
-    category: 'Maintenance',
-    supplier: 'Clean Pro Services',
-    purchaseOrderUrl: 'https://example.com/po9.jpg',
-  },
-  {
-    id: '10',
-    name: 'Napkins & Towels',
-    amount: 67.30,
-    date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 14 days ago
-    category: 'Supplies',
-    supplier: 'Restaurant Supply',
-  },
-];
 
 export default function VariableChargesTab() {
   const { t } = useI18n();
@@ -113,21 +22,103 @@ export default function VariableChargesTab() {
   const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const selectedDate = useAppSelector((state) => state.alerts.selectedDate);
+  const [charges, setCharges] = useState<VariableCharge[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
 
-  // Filter charges based on selected date
+  // Fetch charges function
+  const fetchCharges = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Try to fetch without date filters first to see if endpoint works
+      // If that fails, we'll try with date range
+      let response;
+
+      if (selectedDate) {
+        // Filter by single date (show only charges for that date)
+        response = await getVariableCharges({
+          startDate: selectedDate,
+          endDate: selectedDate,
+        });
+      } else {
+        // Try fetching all charges first (no date filter)
+        // If backend doesn't support it, we'll handle the error gracefully
+        try {
+          response = await getVariableCharges();
+        } catch (allError: any) {
+          // If fetching all fails, try with current month range
+          console.log('Fetching all charges failed, trying with date range:', allError);
+          const today = new Date();
+          const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+          const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          response = await getVariableCharges({
+            startDate: firstDay.toISOString().split('T')[0],
+            endDate: lastDay.toISOString().split('T')[0],
+          });
+        }
+      }
+
+      // Convert to frontend format
+      const frontendCharges: VariableCharge[] = response.map((charge) => ({
+        id: charge.id.toString(),
+        name: charge.name,
+        amount: charge.amount,
+        date: charge.date,
+        category: charge.category,
+        supplier: charge.supplier,
+        notes: charge.notes,
+        purchaseOrderUrl: charge.purchaseOrderUrl,
+        createdAt: charge.createdAt,
+        updatedAt: charge.updatedAt,
+      }));
+
+      setCharges(frontendCharges);
+    } catch (err: any) {
+      // Log more details about the error
+      console.error('Error fetching variable charges:', {
+        error: err,
+        response: err?.response?.data,
+        status: err?.response?.status,
+        params: selectedDate ? { startDate: selectedDate, endDate: selectedDate } : 'all',
+      });
+
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        `Failed to load charges (${err?.response?.status || 'unknown error'})`;
+      setError(errorMessage);
+      setCharges([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedDate]);
+
+  // Fetch charges when selected date changes
+  useEffect(() => {
+    fetchCharges();
+  }, [fetchCharges]);
+
+  // Refetch when screen comes into focus (after create/edit/delete)
+  useFocusEffect(
+    useCallback(() => {
+      fetchCharges();
+    }, [fetchCharges])
+  );
+
+  // Filter charges based on selected date (double-check client-side)
   const filteredCharges = useMemo(() => {
     if (!selectedDate) {
-      return mockVariableCharges;
+      return charges;
     }
-    
-    // Filter charges that match the selected date
-    return mockVariableCharges.filter((charge) => {
-      return charge.date === selectedDate;
-    });
-  }, [selectedDate]);
+    // Filter client-side as well (already filtered by API, but double-check)
+    return charges.filter((charge) => charge.date === selectedDate);
+  }, [charges, selectedDate]);
 
   const handleItemPress = (chargeId: string) => {
     router.push(`/charges/variable/${chargeId}` as any);
@@ -172,7 +163,15 @@ export default function VariableChargesTab() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {filteredCharges.length === 0 ? (
+        {loading ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={BluePalette.merge} />
+          </View>
+        ) : error ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : filteredCharges.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
               {t('charges.variable.empty')}
@@ -211,6 +210,12 @@ const styles = StyleSheet.create({
   listContainer: {
     gap: 0,
   },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -221,6 +226,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: BluePalette.textTertiary,
     fontWeight: '500',
+  },
+  errorText: {
+    fontSize: 16,
+    color: BluePalette.error,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   createButtonContainer: {
     paddingHorizontal: 20,

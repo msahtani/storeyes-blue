@@ -2,112 +2,24 @@ import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  getMonthForWeek,
+  getWeekNumberInMonth,
+  getWeeksForMonth,
+} from '../utils/weekUtils';
 
 export interface WeekItem {
   weekNumber: number; // Week number within the month (1-5)
   startDate: Date;
   endDate: Date;
   monthKey: string; // Parent month key (YYYY-MM)
-  weekKey: string; // Format: YYYY-MM-WW
-  label: string; // Display label like "Week 1" or "Jan 1-7"
+  weekKey: string; // Format: YYYY-MM-DD (Monday date)
+  label: string; // Display label like "Jan 29 - Feb 4"
 }
-
-const formatMonthKey = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
-};
-
-const formatWeekKey = (monthKey: string, weekNumber: number): string => {
-  return `${monthKey}-W${weekNumber}`;
-};
-
-const parseMonthKey = (monthKey: string): Date => {
-  const [year, month] = monthKey.split('-').map(Number);
-  return new Date(year, month - 1, 1);
-};
-
-const getStartOfWeek = (date: Date): Date => {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day; // Subtract days to get to Sunday
-  return new Date(d.setDate(diff));
-};
-
-const getEndOfWeek = (date: Date): Date => {
-  const start = getStartOfWeek(date);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  return end;
-};
-
-const getWeeksInMonth = (monthKey: string): WeekItem[] => {
-  const monthStart = parseMonthKey(monthKey);
-  monthStart.setHours(0, 0, 0, 0);
-  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-  monthEnd.setHours(23, 59, 59, 999);
-  
-  const weeks: WeekItem[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  // Start from the Sunday of the week that contains the first day of the month
-  let weekStart = getStartOfWeek(new Date(monthStart));
-  
-  let weekNumber = 1;
-  const maxWeeks = 6; // Safety limit
-  
-  // Generate weeks that overlap with this month
-  while (weekStart <= monthEnd && weekNumber <= maxWeeks) {
-    const weekEnd = getEndOfWeek(new Date(weekStart));
-    weekEnd.setHours(23, 59, 59, 999);
-    
-    // Check if this week overlaps with the month
-    if (weekEnd >= monthStart && weekStart <= monthEnd) {
-      // Include all weeks that have started (including current week with remaining days)
-      // Only exclude future weeks that haven't started yet
-      if (weekStart <= today) {
-        // Clamp dates to month boundaries for display
-        const startDate = weekStart < monthStart ? new Date(monthStart) : new Date(weekStart);
-        // For current/incomplete weeks, show up to today or month end, whichever comes first
-        const effectiveEndDate = weekEnd > today ? (today > monthEnd ? new Date(monthEnd) : new Date(today)) : (weekEnd > monthEnd ? new Date(monthEnd) : new Date(weekEnd));
-        const endDate = effectiveEndDate;
-        
-        // Format label
-        const startDay = startDate.getDate();
-        const endDay = endDate.getDate();
-        const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
-        const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
-        
-        let label: string;
-        if (startMonth === endMonth) {
-          label = `${startMonth} ${startDay}-${endDay}`;
-        } else {
-          label = `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
-        }
-        
-        weeks.push({
-          weekNumber,
-          startDate: startDate,
-          endDate: endDate,
-          monthKey,
-          weekKey: formatWeekKey(monthKey, weekNumber),
-          label,
-        });
-      }
-    }
-    
-    // Move to next week
-    weekStart.setDate(weekStart.getDate() + 7);
-    weekNumber++;
-  }
-  
-  return weeks;
-};
 
 interface WeekSelectorProps {
   monthKey: string; // Format: YYYY-MM
-  selectedWeek?: string; // Format: YYYY-MM-WW
+  selectedWeek?: string; // Format: YYYY-MM-DD (Monday date)
   onWeekSelect: (weekKey: string) => void;
 }
 
@@ -118,8 +30,31 @@ export default function WeekSelector({
 }: WeekSelectorProps) {
   const weekScrollRef = useRef<ScrollView>(null);
 
-  const weeks = useMemo(() => {
-    return getWeeksInMonth(monthKey);
+  const weeks = useMemo((): WeekItem[] => {
+    const weekInfos = getWeeksForMonth(monthKey);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Convert WeekInfo to WeekItem format
+    // Filter to show only weeks that belong to this month (where Monday is in the month)
+    // and have started (Monday <= today)
+    return weekInfos
+      .filter(week => {
+        // Only show weeks that have started
+        if (week.startDate > today) return false;
+
+        // Only show weeks that belong to this month (Monday is in this month)
+        const weekMonthKey = getMonthForWeek(week.weekKey);
+        return weekMonthKey === monthKey;
+      })
+      .map((week, index) => ({
+        weekNumber: getWeekNumberInMonth(week.weekKey, monthKey),
+        startDate: week.startDate,
+        endDate: week.endDate,
+        monthKey: monthKey, // Primary month key
+        weekKey: week.weekKey, // Format: YYYY-MM-DD (Monday date)
+        label: week.label,
+      }));
   }, [monthKey]);
 
   // Auto-select first week if none selected
@@ -229,6 +164,6 @@ const styles = StyleSheet.create({
   weekLabelSelected: {
     color: BluePalette.merge,
     fontWeight: '700',
-  
+
   },
 });

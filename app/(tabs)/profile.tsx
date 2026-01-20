@@ -45,13 +45,13 @@ export default function ProfileScreen() {
   const displayName = getUserDisplayName(user);
 
   return (
-    <SafeAreaView 
+    <SafeAreaView
       style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
       edges={['left', 'right']}
     >
       {/* Header with back button */}
       <View style={[styles.topHeader, { paddingTop: insets.top + 5 }]}>
-        <Pressable 
+        <Pressable
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -61,7 +61,7 @@ export default function ProfileScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
@@ -121,57 +121,57 @@ export default function ProfileScreen() {
 
           {/* User Details Section */}
           {user && !isLoading && (
-          <View style={styles.detailsSection}>
-            <View style={styles.detailItem}>
-              <View style={styles.detailIconContainer}>
-                <Feather name="mail" size={18} color={BluePalette.merge} />
-              </View>
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Email</Text>
-                <Text style={styles.detailValue}>{user.email}</Text>
-              </View>
-            </View>
-
-            {user.username && (
+            <View style={styles.detailsSection}>
               <View style={styles.detailItem}>
                 <View style={styles.detailIconContainer}>
-                  <Feather name="user" size={18} color={BluePalette.merge} />
+                  <Feather name="mail" size={18} color={BluePalette.merge} />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Username</Text>
-                  <Text style={styles.detailValue}>{user.username}</Text>
+                  <Text style={styles.detailLabel}>Email</Text>
+                  <Text style={styles.detailValue}>{user.email}</Text>
                 </View>
               </View>
-            )}
 
-            {user.firstName && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailIconContainer}>
-                  <Feather name="user" size={18} color={BluePalette.merge} />
+              {user.username && (
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIconContainer}>
+                    <Feather name="user" size={18} color={BluePalette.merge} />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>Username</Text>
+                    <Text style={styles.detailValue}>{user.username}</Text>
+                  </View>
                 </View>
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>First Name</Text>
-                  <Text style={styles.detailValue}>{user.firstName}</Text>
-                </View>
-              </View>
-            )}
+              )}
 
-            {user.lastName && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailIconContainer}>
-                  <Feather name="user" size={18} color={BluePalette.merge} />
+              {user.firstName && (
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIconContainer}>
+                    <Feather name="user" size={18} color={BluePalette.merge} />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>First Name</Text>
+                    <Text style={styles.detailValue}>{user.firstName}</Text>
+                  </View>
                 </View>
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Last Name</Text>
-                  <Text style={styles.detailValue}>{user.lastName}</Text>
+              )}
+
+              {user.lastName && (
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIconContainer}>
+                    <Feather name="user" size={18} color={BluePalette.merge} />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>Last Name</Text>
+                    <Text style={styles.detailValue}>{user.lastName}</Text>
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
             </View>
           )}
 
           {/* Logout Button */}
-          {/* {user && !isLoading && (
+          {user && !isLoading && (
             <Pressable
               style={({ pressed }) => [
                 styles.logoutButton,
@@ -183,7 +183,7 @@ export default function ProfileScreen() {
               <Feather name="log-out" size={18} color={BluePalette.white} />
               <Text style={styles.logoutButtonText}>Logout</Text>
             </Pressable>
-          )} */}
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

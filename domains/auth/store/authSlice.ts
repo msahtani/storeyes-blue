@@ -1,12 +1,13 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
+import { resetRefreshState } from '@/api/client';
 
 import {
   getUserFromToken,
   isTokenExpired,
   keycloakApi,
-  transformUserInfo,
   transformCurrentUser,
+  transformUserInfo,
   type AuthError
 } from '../services/keycloakService';
 
@@ -53,7 +54,7 @@ const storeTokens = async (
 ): Promise<void> => {
   await setItemAsync(TOKEN_STORAGE_KEY, accessToken);
   await setItemAsync(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
-  
+
   // Store expiry time (in milliseconds)
   const expiryTime = Date.now() + expiresIn * 1000;
   await setItemAsync(TOKEN_EXPIRY_KEY, expiryTime.toString());
@@ -68,7 +69,7 @@ export const login = createAsyncThunk(
   ) => {
     try {
       const response = await keycloakApi.login(username, password);
-      
+
       // Store tokens securely with expiry time
       if (response.access_token && response.refresh_token) {
         await storeTokens(
@@ -79,10 +80,10 @@ export const login = createAsyncThunk(
       }
 
       // Get user info from token (more efficient than API call)
-      const userInfo = getUserFromToken(response.access_token) || 
+      const userInfo = getUserFromToken(response.access_token) ||
         await keycloakApi.getUserInfo(response.access_token);
       const transformedUser = transformUserInfo(userInfo);
-      
+
       return {
         accessToken: response.access_token,
         refreshToken: response.refresh_token,
@@ -126,7 +127,7 @@ export const register = createAsyncThunk(
 
       // After registration, automatically log in
       const response = await keycloakApi.login(username, password);
-      
+
       // Store tokens securely with expiry time
       if (response.access_token && response.refresh_token) {
         await storeTokens(
@@ -137,10 +138,10 @@ export const register = createAsyncThunk(
       }
 
       // Get user info from token (more efficient than API call)
-      const userInfo = getUserFromToken(response.access_token) || 
+      const userInfo = getUserFromToken(response.access_token) ||
         await keycloakApi.getUserInfo(response.access_token);
       const transformedUser = transformUserInfo(userInfo);
-      
+
       return {
         accessToken: response.access_token,
         refreshToken: response.refresh_token,
@@ -160,7 +161,7 @@ export const logout = createAsyncThunk('auth/logout', async (_, { getState }) =>
     // Try to revoke refresh token if available
     const state = getState() as { auth: AuthState };
     const refreshToken = state.auth.refreshToken;
-    
+
     if (refreshToken) {
       try {
         await keycloakApi.logout(refreshToken);
@@ -177,6 +178,8 @@ export const logout = createAsyncThunk('auth/logout', async (_, { getState }) =>
     await deleteItemAsync(TOKEN_STORAGE_KEY);
     await deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
     await deleteItemAsync(TOKEN_EXPIRY_KEY);
+    // Reset refresh state in apiClient to prevent stale refresh attempts
+    resetRefreshState();
   }
 });
 
@@ -187,7 +190,7 @@ export const refreshAccessToken = createAsyncThunk(
       // Try to get refresh token from state first, then from storage
       const state = getState() as { auth: AuthState };
       let refreshToken = state.auth.refreshToken;
-      
+
       if (!refreshToken) {
         refreshToken = await getItemAsync(REFRESH_TOKEN_STORAGE_KEY);
       }
@@ -197,7 +200,7 @@ export const refreshAccessToken = createAsyncThunk(
       }
 
       const response = await keycloakApi.refreshToken(refreshToken);
-      
+
       // Store tokens securely with expiry time
       if (response.access_token && response.refresh_token) {
         await storeTokens(
@@ -216,7 +219,7 @@ export const refreshAccessToken = createAsyncThunk(
       await deleteItemAsync(TOKEN_STORAGE_KEY);
       await deleteItemAsync(REFRESH_TOKEN_STORAGE_KEY);
       await deleteItemAsync(TOKEN_EXPIRY_KEY);
-      
+
       const authError = error as AuthError;
       return rejectWithValue(
         authError.error_description || authError.error || 'Token refresh failed'
@@ -243,12 +246,12 @@ export const loadStoredTokens = createAsyncThunk('auth/loadStoredTokens', async 
                 refreshResponse.refresh_token,
                 refreshResponse.expires_in
               );
-              
+
               // Get user info from new token
-              const userInfo = getUserFromToken(refreshResponse.access_token) || 
+              const userInfo = getUserFromToken(refreshResponse.access_token) ||
                 await keycloakApi.getUserInfo(refreshResponse.access_token);
               const transformedUser = transformUserInfo(userInfo);
-              
+
               return {
                 accessToken: refreshResponse.access_token,
                 refreshToken: refreshResponse.refresh_token,
@@ -312,20 +315,20 @@ export const getCurrentUser = createAsyncThunk(
     try {
       const state = getState() as { auth: AuthState };
       const accessToken = state.auth.accessToken;
-      
+
       if (!accessToken) {
         // Try to get from storage
         const storedToken = await getItemAsync(TOKEN_STORAGE_KEY);
         if (!storedToken) {
           return rejectWithValue('No access token available');
         }
-        
+
         // Use stored token to get current user
         const currentUser = await keycloakApi.getCurrentUser(storedToken);
         const transformedUser = transformCurrentUser(currentUser);
         return transformedUser;
       }
-      
+
       const currentUser = await keycloakApi.getCurrentUser(accessToken);
       const transformedUser = transformCurrentUser(currentUser);
       return transformedUser;

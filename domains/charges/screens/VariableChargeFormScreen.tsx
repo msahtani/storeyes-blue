@@ -20,20 +20,11 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { VariableCharge } from '../types/charge';
-
-// Mock data - replace with actual data fetching
-const mockVariableCharges: Record<string, VariableCharge> = {
-  '1': {
-    id: '1',
-    name: 'Coffee Beans - Premium Blend',
-    amount: 245.50,
-    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    category: 'Supplies',
-    supplier: 'Coffee Distributors Inc.',
-    purchaseOrderUrl: 'https://example.com/po1.jpg',
-  },
-};
+import {
+  createVariableCharge,
+  getVariableChargeById,
+  updateVariableCharge,
+} from '../services/chargesService';
 
 const categories = ['Supplies', 'Maintenance', 'Equipment', 'Other'];
 
@@ -67,29 +58,51 @@ export default function VariableChargeFormScreen() {
 
   // Load existing data if editing
   useEffect(() => {
-    if (isEditMode && id) {
-      const existingCharge = mockVariableCharges[id];
-      if (existingCharge) {
-        setFormData({
-          name: existingCharge.name,
-          amount: existingCharge.amount.toString(),
-          category: existingCharge.category,
-          supplier: existingCharge.supplier || '',
-          notes: existingCharge.notes || '',
-          purchaseOrderUri: existingCharge.purchaseOrderUrl || null,
-        });
-        // Set the date in Redux
-        if (existingCharge.date) {
-          dispatch(setSelectedDate(existingCharge.date));
+    const loadCharge = async () => {
+      if (isEditMode && id) {
+        try {
+          const chargeId = parseInt(id, 10);
+          if (isNaN(chargeId)) {
+            Alert.alert('Error', 'Invalid charge ID');
+            router.back();
+            return;
+          }
+
+          const response = await getVariableChargeById(chargeId);
+
+          // Populate form
+          setFormData({
+            name: response.name,
+            amount: response.amount.toString(),
+            category: response.category,
+            supplier: response.supplier || '',
+            notes: response.notes || '',
+            purchaseOrderUri: response.purchaseOrderUrl || null,
+          });
+
+          // Set the date in Redux
+          if (response.date) {
+            dispatch(setSelectedDate(response.date));
+          }
+        } catch (err: any) {
+          const errorMessage =
+            err?.response?.data?.message ||
+            err?.message ||
+            'Failed to load charge data';
+          Alert.alert('Error', errorMessage);
+          console.error('Error loading variable charge:', err);
+          router.back();
         }
+      } else {
+        // Initialize with today's date for new charge
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        dispatch(setSelectedDate(todayStr));
       }
-    } else {
-      // Initialize with today's date for new charge
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      dispatch(setSelectedDate(todayStr));
-    }
-  }, [id, isEditMode, dispatch]);
+    };
+
+    loadCharge();
+  }, [id, isEditMode, dispatch, router]);
 
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -162,23 +175,33 @@ export default function VariableChargeFormScreen() {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (isEditMode && id) {
+        // Update existing charge
+        const updateRequest = {
+          name: formData.name.trim(),
+          amount: parseFloat(formData.amount),
+          date: selectedDate!,
+          category: formData.category.trim(),
+          supplier: formData.supplier.trim() || undefined,
+          notes: formData.notes.trim() || undefined,
+          purchaseOrderUrl: formData.purchaseOrderUri || undefined,
+        };
 
-      // In production, call API here and upload image
-      const chargeData = {
-        id: isEditMode ? id : Date.now().toString(),
-        name: formData.name.trim(),
-        amount: parseFloat(formData.amount),
-        date: selectedDate!,
-        category: formData.category,
-        supplier: formData.supplier.trim() || undefined,
-        notes: formData.notes.trim() || undefined,
-        purchaseOrderUrl: formData.purchaseOrderUri || undefined,
-        hasReceipt: false, // Removed receipt field
-      };
+        await updateVariableCharge(parseInt(id, 10), updateRequest);
+      } else {
+        // Create new charge
+        const createRequest = {
+          name: formData.name.trim(),
+          amount: parseFloat(formData.amount),
+          date: selectedDate!,
+          category: formData.category.trim(),
+          supplier: formData.supplier.trim() || undefined,
+          notes: formData.notes.trim() || undefined,
+          purchaseOrderUrl: formData.purchaseOrderUri || undefined,
+        };
 
-      console.log(isEditMode ? 'Updating charge:' : 'Creating charge:', chargeData);
+        await createVariableCharge(createRequest);
+      }
 
       // Show success message
       Alert.alert(
@@ -191,8 +214,13 @@ export default function VariableChargeFormScreen() {
           },
         ]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save charge. Please try again.');
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to save charge';
+      Alert.alert('Error', errorMessage);
+      console.error('Error saving variable charge:', err);
     } finally {
       setIsSubmitting(false);
     }
