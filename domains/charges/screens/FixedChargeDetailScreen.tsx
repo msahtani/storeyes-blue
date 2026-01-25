@@ -130,9 +130,9 @@ export default function FixedChargeDetailScreen() {
 
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'MAD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -183,10 +183,6 @@ export default function FixedChargeDetailScreen() {
   }
 
   const categoryLabel = categoryLabels[charge.category];
-  const changeAmount = charge.previousAmount
-    ? charge.amount - charge.previousAmount
-    : 0;
-  const changePercentage = charge.trendPercentage || 0;
 
   return (
     <SafeAreaView
@@ -271,62 +267,7 @@ export default function FixedChargeDetailScreen() {
               return formatAmount(charge.amount);
             })()}
           </Text>
-          {charge.previousAmount && (
-            <View style={styles.comparisonContainer}>
-              <View style={styles.comparisonRow}>
-                <Text style={styles.comparisonLabel}>
-                  {t('charges.fixed.details.previous')}:
-                </Text>
-                <Text style={styles.comparisonValue}>
-                  {formatAmount(charge.previousAmount)}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.changeBadge,
-                  changeAmount >= 0
-                    ? styles.changeBadgeUp
-                    : styles.changeBadgeDown,
-                ]}
-              >
-                <Feather
-                  name={changeAmount >= 0 ? 'trending-up' : 'trending-down'}
-                  size={14}
-                  color={
-                    changeAmount >= 0 ? BluePalette.error : BluePalette.success
-                  }
-                />
-                <Text
-                  style={[
-                    styles.changeText,
-                    changeAmount >= 0
-                      ? styles.changeTextUp
-                      : styles.changeTextDown,
-                  ]}
-                >
-                  {changeAmount >= 0 ? '+' : ''}
-                  {formatAmount(changeAmount)} ({changePercentage > 0 ? '+' : ''}
-                  {changePercentage.toFixed(1)}%)
-                </Text>
-              </View>
-            </View>
-          )}
         </View>
-
-        {/* Abnormal Increase Warning */}
-        {charge.abnormalIncrease && (
-          <View style={styles.warningCard}>
-            <Feather name="alert-circle" size={20} color={BluePalette.error} />
-            <View style={styles.warningContent}>
-              <Text style={styles.warningTitle}>
-                {t('charges.fixed.details.abnormalIncrease')}
-              </Text>
-              <Text style={styles.warningText}>
-                {t('charges.fixed.details.abnormalIncreaseDesc')}
-              </Text>
-            </View>
-          </View>
-        )}
 
         {/* Personnel Types - Special layout for personnel category */}
         {charge.category === 'personnel' && charge.personnelData && charge.personnelData.length > 0 && (

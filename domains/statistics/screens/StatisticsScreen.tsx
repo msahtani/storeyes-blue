@@ -1,93 +1,44 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
+import { getMonthForWeek } from '@/domains/charges/utils/weekUtils';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnalysisPhrases from '../components/AnalysisPhrases';
 import DoughnutChart from '../components/DoughnutChart';
 import KPICard from '../components/KPICard';
 import StatisticsDateSelector from '../components/StatisticsDateSelector';
+import { getStatistics } from '../services/statisticsService';
 import { PeriodType, StatisticsData } from '../types/statistics';
-import { calculateKPIMetrics } from '../utils/statusCalculator';
 
-// Helper function to create statistics data with calculated metrics
-function createStatisticsData(
-  period: PeriodType,
-  revenue: number,
-  charges: number,
-  profit: number,
-  revenueEvolution: number,
-  chartData: Array<{ period: string; revenue: number; charges: number; profit: number }>
-): StatisticsData {
-  const metrics = calculateKPIMetrics(revenue, charges, profit);
-
-  return {
-    period,
-    kpi: {
-      revenue,
-      charges,
-      profit,
-      revenueEvolution,
-      ...metrics,
-    },
-    chartData,
-    charges: {
-      fixed: [],
-      variable: [],
-    },
-  };
+// Helper function to format date for API based on period type
+function formatDateForAPI(period: PeriodType, date: string): string {
+  // Date is already in the correct format from StatisticsDateSelector
+  // - month: YYYY-MM
+  // - week: YYYY-MM-DD (Monday date)
+  // - day: YYYY-MM-DD
+  return date;
 }
 
-// Mock data - replace with actual data fetching
-// Note: revenue = charges + profit (100% split)
-const mockStatisticsData: Record<PeriodType, StatisticsData> = {
-  day: createStatisticsData(
-    'day',
-    1250, // revenue
-    850,  // charges
-    400,  // profit (1250 - 850 = 400)
-    5.2,
-    [
-      { period: 'Mon', revenue: 1200, charges: 800, profit: 400 },
-      { period: 'Tue', revenue: 1350, charges: 850, profit: 500 },
-      { period: 'Wed', revenue: 1100, charges: 750, profit: 350 },
-      { period: 'Thu', revenue: 1400, charges: 900, profit: 500 },
-      { period: 'Fri', revenue: 1600, charges: 1000, profit: 600 },
-      { period: 'Sat', revenue: 1800, charges: 1100, profit: 700 },
-      { period: 'Sun', revenue: 1250, charges: 850, profit: 400 },
-    ]
-  ),
-  week: createStatisticsData(
-    'week',
-    8750, // revenue
-    5950, // charges
-    2800, // profit (8750 - 5950 = 2800)
-    3.8,
-    [
-      { period: 'W1', revenue: 8400, charges: 5800, profit: 2600 },
-      { period: 'W2', revenue: 8600, charges: 5900, profit: 2700 },
-      { period: 'W3', revenue: 8750, charges: 5950, profit: 2800 },
-      { period: 'W4', revenue: 8900, charges: 6000, profit: 2900 },
-    ]
-  ),
-  month: createStatisticsData(
-    'month',
-    35000, // revenue
-    24500, // charges
-    10500, // profit (35000 - 24500 = 10500)
-    2.5,
-    [
-      { period: 'Oct', revenue: 32000, charges: 22000, profit: 10000 },
-      { period: 'Nov', revenue: 34000, charges: 23500, profit: 10500 },
-      { period: 'Dec', revenue: 34500, charges: 24000, profit: 10500 },
-      { period: 'Jan', revenue: 35000, charges: 24500, profit: 10500 },
-    ]
-  ),
-};
+// Helper function to get default date for period
+function getDefaultDateForPeriod(period: PeriodType): string {
+  const today = new Date();
+  if (period === 'month') {
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  } else {
+    // For day and week, return today's date in YYYY-MM-DD format
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+}
 
 export default function StatisticsScreen() {
   const { t } = useI18n();
@@ -95,18 +46,80 @@ export default function StatisticsScreen() {
   const insets = useSafeAreaInsets();
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('month'); // Default to month
   const [selectedDate, setSelectedDate] = useState<string | undefined>();
+  const [statistics, setStatistics] = useState<StatisticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
 
-  const statistics = useMemo(() => {
-    // Filter by selected date if provided, otherwise use default data for period
-    // In real implementation, this would filter the data based on selectedDate
-    return mockStatisticsData[selectedPeriod];
+  // Fetch statistics when period or date changes
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchStatistics() {
+      if (!selectedDate) {
+        // Wait for date selector to initialize
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const dateForAPI = formatDateForAPI(selectedPeriod, selectedDate);
+        const data = await getStatistics(selectedPeriod, dateForAPI);
+
+        if (!cancelled) {
+          setStatistics(data);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          const errorMessage =
+            err?.response?.data?.error?.message ||
+            err?.response?.data?.message ||
+            err?.message ||
+            'Failed to load statistics';
+          setError(errorMessage);
+          console.error('Error fetching statistics:', err);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchStatistics();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedPeriod, selectedDate]);
 
   const handleChargesDetailPress = () => {
-    router.push(`/statistics/charges?period=${selectedPeriod}` as any);
+    const params: Record<string, string> = { period: selectedPeriod };
+    if (selectedDate) {
+      if (selectedPeriod === 'month') {
+        params.month = selectedDate;
+      } else if (selectedPeriod === 'week') {
+        params.week = selectedDate;
+        // Also include month for context
+        try {
+          params.month = getMonthForWeek(selectedDate);
+        } catch {
+          // Fallback if parsing fails
+          const parts = selectedDate.split('-');
+          if (parts.length >= 2) {
+            params.month = `${parts[0]}-${parts[1]}`;
+          }
+        }
+      }
+    }
+    router.push({
+      pathname: '/statistics/charges' as any,
+      params,
+    });
   };
 
   return (
@@ -137,7 +150,7 @@ export default function StatisticsScreen() {
           setSelectedDate(undefined);
         }}
       />
-      
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -146,63 +159,91 @@ export default function StatisticsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        
-
-        {/* KPI Cards - Horizontal Scroll */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.kpiScrollContent}
-          style={styles.kpiScrollView}
-        >
-          <KPICard
-            title={t('statistics.kpi.revenue')}
-            value={statistics.kpi.revenue}
-            evolution={statistics.kpi.revenueEvolution}
-            icon="dollar-sign"
-          />
-          <KPICard
-            title={t('statistics.kpi.charges')}
-            value={statistics.kpi.charges}
-            subtitle={`${statistics.kpi.chargesPercentage?.toFixed(1)}% ${t('statistics.kpi.ofRevenue')}`}
-            status={statistics.kpi.chargesStatus}
-            icon="credit-card"
-          />
-          <KPICard
-            title={t('statistics.kpi.profit')}
-            value={statistics.kpi.profit}
-            subtitle={`${statistics.kpi.profitPercentage?.toFixed(1)}% ${t('statistics.kpi.ofRevenue')}`}
-            status={statistics.kpi.profitStatus}
-            icon="trending-up"
-          />
-        </ScrollView>
-
-        {/* Doughnut Chart */}
-        <View style={styles.chartSection}>
-          <Text style={styles.sectionTitle}>
-            {t('statistics.chart.title')}
-          </Text>
-          <View style={styles.chartContainer}>
-            <DoughnutChart data={statistics.chartData} />
+        {loading ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={BluePalette.merge} />
+            <Text style={styles.loadingText}>{t('common.loadingStatistics')}</Text>
           </View>
-        </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Feather name="alert-circle" size={48} color={BluePalette.error} />
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable
+              style={styles.retryButton}
+              onPress={() => {
+                // Trigger refetch by updating state
+                setSelectedDate(selectedDate);
+              }}
+            >
+              <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+            </Pressable>
+          </View>
+        ) : statistics ? (
+          <>
+            {/* KPI Cards - Horizontal Scroll */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.kpiScrollContent}
+              style={styles.kpiScrollView}
+            >
+              <KPICard
+                title={t('statistics.kpi.revenue')}
+                value={statistics.kpi.revenue}
+                evolution={statistics.kpi.revenueEvolution}
+                icon="dollar-sign"
+              />
+              <KPICard
+                title={t('statistics.kpi.charges')}
+                value={statistics.kpi.charges}
+                subtitle={`${statistics.kpi.chargesPercentage.toFixed(1)}% ${t('statistics.kpi.ofRevenue')}`}
+                status={statistics.kpi.chargesStatus}
+                icon="credit-card"
+              />
+              <KPICard
+                title={t('statistics.kpi.profit')}
+                value={statistics.kpi.profit}
+                subtitle={`${statistics.kpi.profitPercentage.toFixed(1)}% ${t('statistics.kpi.ofRevenue')}`}
+                status={statistics.kpi.profitStatus}
+                icon="trending-up"
+              />
+            </ScrollView>
 
-        {/* Analysis Phrases */}
-        <AnalysisPhrases kpi={statistics.kpi} charges={[...statistics.charges.fixed, ...statistics.charges.variable]} />
+            {/* Doughnut Chart */}
+            <View style={styles.chartSection}>
+              <Text style={styles.sectionTitle}>
+                {t('statistics.chart.title')}
+              </Text>
+              <View style={styles.chartContainer}>
+                <DoughnutChart data={statistics.chartData} />
+              </View>
+            </View>
 
-        {/* Charges Detail Button */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.detailButton,
-            pressed && styles.detailButtonPressed,
-          ]}
-          onPress={handleChargesDetailPress}
-        >
-          <Text style={styles.detailButtonText}>
-            {t('statistics.chargesDetail')}
-          </Text>
-          <Feather name="chevron-right" size={20} color={BluePalette.merge} />
-        </Pressable>
+            {/* Analysis Phrases */}
+            <AnalysisPhrases
+              kpi={statistics.kpi}
+              charges={[...statistics.charges.fixed, ...statistics.charges.variable]}
+            />
+
+            {/* Charges Detail Button */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.detailButton,
+                pressed && styles.detailButtonPressed,
+              ]}
+              onPress={handleChargesDetailPress}
+            >
+              <Text style={styles.detailButtonText}>
+                {t('statistics.chargesDetail')}
+              </Text>
+              <Feather name="chevron-right" size={20} color={BluePalette.merge} />
+            </Pressable>
+          </>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>{t('common.noDataAvailable')}</Text>
+          </View>
+        )}
       </ScrollView>
 
       <BottomBar />
@@ -306,6 +347,55 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: BluePalette.textPrimary,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: BluePalette.textSecondary,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    gap: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    color: BluePalette.error,
+    fontWeight: '500',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  retryButton: {
+    marginTop: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: BluePalette.merge,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: BluePalette.white,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: BluePalette.textTertiary,
+    fontWeight: '500',
   },
 });
 

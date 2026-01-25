@@ -1,5 +1,6 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
+import { useI18n } from '@/constants/i18n/I18nContext';
 import Feather from '@expo/vector-icons/Feather';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -24,11 +25,12 @@ export default function KPICard({
   icon,
   formatCurrency = true,
 }: KPICardProps) {
+  const { t } = useI18n();
   const formatAmount = (amount: number) => {
     if (formatCurrency) {
-      return new Intl.NumberFormat('en-US', {
+      return new Intl.NumberFormat('fr-FR', {
         style: 'currency',
-        currency: 'USD',
+        currency: 'MAD',
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       }).format(amount);
@@ -73,7 +75,7 @@ export default function KPICard({
 
       <View style={styles.cardContent}>
         <Text style={styles.cardValue}>{formatAmount(value)}</Text>
-        
+
         {subtitle && (
           <Text style={styles.cardSubtitle}>{subtitle}</Text>
         )}
@@ -103,7 +105,7 @@ export default function KPICard({
           <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor()}15` }]}>
             <Feather name={getStatusIcon() as any} size={12} color={getStatusColor()} />
             <Text style={[styles.statusText, { color: getStatusColor() }]}>
-              {status === 'good' ? 'Good' : status === 'medium' ? 'Medium' : 'Critical'}
+              {t(`statistics.status.${status}`)}
             </Text>
           </View>
         )}

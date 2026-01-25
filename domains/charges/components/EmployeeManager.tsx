@@ -33,6 +33,7 @@ interface EmployeeManagerProps {
   period?: 'week' | 'month'; // Current period selection
   selectedMonth?: string; // For calculating days left
   selectedWeek?: string; // For week calculations
+  autoLoadEmployees?: boolean; // Auto-load all available employees on mount
 }
 
 export default function EmployeeManager({
@@ -41,6 +42,7 @@ export default function EmployeeManager({
   period = 'month',
   selectedMonth,
   selectedWeek,
+  autoLoadEmployees = false,
 }: EmployeeManagerProps) {
   const [editingEmployee, setEditingEmployee] = useState<PersonnelEmployeeUI | null>(null);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -79,6 +81,19 @@ export default function EmployeeManager({
 
     fetchAvailableEmployees();
   }, []);
+
+  // Auto-load all employees when autoLoadEmployees is true and employees list is empty
+  useEffect(() => {
+    if (autoLoadEmployees && availableEmployees.length > 0 && employees.length === 0) {
+      // Add all employees without salary (user can set salary later)
+      const employeesToAdd: PersonnelEmployeeUI[] = availableEmployees.map((emp) => ({
+        ...emp,
+        salary: undefined,
+        employeeId: emp.id ? parseInt(emp.id, 10) : undefined,
+      }));
+      onEmployeesChange(employeesToAdd);
+    }
+  }, [autoLoadEmployees, availableEmployees, employees.length, onEmployeesChange]);
   const [employeeForm, setEmployeeForm] = useState({
     name: '',
     salary: '',
@@ -88,9 +103,9 @@ export default function EmployeeManager({
   });
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'MAD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -131,8 +146,11 @@ export default function EmployeeManager({
   };
 
   const handleSelectExistingEmployee = (employee: PersonnelEmployeeUI) => {
-    // Check if employee already exists
-    if (employees.some(emp => emp.id === employee.id)) {
+    // Check if employee already exists by comparing both id and employeeId
+    if (employees.some(emp =>
+      emp.id === employee.id ||
+      (emp.employeeId && employee.employeeId && emp.employeeId === employee.employeeId)
+    )) {
       Alert.alert('Error', 'This employee is already added');
       return;
     }
@@ -714,51 +732,6 @@ export default function EmployeeManager({
                     }
                   </Text>
                 </View>
-
-                {/* Position Title */}
-                <View style={styles.modalInputGroup}>
-                  <Text style={styles.modalLabel}>Position Title (Optional)</Text>
-                  <View style={styles.modalInputWrapper}>
-                    <Feather
-                      name="briefcase"
-                      size={18}
-                      color={BluePalette.textDark}
-                      style={styles.modalInputIcon}
-                    />
-                    <TextInput
-                      style={styles.modalInput}
-                      placeholder="e.g., Senior Server"
-                      placeholderTextColor="rgba(10, 31, 58, 0.5)"
-                      value={employeeForm.position}
-                      onChangeText={(value) =>
-                        setEmployeeForm((prev) => ({ ...prev, position: value }))
-                      }
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </View>
-
-                {/* Start Date */}
-                <View style={styles.modalInputGroup}>
-                  <Text style={styles.modalLabel}>Start Date (Optional)</Text>
-                  <View style={styles.modalInputWrapper}>
-                    <Feather
-                      name="calendar"
-                      size={18}
-                      color={BluePalette.textDark}
-                      style={styles.modalInputIcon}
-                    />
-                    <TextInput
-                      style={styles.modalInput}
-                      placeholder="YYYY-MM-DD"
-                      placeholderTextColor="rgba(10, 31, 58, 0.5)"
-                      value={employeeForm.startDate}
-                      onChangeText={(value) =>
-                        setEmployeeForm((prev) => ({ ...prev, startDate: value }))
-                      }
-                    />
-                  </View>
-                </View>
               </View>
             </ScrollView>
 
@@ -795,6 +768,33 @@ export default function EmployeeManager({
               </Pressable>
             </View>
 
+            {/* Position Filter in Modal */}
+            {availableEmployees.length > 0 && (
+              <View style={styles.modalFilterContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modalFilterScroll}>
+                  {positionOptions.map((option) => (
+                    <Pressable
+                      key={option.value}
+                      style={[
+                        styles.filterChip,
+                        positionFilter === option.value && styles.filterChipActive,
+                      ]}
+                      onPress={() => setPositionFilter(option.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          positionFilter === option.value && styles.filterChipTextActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             <ScrollView
               style={styles.modalScroll}
               contentContainerStyle={styles.modalScrollContent}
@@ -805,39 +805,74 @@ export default function EmployeeManager({
                   <View style={styles.emptyState}>
                     <Text style={styles.emptyText}>Loading employees...</Text>
                   </View>
-                ) : availableEmployees.filter(emp => !employees.some(e => e.id === emp.id)).length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>No existing employees available</Text>
-                  </View>
-                ) : (
-                  availableEmployees
-                    .filter(emp => !employees.some(e => e.id === emp.id))
-                    .map((employee) => (
-                      <Pressable
-                        key={employee.id}
-                        style={styles.existingEmployeeCard}
-                        onPress={() => handleSelectExistingEmployee(employee)}
-                      >
-                        <View style={styles.existingEmployeeInfo}>
-                          <Text style={styles.existingEmployeeName}>{employee.name}</Text>
-                          {employee.position && (
-                            <Text style={styles.existingEmployeePosition}>{employee.position}</Text>
-                          )}
-                          {employee.type && (
-                            <View style={[
-                              styles.typeBadge,
-                              employee.type === 'server' && styles.typeBadgeServer,
-                              employee.type === 'barman' && styles.typeBadgeBarman,
-                              employee.type === 'cleaner' && styles.typeBadgeCleaner,
-                            ]}>
-                              <Text style={styles.typeBadgeText}>{employee.type}</Text>
+                ) : (() => {
+                  // Filter employees by position
+                  const filteredAvailable = positionFilter === 'all'
+                    ? availableEmployees
+                    : availableEmployees.filter(emp => emp.type === positionFilter);
+
+                  return filteredAvailable.length === 0 ? (
+                    <View style={styles.emptyState}>
+                      <Text style={styles.emptyText}>No employees found</Text>
+                    </View>
+                  ) : (
+                    filteredAvailable.map((employee) => {
+                      const isAlreadyAdded = employees.some(e => e.id === employee.id);
+                      return (
+                        <Pressable
+                          key={employee.id}
+                          style={[
+                            styles.existingEmployeeCard,
+                            isAlreadyAdded && styles.existingEmployeeCardDisabled
+                          ]}
+                          onPress={() => {
+                            if (!isAlreadyAdded) {
+                              handleSelectExistingEmployee(employee);
+                            }
+                          }}
+                          disabled={isAlreadyAdded}
+                        >
+                          <View style={styles.existingEmployeeInfo}>
+                            <View style={styles.existingEmployeeHeaderRow}>
+                              <Text style={[
+                                styles.existingEmployeeName,
+                                isAlreadyAdded && styles.existingEmployeeNameDisabled
+                              ]}>
+                                {employee.name}
+                              </Text>
+                              {isAlreadyAdded && (
+                                <View style={styles.addedBadge}>
+                                  <Feather name="check" size={14} color={BluePalette.success} />
+                                  <Text style={styles.addedBadgeText}>Added</Text>
+                                </View>
+                              )}
                             </View>
+                            {employee.position && (
+                              <Text style={[
+                                styles.existingEmployeePosition,
+                                isAlreadyAdded && styles.existingEmployeePositionDisabled
+                              ]}>
+                                {employee.position}
+                              </Text>
+                            )}
+                            {employee.type && (
+                              <View style={[
+                                styles.typeBadge,
+                                employee.type === 'server' && styles.typeBadgeServer,
+                                employee.type === 'barman' && styles.typeBadgeBarman,
+                                employee.type === 'cleaner' && styles.typeBadgeCleaner,
+                              ]}>
+                                <Text style={styles.typeBadgeText}>{employee.type}</Text>
+                              </View>
+                            )}
+                          </View>
+                          {!isAlreadyAdded && (
+                            <Feather name="chevron-right" size={20} color={BluePalette.textTertiary} />
                           )}
-                        </View>
-                        <Feather name="chevron-right" size={20} color={BluePalette.textTertiary} />
-                      </Pressable>
-                    ))
-                )}
+                        </Pressable>
+                      );
+                    }));
+                })()}
               </View>
             </ScrollView>
           </View>
@@ -1124,6 +1159,17 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     paddingBottom: 20,
   },
+  modalFilterContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: BluePalette.border,
+  },
+  modalFilterScroll: {
+    gap: 8,
+    paddingVertical: 4,
+  },
   modalForm: {
     padding: 20,
     gap: 16,
@@ -1250,18 +1296,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BluePalette.border,
   },
+  existingEmployeeCardDisabled: {
+    opacity: 0.6,
+    backgroundColor: BluePalette.surface,
+  },
   existingEmployeeInfo: {
     flex: 1,
     gap: 4,
+  },
+  existingEmployeeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
   },
   existingEmployeeName: {
     fontSize: 16,
     fontWeight: '700',
     color: BluePalette.textPrimary,
   },
+  existingEmployeeNameDisabled: {
+    color: BluePalette.textSecondary,
+  },
   existingEmployeePosition: {
     fontSize: 13,
     color: BluePalette.textTertiary,
     fontWeight: '500',
+  },
+  existingEmployeePositionDisabled: {
+    color: BluePalette.textTertiary,
+    opacity: 0.7,
+  },
+  addedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: `${BluePalette.success}15`,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  addedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: BluePalette.success,
   },
 });

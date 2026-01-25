@@ -57,10 +57,12 @@ export default function DoughnutChart({ data, size = CHART_SIZE }: DoughnutChart
   }, [data]);
 
   const formatAmount = (amount: number) => {
-    if (amount >= 1000) {
-      return `$${(amount / 1000).toFixed(0)}k`;
-    }
-    return `$${Math.round(amount)}`;
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'MAD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
   if (data.length === 0) {

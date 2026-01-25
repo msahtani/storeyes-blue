@@ -275,23 +275,33 @@ export default function FixedChargeFormScreen() {
 
     // Check if all employees have salary set
     if (isPersonnel && employees.length > 0) {
-      const employeesWithoutSalary = employees.filter(emp => emp.salary === undefined || emp.salary === null);
-      if (employeesWithoutSalary.length > 0) {
-        // Warning but not blocking - user can set salary later
-        // Just ensure amount is set if employees have salary
-        const hasAnySalary = employees.some(emp => emp.salary !== undefined && emp.salary !== null);
-        if (!hasAnySalary && !formData.amount.trim()) {
-          newErrors.amount = 'Please set salary for employees or enter total amount';
+      const employeesWithoutSalary = employees.filter(emp => {
+        // Check if employee has any salary set (monthSalary, weekSalary, salary, or weekSalaries)
+        if (formData.period === 'month') {
+          return emp.monthSalary === undefined &&
+            (!emp.weekSalaries || Object.keys(emp.weekSalaries).length === 0) &&
+            emp.salary === undefined;
+        } else {
+          return (selectedWeek && emp.weekSalaries && emp.weekSalaries[selectedWeek] === undefined) &&
+            emp.weekSalary === undefined &&
+            emp.salary === undefined;
         }
+      });
+      if (employeesWithoutSalary.length > 0) {
+        newErrors.employees = 'Please set salary for all employees';
       }
     }
 
-    if (!formData.amount.trim()) {
-      newErrors.amount = 'Amount is required';
-    } else {
-      const amountNum = parseFloat(formData.amount);
-      if (isNaN(amountNum) || amountNum <= 0) {
-        newErrors.amount = 'Amount must be a positive number';
+    // Amount is only required for non-personnel charges
+    // For personnel charges, amount is calculated automatically from employees
+    if (!isPersonnel) {
+      if (!formData.amount.trim()) {
+        newErrors.amount = 'Amount is required';
+      } else {
+        const amountNum = parseFloat(formData.amount);
+        if (isNaN(amountNum) || amountNum <= 0) {
+          newErrors.amount = 'Amount must be a positive number';
+        }
       }
     }
 
@@ -606,6 +616,7 @@ export default function FixedChargeFormScreen() {
                 period={formData.period}
                 selectedMonth={selectedMonth}
                 selectedWeek={selectedWeek}
+                autoLoadEmployees={!isEditMode && employees.length === 0}
               />
               {/* Auto-calculate amount from employees */}
               {employees.length > 0 && (
@@ -645,62 +656,29 @@ export default function FixedChargeFormScreen() {
             </View>
           )}
 
-          {/* Amount Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Amount *</Text>
-            <View style={[styles.inputWrapper, errors.amount && styles.inputError]}>
-              <Feather
-                name="dollar-sign"
-                size={18}
-                color={errors.amount ? BluePalette.error : BluePalette.textDark}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={isPersonnel && employees.length > 0
-                  ? employees.reduce((sum, emp) => {
-                    if (formData.period === 'month') {
-                      if (emp.monthSalary !== undefined) {
-                        return sum + emp.monthSalary;
-                      }
-                      if (emp.weekSalaries) {
-                        // Calculate from week salaries (only weeks belonging to this month)
-                        const weekTotal = Object.entries(emp.weekSalaries).reduce((s, [weekKey, amount]) => {
-                          if (selectedMonth) {
-                            const weekMonthKey = getMonthForWeek(weekKey);
-                            if (weekMonthKey === selectedMonth) {
-                              return s + amount;
-                            }
-                          } else {
-                            return s + amount;
-                          }
-                          return s;
-                        }, 0);
-                        return sum + weekTotal;
-                      }
-                      return sum + (emp.salary || 0);
-                    } else {
-                      if (selectedWeek && emp.weekSalaries && emp.weekSalaries[selectedWeek] !== undefined) {
-                        return sum + emp.weekSalaries[selectedWeek];
-                      }
-                      return sum + (emp.weekSalary || emp.salary || 0);
-                    }
-                  }, 0).toFixed(2)
-                  : "0.00"}
-                placeholderTextColor="rgba(10, 31, 58, 0.5)"
-                value={formData.amount}
-                onChangeText={(value) => updateField('amount', value.replace(/[^0-9.]/g, ''))}
-                keyboardType="decimal-pad"
-                editable={!isPersonnel || employees.length === 0}
-              />
+          {/* Amount Input - Only show for non-personnel charges */}
+          {!isPersonnel && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Amount *</Text>
+              <View style={[styles.inputWrapper, errors.amount && styles.inputError]}>
+                <Feather
+                  name="dollar-sign"
+                  size={18}
+                  color={errors.amount ? BluePalette.error : BluePalette.textDark}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="0.00"
+                  placeholderTextColor="rgba(10, 31, 58, 0.5)"
+                  value={formData.amount}
+                  onChangeText={(value) => updateField('amount', value.replace(/[^0-9.]/g, ''))}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              {errors.amount && <Text style={styles.errorText}>{errors.amount}</Text>}
             </View>
-            {isPersonnel && employees.length > 0 && (
-              <Text style={styles.helperText}>
-                Amount is calculated from employees. Edit employees to change the total.
-              </Text>
-            )}
-            {errors.amount && <Text style={styles.errorText}>{errors.amount}</Text>}
-          </View>
+          )}
 
           {/* Notes Input */}
           <View style={styles.inputGroup}>
@@ -851,7 +829,7 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: BluePalette.textTertiary,
+    color: BluePalette.textDark,
     marginLeft: 4,
     marginTop: 4,
   },

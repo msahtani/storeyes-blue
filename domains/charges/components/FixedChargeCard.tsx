@@ -1,5 +1,6 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
+import { useI18n } from '@/constants/i18n/I18nContext';
 import Feather from '@expo/vector-icons/Feather';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -27,31 +28,18 @@ const categoryLabels: Record<FixedChargeCategory, string> = {
 };
 
 export default function FixedChargeCard({ category, charge, isWarned = false, onPress }: FixedChargeCardProps) {
+  const { t } = useI18n();
   const icon = categoryIcons[category];
   const label = categoryLabels[category];
   const isEmpty = !charge;
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'MAD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
-  };
-
-  const getTrendIcon = () => {
-    if (!charge?.trend) return null;
-    switch (charge.trend) {
-      case 'up':
-        return <Feather name="trending-up" size={14} color={BluePalette.error} />;
-      case 'down':
-        return <Feather name="trending-down" size={14} color={BluePalette.success} />;
-      case 'stable':
-        return <Feather name="minus" size={14} color={BluePalette.textTertiary} />;
-      default:
-        return null;
-    }
   };
 
   return (
@@ -60,7 +48,6 @@ export default function FixedChargeCard({ category, charge, isWarned = false, on
         styles.card,
         isEmpty && styles.cardEmpty,
         isWarned && styles.cardWarned,
-        charge?.abnormalIncrease && styles.cardAbnormal,
         pressed && styles.cardPressed,
       ]}
       onPress={onPress}
@@ -71,13 +58,13 @@ export default function FixedChargeCard({ category, charge, isWarned = false, on
           styles.iconContainer,
           { backgroundColor: isEmpty ? `${BluePalette.textTertiary}15` : `${BluePalette.merge}15` }
         ]}>
-          <Feather 
-            name={icon as any} 
-            size={24} 
-            color={isEmpty ? BluePalette.textTertiary : BluePalette.merge} 
+          <Feather
+            name={icon as any}
+            size={24}
+            color={isEmpty ? BluePalette.textTertiary : BluePalette.merge}
           />
         </View>
-        
+
         <View style={styles.cardInfo}>
           <Text style={[
             styles.categoryLabel,
@@ -90,36 +77,19 @@ export default function FixedChargeCard({ category, charge, isWarned = false, on
               {isWarned ? (
                 <>
                   <Feather name="alert-circle" size={14} color={BluePalette.warning} />
-                  <Text style={styles.warnedText}>Not filled - Month ended</Text>
+                  <Text style={styles.warnedText}>{t('charges.fixed.notFilledMonthEnded')}</Text>
                 </>
               ) : (
-                <Text style={styles.emptyText}>Not filled</Text>
+                <Text style={styles.emptyText}>{t('charges.fixed.notFilled')}</Text>
               )}
             </View>
           ) : (
             <View style={styles.amountRow}>
               <Text style={styles.amount}>{formatAmount(charge.amount)}</Text>
-              {charge.trend && (
-                <View style={styles.trendContainer}>
-                  {getTrendIcon()}
-                  {charge.trendPercentage !== undefined && (
-                    <Text style={styles.trendText}>
-                      {charge.trendPercentage > 0 ? '+' : ''}
-                      {charge.trendPercentage.toFixed(1)}%
-                    </Text>
-                  )}
-                </View>
-              )}
             </View>
           )}
         </View>
 
-        {charge?.abnormalIncrease && (
-          <View style={styles.alertBadge}>
-            <Feather name="alert-circle" size={16} color={BluePalette.error} />
-          </View>
-        )}
-        
         {isWarned && (
           <View style={styles.warnedBadge}>
             <Feather name="alert-triangle" size={18} color={BluePalette.warning} />
@@ -155,10 +125,6 @@ const styles = StyleSheet.create({
     borderColor: BluePalette.warning,
     borderWidth: 2,
     backgroundColor: BluePalette.backgroundNew,
-  },
-  cardAbnormal: {
-    borderColor: BluePalette.error,
-    borderWidth: 2.5,
   },
   cardPressed: {
     transform: [{ scale: 0.98 }],
@@ -225,9 +191,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: BluePalette.textTertiary,
-  },
-  alertBadge: {
-    padding: 4,
   },
   warnedBadge: {
     padding: 4,

@@ -103,7 +103,34 @@
       "distribution": "Distribution",
       "details": "Details",
       "ofCharges": "Of Charges",
-      "ofRevenue": "Of Revenue"
+      "ofRevenue": "Of Revenue",
+      "statistics": "Statistics",
+      "totalCharges": "Total Charges",
+      "caPercentage": "CA Percentage",
+      "itemsCount": "Items Count",
+      "ofAllCharges": "Of All Charges",
+      "ofTotalRevenue": "of total revenue",
+      "ofTotalCharges": "of total charges",
+      "item": "item",
+      "items": "items",
+      "noFixedCharges": "No fixed charges found for this period",
+      "noVariableCharges": "No variable charges found for this period"
+    },
+    "common": {
+      "loading": "Loading...",
+      "loadingStatistics": "Loading statistics...",
+      "retry": "Retry",
+      "noDataAvailable": "No data available",
+      "selectMonth": "Select Month",
+      "selectWeek": "Select Week",
+      "month": "Month",
+      "week": "Week"
+    },
+    "charges": {
+      "fixed": {
+        "notFilled": "Not filled",
+        "notFilledMonthEnded": "Not filled - Month ended"
+      }
     },
     "status": {
       "good": "Good",
@@ -172,4 +199,3 @@
     }
   }
 }
-

@@ -1,7 +1,7 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
-import PeriodSelector from '@/domains/charges/components/PeriodSelector';
-import { PeriodType as ChargesPeriodType } from '@/domains/charges/types/charge';
+import { useI18n } from '@/constants/i18n/I18nContext';
+import { getMonthForWeek, getWeeksForMonth, parseWeekKey as parseWeekKeyUtil } from '@/domains/charges/utils/weekUtils';
 import Feather from '@expo/vector-icons/Feather';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -100,71 +100,32 @@ const getMonths = (count: number = 6): MonthItem[] => {
   return months;
 };
 
-// Get weeks in a month (similar to WeekSelector)
-const formatWeekKeyForMonth = (monthKey: string, weekNumber: number): string => {
-  return `${monthKey}-W${weekNumber}`;
-};
-
+// Get weeks in a month using the same logic as charges service (Monday-Sunday)
 const getWeeksInMonth = (monthKey: string): WeekItem[] => {
-  const monthStart = parseMonthKey(monthKey);
-  monthStart.setHours(0, 0, 0, 0);
-  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-  monthEnd.setHours(23, 59, 59, 999);
-
-  const weeks: WeekItem[] = [];
+  const weekInfos = getWeeksForMonth(monthKey);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Start from the Sunday of the week that contains the first day of the month
-  let weekStart = getStartOfWeek(new Date(monthStart));
+  // Convert WeekInfo to WeekItem format
+  // Filter to show only weeks that belong to this month (where Monday is in the month)
+  // and have started (Monday <= today)
+  return weekInfos
+    .filter(week => {
+      // Only show weeks that have started
+      if (week.startDate > today) return false;
 
-  let weekNumber = 1;
-  const maxWeeks = 6; // Safety limit
-
-  // Generate weeks that overlap with this month
-  while (weekStart <= monthEnd && weekNumber <= maxWeeks) {
-    const weekEnd = getEndOfWeek(new Date(weekStart));
-    weekEnd.setHours(23, 59, 59, 999);
-
-    // Check if this week overlaps with the month
-    if (weekEnd >= monthStart && weekStart <= monthEnd) {
-      // Include all weeks that have started (including current week with remaining days)
-      if (weekStart <= today) {
-        // Clamp dates to month boundaries for display
-        const startDate = weekStart < monthStart ? new Date(monthStart) : new Date(weekStart);
-        const effectiveEndDate = weekEnd > today ? (today > monthEnd ? new Date(monthEnd) : new Date(today)) : (weekEnd > monthEnd ? new Date(monthEnd) : new Date(weekEnd));
-        const endDate = effectiveEndDate;
-
-        // Format label
-        const startDay = startDate.getDate();
-        const endDay = endDate.getDate();
-        const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
-        const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
-
-        let label: string;
-        if (startMonth === endMonth) {
-          label = `${startMonth} ${startDay}-${endDay}`;
-        } else {
-          label = `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
-        }
-
-        weeks.push({
-          weekNumber,
-          startDate: startDate,
-          endDate: endDate,
-          monthKey,
-          weekKey: formatWeekKeyForMonth(monthKey, weekNumber),
-          label,
-        });
-      }
-    }
-
-    // Move to next week
-    weekStart.setDate(weekStart.getDate() + 7);
-    weekNumber++;
-  }
-
-  return weeks;
+      // Only show weeks that belong to this month (Monday is in this month)
+      const weekMonthKey = getMonthForWeek(week.weekKey);
+      return weekMonthKey === monthKey;
+    })
+    .map((week, index) => ({
+      weekNumber: index + 1,
+      startDate: week.startDate,
+      endDate: week.endDate,
+      monthKey: monthKey,
+      weekKey: week.weekKey, // Format: YYYY-MM-DD (Monday date)
+      label: week.label,
+    }));
 };
 
 export default function StatisticsDateSelector({
@@ -173,12 +134,13 @@ export default function StatisticsDateSelector({
   onDateSelect,
   onPeriodChange,
 }: StatisticsDateSelectorProps) {
+  const { t } = useI18n();
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(() => {
     if (selectedDate) {
-      return period === 'month' ? parseMonthKey(selectedDate) : parseWeekKey(selectedDate);
+      return period === 'month' ? parseMonthKey(selectedDate) : parseWeekKeyUtil(selectedDate);
     }
     return new Date();
   });
@@ -192,10 +154,16 @@ export default function StatisticsDateSelector({
   const currentMonthForWeeks = useMemo(() => {
     if (period === 'week') {
       if (selectedDate) {
-        // Extract month from week key (format: YYYY-MM-DD)
-        const parts = selectedDate.split('-');
-        if (parts.length >= 2) {
-          return `${parts[0]}-${parts[1]}`;
+        // Extract month from week key (format: YYYY-MM-DD, Monday date)
+        try {
+          const weekMonday = parseWeekKeyUtil(selectedDate);
+          return getMonthForWeek(selectedDate);
+        } catch {
+          // Fallback to parsing manually
+          const parts = selectedDate.split('-');
+          if (parts.length >= 2) {
+            return `${parts[0]}-${parts[1]}`;
+          }
         }
       }
       return selectedMonth || formatMonthKey(new Date());
@@ -220,7 +188,7 @@ export default function StatisticsDateSelector({
         setSelectedMonth(firstMonth);
         const weeksInMonth = getWeeksInMonth(firstMonth);
         if (weeksInMonth.length > 0) {
-          onDateSelect(formatWeekKey(weeksInMonth[0].startDate));
+          onDateSelect(weeksInMonth[0].weekKey); // Use weekKey (YYYY-MM-DD format)
         }
       }
     }
@@ -229,12 +197,13 @@ export default function StatisticsDateSelector({
   // Update selectedMonth when period is week and selectedDate changes
   useEffect(() => {
     if (period === 'week' && selectedDate) {
-      const parts = selectedDate.split('-');
-      if (parts.length >= 2) {
-        const monthKey = `${parts[0]}-${parts[1]}`;
+      try {
+        const monthKey = getMonthForWeek(selectedDate);
         if (monthKey !== selectedMonth) {
           setSelectedMonth(monthKey);
         }
+      } catch (e) {
+        // Ignore parse errors
       }
     }
   }, [period, selectedDate, selectedMonth]);
@@ -242,7 +211,7 @@ export default function StatisticsDateSelector({
   // Update calendar date when selected date changes
   useEffect(() => {
     if (selectedDate) {
-      const date = period === 'month' ? parseMonthKey(selectedDate) : parseWeekKey(selectedDate);
+      const date = period === 'month' ? parseMonthKey(selectedDate) : parseWeekKeyUtil(selectedDate);
       setCalendarDate(date);
     }
   }, [selectedDate, period]);
@@ -270,11 +239,8 @@ export default function StatisticsDateSelector({
   // Scroll to selected week
   useEffect(() => {
     if (period === 'week' && selectedDate && weekScrollRef.current && weeks.length > 0) {
-      // Find week that contains the selected date
-      const selectedDateObj = parseWeekKey(selectedDate);
-      const selectedIndex = weeks.findIndex((w) => {
-        return selectedDateObj >= w.startDate && selectedDateObj <= w.endDate;
-      });
+      // Find week by weekKey match
+      const selectedIndex = weeks.findIndex((w) => w.weekKey === selectedDate);
       if (selectedIndex !== -1) {
         requestAnimationFrame(() => {
           setTimeout(() => {
@@ -290,7 +256,7 @@ export default function StatisticsDateSelector({
 
   const handleHeaderPress = () => {
     if (selectedDate) {
-      const date = period === 'month' ? parseMonthKey(selectedDate) : parseWeekKey(selectedDate);
+      const date = period === 'month' ? parseMonthKey(selectedDate) : parseWeekKeyUtil(selectedDate);
       setCalendarDate(date);
     }
     setShowCalendar(true);
@@ -305,7 +271,7 @@ export default function StatisticsDateSelector({
       setSelectedMonth(monthKey);
       const weeksInMonth = getWeeksInMonth(monthKey);
       if (weeksInMonth.length > 0) {
-        onDateSelect(formatWeekKey(weeksInMonth[0].startDate));
+        onDateSelect(weeksInMonth[0].weekKey); // Use weekKey (YYYY-MM-DD format)
       }
     }
     setShowCalendar(false);
@@ -319,13 +285,13 @@ export default function StatisticsDateSelector({
       setSelectedMonth(monthKey);
       const weeksInMonth = getWeeksInMonth(monthKey);
       if (weeksInMonth.length > 0) {
-        onDateSelect(formatWeekKey(weeksInMonth[0].startDate));
+        onDateSelect(weeksInMonth[0].weekKey); // Use weekKey (YYYY-MM-DD format)
       }
     }
   };
 
   const handleWeekPress = (week: WeekItem) => {
-    onDateSelect(formatWeekKey(week.startDate));
+    onDateSelect(week.weekKey); // Use weekKey (YYYY-MM-DD format)
   };
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
@@ -339,7 +305,7 @@ export default function StatisticsDateSelector({
   };
 
   const selectedDisplay = useMemo(() => {
-    if (!selectedDate) return period === 'month' ? 'Select Month' : 'Select Week';
+    if (!selectedDate) return period === 'month' ? t('common.selectMonth') : t('common.selectWeek');
 
     if (period === 'month') {
       const date = parseMonthKey(selectedDate);
@@ -348,18 +314,23 @@ export default function StatisticsDateSelector({
         year: 'numeric',
       });
     } else {
-      // For week, show the week range
-      const weekStart = parseWeekKey(selectedDate);
-      const weekEnd = getEndOfWeek(weekStart);
-      const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
-      const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
-      const startDay = weekStart.getDate();
-      const endDay = weekEnd.getDate();
+      // For week, show the week range using new week key format
+      try {
+        const weekStart = parseWeekKeyUtil(selectedDate);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6); // Sunday
+        const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
+        const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
+        const startDay = weekStart.getDate();
+        const endDay = weekEnd.getDate();
 
-      if (startMonth === endMonth) {
-        return `${startMonth} ${startDay}-${endDay}, ${weekStart.getFullYear()}`;
-      } else {
-        return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${weekStart.getFullYear()}`;
+        if (startMonth === endMonth) {
+          return `${startMonth} ${startDay}-${endDay}, ${weekStart.getFullYear()}`;
+        } else {
+          return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${weekStart.getFullYear()}`;
+        }
+      } catch {
+        return t('common.selectWeek');
       }
     }
   }, [selectedDate, period]);
@@ -400,18 +371,52 @@ export default function StatisticsDateSelector({
 
   return (
     <View style={styles.wrapper}>
-      {/* Period Selector - Full Width */}
-      <View style={styles.periodSelectorContainer}>
-        <PeriodSelector
-          periods={['week', 'month'] as ChargesPeriodType[]}
-          selectedPeriod={period as ChargesPeriodType}
-          onPeriodChange={(p) => {
-            onPeriodChange?.(p as PeriodType);
-            // Reset selections when period changes
+      {/* Period Selector - Match ChargesScreen style */}
+      <View style={styles.tabSelector}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.tabButton,
+            period === 'month' && styles.tabButtonActive,
+            pressed && styles.tabButtonPressed,
+          ]}
+          onPress={() => {
+            onPeriodChange?.('month');
             setSelectedMonth(null);
             setSelectedWeek(null);
           }}
-        />
+        >
+          <Text
+            style={[
+              styles.tabText,
+              period === 'month' && styles.tabTextActive,
+            ]}
+            numberOfLines={1}
+          >
+            {t('common.month')}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [
+            styles.tabButton,
+            period === 'week' && styles.tabButtonActive,
+            pressed && styles.tabButtonPressed,
+          ]}
+          onPress={() => {
+            onPeriodChange?.('week');
+            setSelectedMonth(null);
+            setSelectedWeek(null);
+          }}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              period === 'week' && styles.tabTextActive,
+            ]}
+            numberOfLines={1}
+          >
+            {t('common.week')}
+          </Text>
+        </Pressable>
       </View>
 
       {/* Month Period: Show month selector */}
@@ -462,7 +467,7 @@ export default function StatisticsDateSelector({
               {selectedMonth ? parseMonthKey(selectedMonth).toLocaleDateString('en-US', {
                 month: 'long',
                 year: 'numeric',
-              }) : 'Select Month'}
+              }) : t('common.selectMonth')}
             </Text>
             <Feather name="chevron-down" size={18} color={BluePalette.merge} />
           </Pressable>
@@ -500,7 +505,7 @@ export default function StatisticsDateSelector({
           {/* Week Selector */}
           {currentMonthForWeeks && weeks.length > 0 && (
             <View style={styles.weekSelectorContainer}>
-              <Text style={styles.weekLabel}>Select Week</Text>
+              <Text style={styles.weekLabel}>{t('common.selectWeek')}</Text>
               <ScrollView
                 ref={weekScrollRef}
                 horizontal
@@ -509,7 +514,7 @@ export default function StatisticsDateSelector({
                 contentContainerStyle={styles.weekScrollContent}
               >
                 {weeks.map((week) => {
-                  const isSelected = selectedDate && parseWeekKey(selectedDate) >= week.startDate && parseWeekKey(selectedDate) <= week.endDate;
+                  const isSelected = selectedDate === week.weekKey;
                   return (
                     <Pressable
                       key={week.weekKey}
@@ -546,7 +551,7 @@ export default function StatisticsDateSelector({
           <Pressable onPress={(e) => e.stopPropagation()} style={styles.calendarContainer}>
             <View style={styles.calendarHeader}>
               <Text style={styles.calendarTitle}>
-                {period === 'month' ? 'Select Month' : 'Select Month'}
+                {t('common.selectMonth')}
               </Text>
               <Pressable onPress={() => setShowCalendar(false)}>
                 <Feather name="x" size={24} color={BluePalette.textPrimary} />
@@ -642,9 +647,43 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 16,
   },
-  periodSelectorContainer: {
-    paddingHorizontal: 0,
-    paddingVertical: 0,
+  tabSelector: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+    backgroundColor: BluePalette.backgroundNew,
+    borderBottomWidth: 1,
+    borderBottomColor: BluePalette.border,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: BluePalette.surface,
+    borderWidth: 1,
+    borderColor: BluePalette.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabButtonActive: {
+    backgroundColor: BluePalette.selectedBackground,
+    borderColor: BluePalette.merge,
+    borderWidth: 1.5,
+  },
+  tabButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: BluePalette.textSecondary,
+  },
+  tabTextActive: {
+    color: BluePalette.merge,
+    fontWeight: '700',
   },
   header: {
     flexDirection: 'row',

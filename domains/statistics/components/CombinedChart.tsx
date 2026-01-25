@@ -35,7 +35,7 @@ export default function CombinedChart({ data, height = CHART_HEIGHT }: CombinedC
       const revenueHeight = (point.revenue / adjustedMax) * (height - CHART_PADDING_TOP - CHART_PADDING_BOTTOM);
       const chargesHeight = (point.charges / adjustedMax) * (height - CHART_PADDING_TOP - CHART_PADDING_BOTTOM);
       const profitHeight = (point.profit / adjustedMax) * (height - CHART_PADDING_TOP - CHART_PADDING_BOTTOM);
-      
+
       return {
         ...point,
         x,
@@ -57,10 +57,12 @@ export default function CombinedChart({ data, height = CHART_HEIGHT }: CombinedC
   }, [data, chartWidth, height]);
 
   const formatAmount = (amount: number) => {
-    if (amount >= 1000) {
-      return `$${(amount / 1000).toFixed(0)}k`;
-    }
-    return `$${Math.round(amount)}`;
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'MAD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
   if (data.length === 0) {
@@ -119,7 +121,7 @@ export default function CombinedChart({ data, height = CHART_HEIGHT }: CombinedC
                     },
                   ]}
                 />
-                
+
                 {/* Charges bar (overlapped) */}
                 <View
                   style={[
@@ -131,7 +133,7 @@ export default function CombinedChart({ data, height = CHART_HEIGHT }: CombinedC
                     },
                   ]}
                 />
-                
+
                 {/* Profit indicator (small bar on right) */}
                 <View
                   style={[

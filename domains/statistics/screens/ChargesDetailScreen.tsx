@@ -4,246 +4,86 @@ import { useI18n } from '@/constants/i18n/I18nContext';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import Feather from '@expo/vector-icons/Feather';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SimplePieChart } from '../components/PieChart';
-import { ChargeDetail, PeriodType, StatusType } from '../types/statistics';
-
-// Mock data - replace with actual data fetching
-const mockChargesData: Record<PeriodType, { fixed: ChargeDetail[]; variable: ChargeDetail[] }> = {
-  day: {
-    fixed: [
-      {
-        id: 'f1',
-        name: 'Personnel',
-        amount: 150,
-        percentageOfCharges: 50,
-        percentageOfRevenue: 12,
-        category: 'fixed',
-        status: 'good',
-      },
-      {
-        id: 'f2',
-        name: 'Electricity',
-        amount: 30,
-        percentageOfCharges: 10,
-        percentageOfRevenue: 2.4,
-        category: 'fixed',
-        status: 'good',
-      },
-      {
-        id: 'f3',
-        name: 'Water',
-        amount: 20,
-        percentageOfCharges: 6.7,
-        percentageOfRevenue: 1.6,
-        category: 'fixed',
-        status: 'good',
-      },
-      {
-        id: 'f4',
-        name: 'Wi-Fi',
-        amount: 4,
-        percentageOfCharges: 1.3,
-        percentageOfRevenue: 0.3,
-        category: 'fixed',
-        status: 'good',
-      },
-    ],
-    variable: [
-      {
-        id: 'v1',
-        name: 'Coffee Supplies',
-        amount: 60,
-        percentageOfCharges: 20,
-        percentageOfRevenue: 4.8,
-        category: 'variable',
-        status: 'good',
-      },
-      {
-        id: 'v2',
-        name: 'Milk & Dairy',
-        amount: 30,
-        percentageOfCharges: 10,
-        percentageOfRevenue: 2.4,
-        category: 'variable',
-        status: 'good',
-      },
-      {
-        id: 'v3',
-        name: 'Other Supplies',
-        amount: 16,
-        percentageOfCharges: 5.3,
-        percentageOfRevenue: 1.3,
-        category: 'variable',
-        status: 'good',
-      },
-    ],
-  },
-  week: {
-    fixed: [
-      {
-        id: 'f1',
-        name: 'Personnel',
-        amount: 1050,
-        percentageOfCharges: 50,
-        percentageOfRevenue: 12,
-        category: 'fixed',
-        status: 'good',
-      },
-      {
-        id: 'f2',
-        name: 'Electricity',
-        amount: 210,
-        percentageOfCharges: 10,
-        percentageOfRevenue: 2.4,
-        category: 'fixed',
-        status: 'good',
-      },
-      {
-        id: 'f3',
-        name: 'Water',
-        amount: 140,
-        percentageOfCharges: 6.7,
-        percentageOfRevenue: 1.6,
-        category: 'fixed',
-        status: 'good',
-      },
-      {
-        id: 'f4',
-        name: 'Wi-Fi',
-        amount: 28,
-        percentageOfCharges: 1.3,
-        percentageOfRevenue: 0.3,
-        category: 'fixed',
-        status: 'good',
-      },
-    ],
-    variable: [
-      {
-        id: 'v1',
-        name: 'Coffee Supplies',
-        amount: 420,
-        percentageOfCharges: 20,
-        percentageOfRevenue: 4.8,
-        category: 'variable',
-        status: 'good',
-      },
-      {
-        id: 'v2',
-        name: 'Milk & Dairy',
-        amount: 210,
-        percentageOfCharges: 10,
-        percentageOfRevenue: 2.4,
-        category: 'variable',
-        status: 'good',
-      },
-      {
-        id: 'v3',
-        name: 'Other Supplies',
-        amount: 112,
-        percentageOfCharges: 5.3,
-        percentageOfRevenue: 1.3,
-        category: 'variable',
-        status: 'good',
-      },
-    ],
-  },
-  month: {
-    fixed: [
-      {
-        id: 'f1',
-        name: 'Personnel',
-        amount: 4500,
-        percentageOfCharges: 50,
-        percentageOfRevenue: 12.9,
-        category: 'fixed',
-        status: 'good',
-      },
-      {
-        id: 'f2',
-        name: 'Electricity',
-        amount: 900,
-        percentageOfCharges: 10,
-        percentageOfRevenue: 2.6,
-        category: 'fixed',
-        status: 'good',
-      },
-      {
-        id: 'f3',
-        name: 'Water',
-        amount: 600,
-        percentageOfCharges: 6.7,
-        percentageOfRevenue: 1.7,
-        category: 'fixed',
-        status: 'good',
-      },
-      {
-        id: 'f4',
-        name: 'Wi-Fi',
-        amount: 120,
-        percentageOfCharges: 1.3,
-        percentageOfRevenue: 0.3,
-        category: 'fixed',
-        status: 'good',
-      },
-    ],
-    variable: [
-      {
-        id: 'v1',
-        name: 'Coffee Supplies',
-        amount: 1800,
-        percentageOfCharges: 20,
-        percentageOfRevenue: 5.1,
-        category: 'variable',
-        status: 'good',
-      },
-      {
-        id: 'v2',
-        name: 'Milk & Dairy',
-        amount: 900,
-        percentageOfCharges: 10,
-        percentageOfRevenue: 2.6,
-        category: 'variable',
-        status: 'good',
-      },
-      {
-        id: 'v3',
-        name: 'Other Supplies',
-        amount: 480,
-        percentageOfCharges: 5.3,
-        percentageOfRevenue: 1.4,
-        category: 'variable',
-        status: 'good',
-      },
-    ],
-  },
-};
+import { getChargesDetail } from '../services/statisticsService';
+import { ChargesDetailData, PeriodType, StatusType } from '../types/statistics';
 
 type TabType = 'fixed' | 'variable';
 
 export default function ChargesDetailScreen() {
-  const { period } = useLocalSearchParams<{ period?: string }>();
+  const { period, month, week } = useLocalSearchParams<{ period?: string; month?: string; week?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<TabType>('fixed');
+  const [chargesData, setChargesData] = useState<ChargesDetailData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
 
-  const selectedPeriod = (period as PeriodType) || 'month';
-  const charges = useMemo(() => {
-    return mockChargesData[selectedPeriod] || mockChargesData.month;
-  }, [selectedPeriod]);
+  const selectedPeriod = ((period as PeriodType) || 'month') as 'week' | 'month';
 
-  const activeCharges = activeTab === 'fixed' ? charges.fixed : charges.variable;
+  // Fetch charges detail from API
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchChargesDetail() {
+      // Need both period and month to fetch
+      if (!month) {
+        // If no month provided, use current month
+        const today = new Date();
+        const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+        // We'll wait for the date selector to provide the month
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await getChargesDetail(selectedPeriod, month, week);
+
+        if (!cancelled) {
+          setChargesData(data);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          const errorMessage =
+            err?.response?.data?.error?.message ||
+            err?.response?.data?.message ||
+            err?.message ||
+            'Failed to load charges detail';
+          setError(errorMessage);
+          console.error('Error fetching charges detail:', err);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchChargesDetail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPeriod, month, week]);
+
+  const activeCharges = useMemo(() => {
+    if (!chargesData) return [];
+    return activeTab === 'fixed' ? chargesData.fixedCharges : chargesData.variableCharges;
+  }, [chargesData, activeTab]);
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'MAD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -326,8 +166,8 @@ export default function ChargesDetailScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Pie Chart */}
-        {activeCharges.length > 0 && (
+        {/* Pie Chart - Only for fixed charges */}
+        {activeTab === 'fixed' && activeCharges.length > 0 && (
           <View style={styles.chartSection}>
             <Text style={styles.sectionTitle}>
               {t('statistics.chargesDetailScreen.distribution')}
@@ -338,68 +178,222 @@ export default function ChargesDetailScreen() {
           </View>
         )}
 
+        {/* Statistics Section - Only for variable charges */}
+        {activeTab === 'variable' && chargesData?.statistics && !loading && !error && (
+          <View style={styles.statsSection}>
+            <Text style={styles.sectionTitle}>
+              {t('statistics.chargesDetailScreen.statistics') || 'Statistics'}
+            </Text>
+            <View style={styles.statsContainer}>
+              <View style={styles.statCard}>
+                <View style={styles.statCardHeader}>
+                  <View style={[styles.statIconContainer, { backgroundColor: `${BluePalette.merge}15` }]}>
+                    <Feather name="dollar-sign" size={18} color={BluePalette.merge} />
+                  </View>
+                  <Text style={styles.statCardTitle}>{t('statistics.chargesDetailScreen.totalCharges')}</Text>
+                </View>
+                <Text style={styles.statCardValue}>
+                  {formatAmount(chargesData.statistics.totalVariableCharges)}
+                </Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <View style={styles.statCardHeader}>
+                  <View style={[styles.statIconContainer, { backgroundColor: `${BluePalette.warning}15` }]}>
+                    <Feather name="percent" size={18} color={BluePalette.warning} />
+                  </View>
+                  <Text style={styles.statCardTitle}>{t('statistics.chargesDetailScreen.caPercentage')}</Text>
+                </View>
+                <Text style={styles.statCardValue}>
+                  {chargesData.statistics.caPercentage.toFixed(2)}%
+                </Text>
+                <Text style={styles.statCardSubtitle}>
+                  {t('statistics.chargesDetailScreen.ofTotalRevenue')}
+                </Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <View style={styles.statCardHeader}>
+                  <View style={[styles.statIconContainer, { backgroundColor: `${BluePalette.success}15` }]}>
+                    <Feather name="list" size={18} color={BluePalette.success} />
+                  </View>
+                  <Text style={styles.statCardTitle}>{t('statistics.chargesDetailScreen.itemsCount')}</Text>
+                </View>
+                <Text style={styles.statCardValue}>
+                  {chargesData.variableCharges.length}
+                </Text>
+                <Text style={styles.statCardSubtitle}>
+                  {chargesData.variableCharges.length === 1
+                    ? t('statistics.chargesDetailScreen.item')
+                    : t('statistics.chargesDetailScreen.items')}
+                </Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <View style={styles.statCardHeader}>
+                  <View style={[styles.statIconContainer, { backgroundColor: `${BluePalette.textTertiary}15` }]}>
+                    <Feather name="pie-chart" size={18} color={BluePalette.textTertiary} />
+                  </View>
+                  <Text style={styles.statCardTitle}>{t('statistics.chargesDetailScreen.ofAllCharges')}</Text>
+                </View>
+                <Text style={styles.statCardValue}>
+                  {chargesData.statistics.percentageOfAllCharges.toFixed(2)}%
+                </Text>
+                <Text style={styles.statCardSubtitle}>
+                  {t('statistics.chargesDetailScreen.ofTotalCharges')}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Charges List */}
         <View style={styles.listSection}>
           <Text style={styles.sectionTitle}>
-              {t('statistics.chargesDetailScreen.details')}
+            {t('statistics.chargesDetailScreen.details')}
           </Text>
-          <View style={styles.listContainer}>
-            {activeCharges.map((charge) => (
-              <View key={charge.id} style={styles.chargeItem}>
-                <View style={styles.chargeHeader}>
-                  <Text style={styles.chargeName}>{charge.name}</Text>
-                  <Text style={styles.chargeAmount}>
-                    {formatAmount(charge.amount)}
+          {activeTab === 'fixed' ? (
+            <View style={styles.listContainer}>
+              {loading ? (
+                <View style={styles.loaderContainer}>
+                  <ActivityIndicator size="large" color={BluePalette.merge} />
+                </View>
+              ) : error ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : activeCharges.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
+                    {activeTab === 'fixed'
+                      ? t('statistics.chargesDetailScreen.noFixedCharges')
+                      : t('statistics.chargesDetailScreen.noVariableCharges')}
                   </Text>
                 </View>
-                <View style={styles.chargeDetails}>
-                  <View style={styles.chargeDetailItem}>
-                    <Text style={styles.chargeDetailLabel}>
-                      {t('statistics.chargesDetailScreen.ofCharges')}:
-                    </Text>
-                    <Text style={styles.chargeDetailValue}>
-                      {charge.percentageOfCharges.toFixed(1)}%
-                    </Text>
+              ) : (
+                activeCharges.map((charge) => (
+                  <View key={charge.id} style={styles.chargeItem}>
+                    <View style={styles.chargeHeader}>
+                      <Text style={styles.chargeName}>{charge.name}</Text>
+                      <Text style={styles.chargeAmount}>
+                        {formatAmount(charge.amount)}
+                      </Text>
+                    </View>
+                    <View style={styles.chargeDetails}>
+                      <View style={styles.chargeDetailItem}>
+                        <Text style={styles.chargeDetailLabel}>
+                          {t('statistics.chargesDetailScreen.ofCharges')}:
+                        </Text>
+                        <Text style={styles.chargeDetailValue}>
+                          {charge.percentageOfCharges.toFixed(1)}%
+                        </Text>
+                      </View>
+                      <View style={styles.chargeDetailItem}>
+                        <Text style={styles.chargeDetailLabel}>
+                          {t('statistics.chargesDetailScreen.ofRevenue')}:
+                        </Text>
+                        <Text style={styles.chargeDetailValue}>
+                          {charge.percentageOfRevenue.toFixed(1)}%
+                        </Text>
+                      </View>
+                    </View>
+                    {charge.status && (
+                      <View
+                        style={[
+                          styles.statusIndicator,
+                          { backgroundColor: `${getStatusColor(charge.status)}15` },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.statusDot,
+                            { backgroundColor: getStatusColor(charge.status) },
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            styles.statusText,
+                            { color: getStatusColor(charge.status) },
+                          ]}
+                        >
+                          {charge.status === 'good'
+                            ? t('statistics.status.good')
+                            : charge.status === 'medium'
+                              ? t('statistics.status.medium')
+                              : t('statistics.status.critical')}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                  <View style={styles.chargeDetailItem}>
-                    <Text style={styles.chargeDetailLabel}>
-                      {t('statistics.chargesDetailScreen.ofRevenue')}:
-                    </Text>
-                    <Text style={styles.chargeDetailValue}>
-                      {charge.percentageOfRevenue.toFixed(1)}%
-                    </Text>
-                  </View>
+                ))
+              )}
+            </View>
+          ) : (
+            <View style={styles.listContainer}>
+              {loading ? (
+                <View style={styles.loaderContainer}>
+                  <ActivityIndicator size="large" color={BluePalette.merge} />
                 </View>
-                {charge.status && (
-                  <View
-                    style={[
-                      styles.statusIndicator,
-                      { backgroundColor: `${getStatusColor(charge.status)}15` },
+              ) : error ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : activeCharges.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
+                    {t('statistics.chargesDetailScreen.noVariableCharges')}
+                  </Text>
+                </View>
+              ) : (
+                activeCharges.map((charge) => (
+                  <Pressable
+                    key={charge.id}
+                    style={({ pressed }) => [
+                      styles.variableChargeItem,
+                      pressed && styles.variableChargeItemPressed,
                     ]}
+                    onPress={() => router.push(`/charges/variable/${charge.id}` as any)}
+                    android_ripple={{ color: 'rgba(6, 182, 212, 0.2)' }}
                   >
-                    <View
-                      style={[
-                        styles.statusDot,
-                        { backgroundColor: getStatusColor(charge.status) },
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.statusText,
-                        { color: getStatusColor(charge.status) },
-                      ]}
-                    >
-                      {charge.status === 'good'
-                        ? t('statistics.status.good')
-                        : charge.status === 'medium'
-                        ? t('statistics.status.medium')
-                        : t('statistics.status.critical')}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
+                    <View style={styles.variableChargeContent}>
+                      <View style={styles.variableChargeMain}>
+                        <Text style={styles.variableChargeName} numberOfLines={1}>
+                          {charge.name}
+                        </Text>
+                        <View style={styles.variableChargeStats}>
+                          {charge.date && (
+                            <View style={styles.variableStatRow}>
+                              <Feather name="calendar" size={12} color={BluePalette.textTertiary} />
+                              <Text style={styles.variableStatText}>
+                                {new Date(charge.date).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}
+                              </Text>
+                            </View>
+                          )}
+                          {charge.supplier && (
+                            <View style={styles.variableStatRow}>
+                              <Feather name="truck" size={12} color={BluePalette.textTertiary} />
+                              <Text style={styles.variableStatText} numberOfLines={1}>
+                                {charge.supplier}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      <View style={styles.variableChargeRight}>
+                        <Text style={styles.variableChargeAmount}>
+                          {formatAmount(charge.amount)}
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                ))
+              )}
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -587,6 +581,146 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: BluePalette.textTertiary,
+    fontWeight: '500',
+  },
+  errorText: {
+    fontSize: 16,
+    color: BluePalette.error,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  variableChargeItem: {
+    backgroundColor: BluePalette.backgroundNew,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: BluePalette.border,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  variableChargeItemPressed: {
+    transform: [{ scale: 0.98 }],
+    borderColor: BluePalette.merge,
+  },
+  variableChargeContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  variableChargeMain: {
+    flex: 1,
+    gap: 8,
+  },
+  variableChargeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: BluePalette.textPrimary,
+  },
+  variableChargeStats: {
+    gap: 6,
+  },
+  variableStatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  variableStatText: {
+    fontSize: 13,
+    color: BluePalette.textTertiary,
+    fontWeight: '500',
+    flex: 1,
+  },
+  variableChargeRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  variableChargeAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: BluePalette.merge,
+    letterSpacing: -0.3,
+  },
+  statsSection: {
+    gap: 12,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    backgroundColor: BluePalette.backgroundNew,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: BluePalette.border,
+    flex: 1,
+    minWidth: '47%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  statCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  statIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statCardTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: BluePalette.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  statCardValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: BluePalette.textPrimary,
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  statCardSubtitle: {
+    fontSize: 11,
+    color: BluePalette.textTertiary,
+    fontWeight: '500',
   },
 });
 

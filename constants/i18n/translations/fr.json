@@ -103,7 +103,34 @@
       "distribution": "Répartition",
       "details": "Détails",
       "ofCharges": "Des Charges",
-      "ofRevenue": "Du CA"
+      "ofRevenue": "Du CA",
+      "statistics": "Statistiques",
+      "totalCharges": "Total des Charges",
+      "caPercentage": "Pourcentage CA",
+      "itemsCount": "Nombre d'Articles",
+      "ofAllCharges": "De Toutes les Charges",
+      "ofTotalRevenue": "du revenu total",
+      "ofTotalCharges": "du total des charges",
+      "item": "article",
+      "items": "articles",
+      "noFixedCharges": "Aucune charge fixe trouvée pour cette période",
+      "noVariableCharges": "Aucune charge variable trouvée pour cette période"
+    },
+    "common": {
+      "loading": "Chargement...",
+      "loadingStatistics": "Chargement des statistiques...",
+      "retry": "Réessayer",
+      "noDataAvailable": "Aucune donnée disponible",
+      "selectMonth": "Sélectionner le Mois",
+      "selectWeek": "Sélectionner la Semaine",
+      "month": "Mois",
+      "week": "Semaine"
+    },
+    "charges": {
+      "fixed": {
+        "notFilled": "Non rempli",
+        "notFilledMonthEnded": "Non rempli - Mois terminé"
+      }
     },
     "status": {
       "good": "Bon",
@@ -172,4 +199,3 @@
     }
   }
 }
-
