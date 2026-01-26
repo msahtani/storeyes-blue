@@ -305,7 +305,7 @@ export default function StatisticsDateSelector({
   };
 
   const selectedDisplay = useMemo(() => {
-    if (!selectedDate) return period === 'month' ? t('common.selectMonth') : t('common.selectWeek');
+    if (!selectedDate) return period === 'month' ? t('statistics.common.selectMonth') : t('statistics.common.selectWeek');
 
     if (period === 'month') {
       const date = parseMonthKey(selectedDate);
@@ -330,7 +330,7 @@ export default function StatisticsDateSelector({
           return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${weekStart.getFullYear()}`;
         }
       } catch {
-        return t('common.selectWeek');
+        return t('statistics.common.selectWeek');
       }
     }
   }, [selectedDate, period]);
@@ -392,7 +392,7 @@ export default function StatisticsDateSelector({
             ]}
             numberOfLines={1}
           >
-            {t('common.month')}
+            {t('statistics.common.month')}
           </Text>
         </Pressable>
         <Pressable
@@ -414,7 +414,7 @@ export default function StatisticsDateSelector({
             ]}
             numberOfLines={1}
           >
-            {t('common.week')}
+            {t('statistics.common.week')}
           </Text>
         </Pressable>
       </View>
@@ -467,7 +467,7 @@ export default function StatisticsDateSelector({
               {selectedMonth ? parseMonthKey(selectedMonth).toLocaleDateString('en-US', {
                 month: 'long',
                 year: 'numeric',
-              }) : t('common.selectMonth')}
+              }) : t('statistics.common.selectMonth')}
             </Text>
             <Feather name="chevron-down" size={18} color={BluePalette.merge} />
           </Pressable>
@@ -505,7 +505,7 @@ export default function StatisticsDateSelector({
           {/* Week Selector */}
           {currentMonthForWeeks && weeks.length > 0 && (
             <View style={styles.weekSelectorContainer}>
-              <Text style={styles.weekLabel}>{t('common.selectWeek')}</Text>
+              <Text style={styles.weekLabel}>{t('statistics.common.selectWeek')}</Text>
               <ScrollView
                 ref={weekScrollRef}
                 horizontal
@@ -551,7 +551,7 @@ export default function StatisticsDateSelector({
           <Pressable onPress={(e) => e.stopPropagation()} style={styles.calendarContainer}>
             <View style={styles.calendarHeader}>
               <Text style={styles.calendarTitle}>
-                {t('common.selectMonth')}
+                {t('statistics.common.selectMonth')}
               </Text>
               <Pressable onPress={() => setShowCalendar(false)}>
                 <Feather name="x" size={24} color={BluePalette.textPrimary} />

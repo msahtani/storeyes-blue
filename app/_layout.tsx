@@ -7,9 +7,10 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 
+import { setLogoutCallback } from '@/api/client';
 import { useColorScheme } from '@/components/useColorScheme';
 import { I18nProvider } from '@/constants/i18n/I18nContext';
-import { loadStoredTokens } from '@/domains/auth/store/authSlice';
+import { loadStoredTokens, logout } from '@/domains/auth/store/authSlice';
 import { store } from '@/store';
 
 export {
@@ -31,6 +32,14 @@ function RootLayoutNav() {
   const router = useRouter();
   const segments = useSegments();
   const { isAuthenticated, skipAuth, isLoading } = useSelector((state: any) => state.auth);
+
+  // Set up logout callback for API client (when refresh token fails)
+  useEffect(() => {
+    setLogoutCallback(() => {
+      console.log('[RootLayout] Logout callback triggered, dispatching logout');
+      dispatch(logout());
+    });
+  }, [dispatch]);
 
   // Load stored tokens on mount
   useEffect(() => {

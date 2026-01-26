@@ -5,8 +5,8 @@ import { getMonthForWeek } from '@/domains/charges/utils/weekUtils';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnalysisPhrases from '../components/AnalysisPhrases';
 import DoughnutChart from '../components/DoughnutChart';
@@ -52,6 +52,105 @@ export default function StatisticsScreen() {
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
+
+  // Animation for hiding date selector on scroll
+  const translateY = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+  const scrollY = useRef(0);
+  const accumulatedDelta = useRef(0); // Accumulate scroll deltas for more stable direction detection
+  const lastStateChangeTime = useRef(0); // Track when we last changed state to prevent rapid toggling
+  const [isDateSelectorHidden, setIsDateSelectorHidden] = useState(false);
+  const [topHeaderHeight, setTopHeaderHeight] = useState(0);
+
+  // Constants for stable scroll detection
+  const MIN_SCROLL_FOR_HIDE = 40; // Minimum scroll position before allowing hide
+  const ACCUMULATED_DELTA_THRESHOLD = 15; // Minimum accumulated delta to trigger hide/show
+  const STATE_CHANGE_COOLDOWN = 200; // Minimum time (ms) between state changes
+  const TOP_THRESHOLD = 15; // Distance from top to consider "at top"
+
+  const hideDateSelector = useCallback(() => {
+    if (isDateSelectorHidden) return; // Already hidden
+    const now = Date.now();
+    if (now - lastStateChangeTime.current < STATE_CHANGE_COOLDOWN) return; // Cooldown period
+    
+    lastStateChangeTime.current = now;
+    setIsDateSelectorHidden(true);
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: -100,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [translateY, opacity, isDateSelectorHidden]);
+
+  const showDateSelector = useCallback(() => {
+    if (!isDateSelectorHidden) return; // Already shown
+    const now = Date.now();
+    if (now - lastStateChangeTime.current < STATE_CHANGE_COOLDOWN) return; // Cooldown period
+    
+    lastStateChangeTime.current = now;
+    setIsDateSelectorHidden(false);
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [translateY, opacity, isDateSelectorHidden]);
+
+  const handleScroll = useCallback((event: any) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const scrollDelta = currentScrollY - scrollY.current;
+    scrollY.current = currentScrollY;
+
+    // Show when completely at the top
+    if (currentScrollY <= TOP_THRESHOLD) {
+      // Reset accumulated delta when at top
+      accumulatedDelta.current = 0;
+      if (isDateSelectorHidden) {
+        showDateSelector();
+      }
+      return;
+    }
+
+    // Accumulate scroll delta (with decay to prevent infinite accumulation)
+    if (Math.abs(scrollDelta) > 1) {
+      // Add to accumulated delta, but cap it to prevent overflow
+      accumulatedDelta.current += scrollDelta;
+      // Apply decay factor (0.7) to gradually reduce accumulated delta
+      accumulatedDelta.current *= 0.7;
+    } else {
+      // Small movements decay faster
+      accumulatedDelta.current *= 0.5;
+    }
+
+    // Only process hide/show if we're past minimum scroll threshold
+    if (currentScrollY <= MIN_SCROLL_FOR_HIDE) {
+      return; // Don't process hide/show near the top
+    }
+
+    // Hide: Only if accumulated delta shows consistent downward scrolling
+    if (
+      !isDateSelectorHidden &&
+      accumulatedDelta.current > ACCUMULATED_DELTA_THRESHOLD
+    ) {
+      hideDateSelector();
+      accumulatedDelta.current = 0; // Reset after state change
+    }
+    // Note: We don't show when scrolling up - only when reaching the top
+  }, [hideDateSelector, showDateSelector, isDateSelectorHidden]);
 
   // Fetch statistics when period or date changes
   useEffect(() => {
@@ -125,10 +224,18 @@ export default function StatisticsScreen() {
   return (
     <SafeAreaView
       edges={['left', 'right']}
-      style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
+      style={[styles.container]}
     >
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
+      <View
+        style={[styles.header, { paddingTop: insets.top + 5 }]}
+        onLayout={(event) => {
+          const { height } = event.nativeEvent.layout;
+          if (topHeaderHeight === 0) {
+            setTopHeaderHeight(height);
+          }
+        }}
+      >
         <Pressable
           style={styles.backButton}
           onPress={() => router.back()}
@@ -140,24 +247,44 @@ export default function StatisticsScreen() {
       </View>
 
       {/* Date Selector - Includes Period Selector and Date Selection */}
-      <StatisticsDateSelector
-        period={selectedPeriod}
-        selectedDate={selectedDate}
-        onDateSelect={setSelectedDate}
-        onPeriodChange={(period) => {
-          setSelectedPeriod(period);
-          // Reset selected date when period changes
-          setSelectedDate(undefined);
-        }}
-      />
+      <Animated.View
+        style={[
+          styles.headerSection,
+          {
+            transform: [{ translateY }],
+            opacity,
+            position: isDateSelectorHidden ? 'absolute' : 'relative',
+            top: isDateSelectorHidden ? topHeaderHeight : 0,
+            left: 0,
+            right: 0,
+            zIndex: isDateSelectorHidden ? -1 : 1,
+          },
+        ]}
+      >
+        <StatisticsDateSelector
+          period={selectedPeriod}
+          selectedDate={selectedDate}
+          onDateSelect={setSelectedDate}
+          onPeriodChange={(period) => {
+            setSelectedPeriod(period);
+            // Reset selected date when period changes
+            setSelectedDate(undefined);
+          }}
+        />
+      </Animated.View>
 
       <ScrollView
-        style={styles.scrollView}
+        style={[
+          styles.scrollView,
+          { zIndex: isDateSelectorHidden ? 1 : 0 }
+        ]}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: bottomBarTotalHeight + 24 },
         ]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         {loading ? (
           <View style={styles.loaderContainer}>
@@ -246,7 +373,10 @@ export default function StatisticsScreen() {
         )}
       </ScrollView>
 
-      <BottomBar />
+      {/* Bottom Bar */}
+      <View style={{ zIndex: 10 }}>
+        <BottomBar />
+      </View>
     </SafeAreaView>
   );
 }
@@ -254,7 +384,7 @@ export default function StatisticsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BluePalette.background,
+    backgroundColor: BluePalette.white,
   },
   header: {
     flexDirection: 'row',
@@ -265,6 +395,14 @@ const styles = StyleSheet.create({
     backgroundColor: BluePalette.backgroundNew,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
+  },
+  headerSection: {
+    backgroundColor: BluePalette.backgroundNew,
+    borderBottomWidth: 1,
+    borderBottomColor: BluePalette.border,
+    marginTop: 0,
+    paddingTop: 10,
+    overflow: 'hidden',
   },
   backButton: {
     width: 40,

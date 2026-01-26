@@ -2,7 +2,7 @@ import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
@@ -34,6 +34,11 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [usernameError, setUsernameError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  // Clear any error messages when login screen mounts (e.g., after logout)
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const validateForm = () => {
     let isValid = true;

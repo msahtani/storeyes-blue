@@ -320,7 +320,8 @@ export const getCurrentUser = createAsyncThunk(
         // Try to get from storage
         const storedToken = await getItemAsync(TOKEN_STORAGE_KEY);
         if (!storedToken) {
-          return rejectWithValue('No access token available');
+          // No token available - this is expected after logout, don't treat as error
+          return null;
         }
 
         // Use stored token to get current user
@@ -455,12 +456,20 @@ const authSlice = createSlice({
       })
       .addCase(getCurrentUser.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload;
+        // Only update user if payload is not null (null means no token, which is expected after logout)
+        if (action.payload !== null) {
+          state.user = action.payload;
+        }
         state.error = null;
       })
       .addCase(getCurrentUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload as string;
+        // Only set error if it's not the "no token" case (which is handled by returning null)
+        // This prevents showing "No access token available" after logout
+        const errorMessage = action.payload as string;
+        if (errorMessage && errorMessage !== 'No access token available') {
+          state.error = errorMessage;
+        }
       });
   },
 });

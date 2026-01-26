@@ -2,14 +2,18 @@ import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { FeatureFlags } from '@/constants/FeatureFlags';
 import { useI18n } from '@/constants/i18n/I18nContext';
-import { useAppSelector } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { getMaxContentWidth, useDeviceType } from '@/utils/useDeviceType';
 import { getUserInitials } from '@/utils/userUtils';
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fetchAlerts } from '@/domains/alerts/store/alertsSlice';
+import { getStatistics } from '@/domains/statistics/services/statisticsService';
+import { apiClient } from '@/api/client';
+import { DailyReportData } from '@/domains/cash-register/types/dailyReport';
 
 interface FeatureCardProps {
   icon: string;
@@ -19,9 +23,23 @@ interface FeatureCardProps {
   onPress: () => void;
   disabled?: boolean;
   cardWidth: number;
+  value?: string | number;
+  dateLabel?: string;
+  showArrow?: boolean;
 }
 
-function FeatureCard({ icon, title, subtitle, color, onPress, disabled = false, cardWidth }: FeatureCardProps) {
+function FeatureCard({ 
+  icon, 
+  title, 
+  subtitle, 
+  color, 
+  onPress, 
+  disabled = false, 
+  cardWidth,
+  value,
+  dateLabel,
+  showArrow = true,
+}: FeatureCardProps) {
   return (
     <Pressable
       style={({ pressed }) => [
@@ -34,22 +52,111 @@ function FeatureCard({ icon, title, subtitle, color, onPress, disabled = false, 
       disabled={disabled}
       android_ripple={disabled ? undefined : { color: 'rgba(6, 182, 212, 0.2)' }}
     >
-      <View style={[styles.featureIconContainer, { backgroundColor: `${color}15` }]}>
-        <Feather name={icon as any} size={28} color={color} />
+      <View style={styles.featureCardContent}>
+        <View style={[styles.featureIconContainer, { backgroundColor: `${color}15` }]}>
+          <Feather name={icon as any} size={28} color={color} />
+        </View>
+        <View style={styles.featureTextContainer}>
+          <Text style={[styles.featureTitle, disabled && styles.featureTitleDisabled]}>
+            {title}
+          </Text>
+          {value !== undefined && (
+            <Text style={[styles.featureValue, disabled && styles.featureValueDisabled]}>
+              {value}
+            </Text>
+          )}
+          {dateLabel && (
+            <Text style={[styles.featureDate, disabled && styles.featureDateDisabled]}>
+              {dateLabel}
+            </Text>
+          )}
+          <Text style={[styles.featureSubtitle, disabled && styles.featureSubtitleDisabled]}>
+            {subtitle}
+          </Text>
+        </View>
+        {showArrow && !disabled && (
+          <View style={styles.arrowContainer}>
+            <Feather name="chevron-right" size={20} color={color} />
+          </View>
+        )}
       </View>
-      <Text style={[styles.featureTitle, disabled && styles.featureTitleDisabled]}>{title}</Text>
-      <Text style={[styles.featureSubtitle, disabled && styles.featureSubtitleDisabled]}>{subtitle}</Text>
+    </Pressable>
+  );
+}
+
+interface StatisticsCardProps {
+  revenue: number | null;
+  loading: boolean;
+  onPress: () => void;
+}
+
+function StatisticsCard({ revenue, loading, onPress }: StatisticsCardProps) {
+  const { t } = useI18n();
+  const now = new Date();
+  const monthName = now.toLocaleDateString('en-US', { month: 'long' });
+  const year = now.getFullYear();
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'MAD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.statisticsCard,
+        pressed && styles.statisticsCardPressed,
+      ]}
+      onPress={onPress}
+      android_ripple={{ color: 'rgba(6, 182, 212, 0.2)' }}
+    >
+      <View style={styles.statisticsCardContent}>
+        <View style={[styles.statisticsIconContainer, { backgroundColor: `${BluePalette.merge}15` }]}>
+          <Feather name="bar-chart-2" size={32} color={BluePalette.merge} />
+        </View>
+        <View style={styles.statisticsTextContainer}>
+          <Text style={styles.statisticsTitle}>{t('home.features.statistiques.title')}</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={BluePalette.merge} style={styles.loadingIndicator} />
+          ) : (
+            <>
+              <Text style={styles.statisticsValue}>
+                {revenue !== null ? formatCurrency(revenue) : '--'}
+              </Text>
+              <Text style={styles.statisticsDate}>
+                {monthName} {year}
+              </Text>
+            </>
+          )}
+        </View>
+        <View style={styles.arrowContainer}>
+          <Feather name="chevron-right" size={24} color={BluePalette.merge} />
+        </View>
+      </View>
     </Pressable>
   );
 }
 
 export default function HomeScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
   const { language, setLanguage, t } = useI18n();
   const { isTablet, width } = useDeviceType();
   const maxContentWidth = getMaxContentWidth(isTablet);
   const { user } = useAppSelector((state) => state.auth);
+  const alerts = useAppSelector((state) => state.alerts.items);
+
+  // State for data fetching
+  const [statisticsRevenue, setStatisticsRevenue] = useState<number | null>(null);
+  const [statisticsLoading, setStatisticsLoading] = useState(true);
+  const [alertsLoading, setAlertsLoading] = useState(true);
+  const [cashRegisterData, setCashRegisterData] = useState<DailyReportData | null>(null);
+  const [cashRegisterLoading, setCashRegisterLoading] = useState(true);
 
   // Tab bar total height: 65px base + bottom safe area inset
   const tabBarBaseHeight = 65;
@@ -57,13 +164,127 @@ export default function HomeScreen() {
   const bottomPadding = tabBarTotalHeight + 8;
   
   // Calculate card width responsively for 2-column grid
-  // Use maxContentWidth on tablets to constrain content, but use full width on phones
   const contentWidthForGrid = isTablet 
     ? Math.min(maxContentWidth, width - 40) 
-    : width - 40; // 20px padding on each side
+    : width - 40;
   const gapBetweenCards = 16;
-  // Calculate width for 2 columns: (contentWidth - gap) / 2
   const cardWidth = (contentWidthForGrid - gapBetweenCards) / 2;
+
+  // Format date utilities
+  const formatDate = (date: Date, format: 'day-month' | 'day-month-year' = 'day-month') => {
+    if (format === 'day-month') {
+      return date.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short',
+      });
+    }
+    return date.toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'MAD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  // Fetch statistics for current month
+  useEffect(() => {
+    const fetchStatistics = async () => {
+      try {
+        setStatisticsLoading(true);
+        const now = new Date();
+        const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const data = await getStatistics('month', monthKey);
+        setStatisticsRevenue(data.kpi.revenue);
+      } catch (error) {
+        console.error('Error fetching statistics:', error);
+        setStatisticsRevenue(null);
+      } finally {
+        setStatisticsLoading(false);
+      }
+    };
+
+    fetchStatistics();
+  }, []);
+
+  // Fetch alerts for previous day
+  useEffect(() => {
+    const fetchPreviousDayAlerts = async () => {
+      try {
+        setAlertsLoading(true);
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const year = yesterday.getFullYear();
+        const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+        const day = String(yesterday.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
+        
+        await dispatch(fetchAlerts({
+          date: `${dateString}T00:00:00`,
+          endDate: `${dateString}T23:59:59`,
+        })).unwrap();
+      } catch (error) {
+        console.error('Error fetching alerts:', error);
+      } finally {
+        setAlertsLoading(false);
+      }
+    };
+
+    fetchPreviousDayAlerts();
+  }, [dispatch]);
+
+  // Fetch cash register data for previous day
+  useEffect(() => {
+    const fetchPreviousDayReport = async () => {
+      try {
+        setCashRegisterLoading(true);
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const year = yesterday.getFullYear();
+        const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+        const day = String(yesterday.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
+        
+        const { data } = await apiClient.get<DailyReportData>('/kpi/daily-report', {
+          params: { date: dateString },
+        });
+        
+        if (data && Object.keys(data).length > 0) {
+          setCashRegisterData(data);
+        } else {
+          setCashRegisterData(null);
+        }
+      } catch (error) {
+        console.error('Error fetching daily report:', error);
+        setCashRegisterData(null);
+      } finally {
+        setCashRegisterLoading(false);
+      }
+    };
+
+    fetchPreviousDayReport();
+  }, []);
+
+  // Get previous day and month for alerts
+  const previousDateForAlerts = useMemo(() => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return formatDate(yesterday, 'day-month');
+  }, []);
+
+  // Get previous day and month for cash register
+  const previousDate = useMemo(() => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return formatDate(yesterday, 'day-month');
+  }, []);
 
   const toggleLanguage = async () => {
     const newLanguage = language === 'fr' ? 'en' : 'fr';
@@ -78,6 +299,22 @@ export default function HomeScreen() {
       color: BluePalette.error,
       route: '/alerts' as const,
       enabled: FeatureFlags.ALERTES_ENABLED,
+      value: alertsLoading ? undefined : alerts.length,
+      dateLabel: previousDateForAlerts,
+    },
+    {
+      icon: 'credit-card',
+      title: t('home.features.caisse.title'),
+      subtitle: t('home.features.caisse.subtitle'),
+      color: BluePalette.success,
+      route: '/caisse' as const,
+      enabled: FeatureFlags.CAISSE_ENABLED,
+      value: cashRegisterLoading 
+        ? undefined 
+        : cashRegisterData?.revenue.totalTTC 
+          ? formatCurrency(cashRegisterData.revenue.totalTTC)
+          : '--',
+      dateLabel: previousDate,
     },
     {
       icon: 'dollar-sign',
@@ -88,22 +325,12 @@ export default function HomeScreen() {
       enabled: FeatureFlags.CHARGES_ENABLED,
     },
     {
-      icon: 'credit-card',
-      title: t('home.features.caisse.title'),
-      subtitle: t('home.features.caisse.subtitle'),
-      color: BluePalette.success,
-      route: '/caisse' as const,
-      enabled: FeatureFlags.CAISSE_ENABLED,
-      // Future module – not available in v1
-    },
-    {
-      icon: 'bar-chart-2',
-      title: t('home.features.statistiques.title'),
-      subtitle: t('home.features.statistiques.subtitle'),
-      color: BluePalette.merge,
-      route: '/statistiques' as const,
-      enabled: FeatureFlags.STATISTIQUES_ENABLED,
-      // Future module – not available in v1
+      icon: 'log-in',
+      title: 'Check In/Out',
+      subtitle: 'Employee attendance',
+      color: BluePalette.textTertiary,
+      route: '/check-in-out' as const,
+      enabled: false, // Disabled as requested
     },
   ];
 
@@ -114,7 +341,6 @@ export default function HomeScreen() {
     >
       {/* Top Header */}
       <View style={[styles.topHeader, { paddingTop: insets.top + 5 }]}>
-        {/* Profile button - clickable user circle with initials */}
         <Pressable
           style={({ pressed }) => [
             styles.userCircle,
@@ -144,55 +370,59 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-        {/* Camera Card */}
-        <View style={styles.cameraCard}>
-          <View style={styles.cameraPlaceholder}>
-            <Feather name="video" size={48} color={BluePalette.textTertiary} />
-            <Text style={styles.cameraLabel}>{t('home.camera.title')}</Text>
-            {/* LIVE badge only shown when stream is active */}
-            {FeatureFlags.LIVE_CAMERA_ACTIVE && (
-              <View style={styles.liveIndicator}>
-                <View style={styles.liveDot} />
-                <Text style={styles.liveText}>{t('home.camera.live')}</Text>
-              </View>
-            )}
-            {/* Placeholder message when stream is inactive */}
-            {!FeatureFlags.LIVE_CAMERA_ACTIVE && (
-              <Text style={styles.cameraPlaceholderText}>
-                {t('home.camera.placeholder')}
-              </Text>
-            )}
-          </View>
-        </View>
+          {/* Statistics Card - Replaces Camera Card */}
+          <StatisticsCard
+            revenue={statisticsRevenue}
+            loading={statisticsLoading}
+            onPress={() => router.push('/statistics' as any)}
+          />
 
-        {/* Feature Cards Grid */}
-        <View style={styles.featuresGrid}>
-          {features.map((feature, index) => (
+          {/* Feature Cards Grid - 2 rows, 2 columns */}
+          <View style={styles.featuresGrid}>
+            {/* First Row: Alerts, Register Cash */}
             <FeatureCard
-              key={index}
-              icon={feature.icon}
-              title={feature.title}
-              subtitle={feature.subtitle}
-              color={feature.color}
-              disabled={!feature.enabled}
+              icon={features[0].icon}
+              title={features[0].title}
+              subtitle={features[0].subtitle}
+              color={features[0].color}
+              disabled={!features[0].enabled}
               cardWidth={cardWidth}
-              onPress={() => {
-                if (!feature.enabled) return;
-                
-                const route: string = feature.route;
-                if (route === '/alerts') {
-                  router.push('/alerts' as any);
-                } else if (route === '/charges') {
-                  router.push('/charges' as any);
-                } else if (route === '/caisse') {
-                  router.push('/caisse/daily-report' as any);
-                } else if (route === '/statistiques') {
-                  router.push('/statistics' as any);
-                }
-              }}
+              value={features[0].value}
+              dateLabel={features[0].dateLabel}
+              onPress={() => router.push('/alerts' as any)}
             />
-          ))}
-        </View>
+            <FeatureCard
+              icon={features[1].icon}
+              title={features[1].title}
+              subtitle={features[1].subtitle}
+              color={features[1].color}
+              disabled={!features[1].enabled}
+              cardWidth={cardWidth}
+              value={features[1].value}
+              dateLabel={features[1].dateLabel}
+              onPress={() => router.push('/caisse/daily-report' as any)}
+            />
+            
+            {/* Second Row: Charges, Check In/Out */}
+            <FeatureCard
+              icon={features[2].icon}
+              title={features[2].title}
+              subtitle={features[2].subtitle}
+              color={features[2].color}
+              disabled={!features[2].enabled}
+              cardWidth={cardWidth}
+              onPress={() => router.push('/charges' as any)}
+            />
+            <FeatureCard
+              icon={features[3].icon}
+              title={features[3].title}
+              subtitle={features[3].subtitle}
+              color={features[3].color}
+              disabled={!features[3].enabled}
+              cardWidth={cardWidth}
+              onPress={() => {}}
+            />
+          </View>
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -261,16 +491,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    gap: 26,
+    gap: 24,
     alignSelf: 'center',
     width: '100%',
     alignItems: 'stretch',
   },
-  cameraCard: {
+  statisticsCard: {
     width: '100%',
-    borderRadius: 20,
-    overflow: 'hidden',
     backgroundColor: BluePalette.backgroundNew,
+    borderRadius: 20,
+    padding: 24,
     borderWidth: 1.5,
     borderColor: BluePalette.border,
     shadowColor: '#000',
@@ -282,51 +512,48 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  cameraPlaceholder: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    backgroundColor: BluePalette.surfaceDark,
+  statisticsCardPressed: {
+    transform: [{ scale: 0.98 }],
+    borderColor: BluePalette.merge,
+    shadowColor: BluePalette.merge,
+    shadowOpacity: 0.3,
+  },
+  statisticsCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  statisticsIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
-  cameraLabel: {
-    marginTop: 12,
+  statisticsTextContainer: {
+    flex: 1,
+    gap: 4,
+  },
+  statisticsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: BluePalette.textSecondary,
+    letterSpacing: -0.3,
+  },
+  statisticsValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: BluePalette.textPrimary,
+    letterSpacing: -0.5,
+  },
+  statisticsDate: {
     fontSize: 14,
     fontWeight: '500',
     color: BluePalette.textTertiary,
+    marginTop: 2,
   },
-  cameraPlaceholderText: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: '400',
-    color: BluePalette.textTertiary,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  liveIndicator: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.9)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-  },
-  liveText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+  loadingIndicator: {
+    marginVertical: 8,
   },
   featuresGrid: {
     flexDirection: 'row',
@@ -338,7 +565,6 @@ const styles = StyleSheet.create({
     backgroundColor: BluePalette.backgroundNew,
     borderRadius: 18,
     padding: 20,
-    alignItems: 'center',
     borderWidth: 1.5,
     borderColor: BluePalette.border,
     shadowColor: '#000',
@@ -349,7 +575,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
-    gap: 12,
+    minHeight: 160,
   },
   featureCardPressed: {
     transform: [{ scale: 0.98 }],
@@ -360,32 +586,62 @@ const styles = StyleSheet.create({
   featureCardDisabled: {
     opacity: 0.5,
   },
-  featureTitleDisabled: {
-    opacity: 0.7,
-  },
-  featureSubtitleDisabled: {
-    opacity: 0.6,
+  featureCardContent: {
+    flex: 1,
+    gap: 12,
   },
   featureIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
+  },
+  featureTextContainer: {
+    flex: 1,
+    gap: 4,
   },
   featureTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: BluePalette.textPrimary,
-    textAlign: 'center',
     letterSpacing: -0.3,
+  },
+  featureTitleDisabled: {
+    opacity: 0.7,
+  },
+  featureValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: BluePalette.textPrimary,
+    marginTop: 4,
+    letterSpacing: -0.3,
+  },
+  featureValueDisabled: {
+    opacity: 0.7,
+  },
+  featureDate: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: BluePalette.textTertiary,
+    marginTop: 2,
+  },
+  featureDateDisabled: {
+    opacity: 0.6,
   },
   featureSubtitle: {
     fontSize: 12,
     fontWeight: '500',
     color: BluePalette.textTertiary,
-    textAlign: 'center',
+    marginTop: 4,
+  },
+  featureSubtitleDisabled: {
+    opacity: 0.6,
+  },
+  arrowContainer: {
+    alignSelf: 'flex-end',
+    marginTop: 'auto',
+    paddingTop: 8,
   },
 });
-
