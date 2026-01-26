@@ -1,7 +1,11 @@
+import { apiClient } from '@/api/client';
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { FeatureFlags } from '@/constants/FeatureFlags';
 import { useI18n } from '@/constants/i18n/I18nContext';
+import { fetchAlerts } from '@/domains/alerts/store/alertsSlice';
+import { DailyReportData } from '@/domains/cash-register/types/dailyReport';
+import { getStatistics } from '@/domains/statistics/services/statisticsService';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { getMaxContentWidth, useDeviceType } from '@/utils/useDeviceType';
 import { getUserInitials } from '@/utils/userUtils';
@@ -10,10 +14,6 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchAlerts } from '@/domains/alerts/store/alertsSlice';
-import { getStatistics } from '@/domains/statistics/services/statisticsService';
-import { apiClient } from '@/api/client';
-import { DailyReportData } from '@/domains/cash-register/types/dailyReport';
 
 interface FeatureCardProps {
   icon: string;
@@ -28,18 +28,20 @@ interface FeatureCardProps {
   showArrow?: boolean;
 }
 
-function FeatureCard({ 
-  icon, 
-  title, 
-  subtitle, 
-  color, 
-  onPress, 
-  disabled = false, 
+function FeatureCard({
+  icon,
+  title,
+  subtitle,
+  color,
+  onPress,
+  disabled = false,
   cardWidth,
   value,
   dateLabel,
   showArrow = true,
 }: FeatureCardProps) {
+  const { t } = useI18n();
+  
   return (
     <Pressable
       style={({ pressed }) => [
@@ -67,18 +69,20 @@ function FeatureCard({
           )}
           {dateLabel && (
             <Text style={[styles.featureDate, disabled && styles.featureDateDisabled]}>
-              {dateLabel}
+              {t('home.features.datePrefix')} {dateLabel}
             </Text>
           )}
+        </View>
+        <View style={styles.featureFooterRow}>
           <Text style={[styles.featureSubtitle, disabled && styles.featureSubtitleDisabled]}>
             {subtitle}
           </Text>
+          {showArrow && !disabled && (
+            <View style={styles.featureArrowContainer}>
+              <Feather name="chevron-right" size={20} color={color} />
+            </View>
+          )}
         </View>
-        {showArrow && !disabled && (
-          <View style={styles.arrowContainer}>
-            <Feather name="chevron-right" size={20} color={color} />
-          </View>
-        )}
       </View>
     </Pressable>
   );
@@ -127,14 +131,16 @@ function StatisticsCard({ revenue, loading, onPress }: StatisticsCardProps) {
               <Text style={styles.statisticsValue}>
                 {revenue !== null ? formatCurrency(revenue) : '--'}
               </Text>
-              <Text style={styles.statisticsDate}>
-                {monthName} {year}
-              </Text>
+              <View style={styles.statisticsDateRow}>
+                <Text style={styles.statisticsDate}>
+                  {monthName} {year}
+                </Text>
+                <View style={styles.arrowContainer}>
+                  <Feather name="chevron-right" size={24} color={BluePalette.merge} />
+                </View>
+              </View>
             </>
           )}
-        </View>
-        <View style={styles.arrowContainer}>
-          <Feather name="chevron-right" size={24} color={BluePalette.merge} />
         </View>
       </View>
     </Pressable>
@@ -162,10 +168,10 @@ export default function HomeScreen() {
   const tabBarBaseHeight = 65;
   const tabBarTotalHeight = tabBarBaseHeight + insets.bottom;
   const bottomPadding = tabBarTotalHeight + 8;
-  
+
   // Calculate card width responsively for 2-column grid
-  const contentWidthForGrid = isTablet 
-    ? Math.min(maxContentWidth, width - 40) 
+  const contentWidthForGrid = isTablet
+    ? Math.min(maxContentWidth, width - 40)
     : width - 40;
   const gapBetweenCards = 16;
   const cardWidth = (contentWidthForGrid - gapBetweenCards) / 2;
@@ -225,7 +231,7 @@ export default function HomeScreen() {
         const month = String(yesterday.getMonth() + 1).padStart(2, '0');
         const day = String(yesterday.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
-        
+
         await dispatch(fetchAlerts({
           date: `${dateString}T00:00:00`,
           endDate: `${dateString}T23:59:59`,
@@ -251,11 +257,11 @@ export default function HomeScreen() {
         const month = String(yesterday.getMonth() + 1).padStart(2, '0');
         const day = String(yesterday.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
-        
+
         const { data } = await apiClient.get<DailyReportData>('/kpi/daily-report', {
           params: { date: dateString },
         });
-        
+
         if (data && Object.keys(data).length > 0) {
           setCashRegisterData(data);
         } else {
@@ -309,9 +315,9 @@ export default function HomeScreen() {
       color: BluePalette.success,
       route: '/caisse' as const,
       enabled: FeatureFlags.CAISSE_ENABLED,
-      value: cashRegisterLoading 
-        ? undefined 
-        : cashRegisterData?.revenue.totalTTC 
+      value: cashRegisterLoading
+        ? undefined
+        : cashRegisterData?.revenue.totalTTC
           ? formatCurrency(cashRegisterData.revenue.totalTTC)
           : '--',
       dateLabel: previousDate,
@@ -335,7 +341,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView 
+    <SafeAreaView
       style={styles.container}
       edges={['left', 'right']}
     >
@@ -351,8 +357,8 @@ export default function HomeScreen() {
         >
           <Text style={styles.userCircleText}>{getUserInitials(user)}</Text>
         </Pressable>
-        
-        <Pressable 
+
+        <Pressable
           style={styles.languageButton}
           onPress={toggleLanguage}
         >
@@ -362,7 +368,7 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.scrollContainer}>
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollContent,
@@ -402,7 +408,7 @@ export default function HomeScreen() {
               dateLabel={features[1].dateLabel}
               onPress={() => router.push('/caisse/daily-report' as any)}
             />
-            
+
             {/* Second Row: Charges, Check In/Out */}
             <FeatureCard
               icon={features[2].icon}
@@ -420,7 +426,7 @@ export default function HomeScreen() {
               color={features[3].color}
               disabled={!features[3].enabled}
               cardWidth={cardWidth}
-              onPress={() => {}}
+              onPress={() => { }}
             />
           </View>
         </ScrollView>
@@ -520,7 +526,7 @@ const styles = StyleSheet.create({
   },
   statisticsCardContent: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 16,
   },
   statisticsIconContainer: {
@@ -546,11 +552,16 @@ const styles = StyleSheet.create({
     color: BluePalette.textPrimary,
     letterSpacing: -0.5,
   },
+  statisticsDateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 2,
+  },
   statisticsDate: {
     fontSize: 14,
     fontWeight: '500',
     color: BluePalette.textTertiary,
-    marginTop: 2,
   },
   loadingIndicator: {
     marginVertical: 8,
@@ -575,7 +586,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
-    minHeight: 160,
+    height: 250,
   },
   featureCardPressed: {
     transform: [{ scale: 0.98 }],
@@ -630,18 +641,29 @@ const styles = StyleSheet.create({
   featureDateDisabled: {
     opacity: 0.6,
   },
+  featureFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
   featureSubtitle: {
     fontSize: 12,
     fontWeight: '500',
     color: BluePalette.textTertiary,
-    marginTop: 4,
+    flex: 1,
   },
   featureSubtitleDisabled: {
     opacity: 0.6,
   },
+  featureArrowContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
   arrowContainer: {
-    alignSelf: 'flex-end',
-    marginTop: 'auto',
-    paddingTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
 });

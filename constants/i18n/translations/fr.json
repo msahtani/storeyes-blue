@@ -21,7 +21,8 @@
       "statistiques": {
         "title": "Statistiques",
         "subtitle": "Voir les stats"
-      }
+      },
+      "datePrefix": "Pour"
     }
   },
   "alerts": {
