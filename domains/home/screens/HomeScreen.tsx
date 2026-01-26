@@ -41,7 +41,7 @@ function FeatureCard({
   showArrow = true,
 }: FeatureCardProps) {
   const { t } = useI18n();
-  
+
   return (
     <Pressable
       style={({ pressed }) => [
@@ -67,16 +67,13 @@ function FeatureCard({
               {value}
             </Text>
           )}
+        </View>
+        <View style={styles.featureFooterRow}>
           {dateLabel && (
             <Text style={[styles.featureDate, disabled && styles.featureDateDisabled]}>
               {t('home.features.datePrefix')} {dateLabel}
             </Text>
           )}
-        </View>
-        <View style={styles.featureFooterRow}>
-          <Text style={[styles.featureSubtitle, disabled && styles.featureSubtitleDisabled]}>
-            {subtitle}
-          </Text>
           {showArrow && !disabled && (
             <View style={styles.featureArrowContainer}>
               <Feather name="chevron-right" size={20} color={color} />
@@ -586,7 +583,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
-    height: 250,
+    height: 200,
   },
   featureCardPressed: {
     transform: [{ scale: 0.98 }],
@@ -607,11 +604,10 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: 0,
   },
   featureTextContainer: {
     flex: 1,
-    gap: 4,
   },
   featureTitle: {
     fontSize: 16,
@@ -636,7 +632,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: BluePalette.textTertiary,
-    marginTop: 2,
   },
   featureDateDisabled: {
     opacity: 0.6,
@@ -645,7 +640,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 'auto',
   },
   featureSubtitle: {
     fontSize: 12,
@@ -659,7 +654,7 @@ const styles = StyleSheet.create({
   featureArrowContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    marginLeft: 'auto',
   },
   arrowContainer: {
     alignItems: 'center',
