@@ -6,12 +6,12 @@ import DateSelector from '@/domains/alerts/components/DateSelector';
 import BottomBar from '@/domains/shared/components/BottomBar';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useRef, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fetchAlerts } from '@/domains/alerts/store/alertsSlice';
+import { fetchAlerts, setSelectedDate } from '@/domains/alerts/store/alertsSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { getMaxContentWidth, useDeviceType } from '@/utils/useDeviceType';
 
@@ -23,11 +23,26 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
   const bgColor = backgroundColor || Colors.dark.background || BluePalette.background;
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ date?: string }>();
   const dispatch = useAppDispatch();
   const selectedDate = useAppSelector((state) => state.alerts.selectedDate);
   const { t } = useI18n();
   const { isTablet } = useDeviceType();
   const maxContentWidth = getMaxContentWidth(isTablet);
+  const hasProcessedInitialDate = useRef(false);
+
+  // Set date from query parameter if provided (when navigating from HomeScreen card)
+  // Only process once on initial mount to allow user to change dates afterward
+  useEffect(() => {
+    if (params.date && !hasProcessedInitialDate.current) {
+      // Validate date format (YYYY-MM-DD)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(params.date) && params.date !== selectedDate) {
+        dispatch(setSelectedDate(params.date));
+        hasProcessedInitialDate.current = true;
+      }
+    }
+  }, [params.date, dispatch, selectedDate]);
 
   // Bottom bar height: 15px + bottom safe area inset
   const bottomBarHeight = 15;

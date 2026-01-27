@@ -2,10 +2,11 @@ import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
 import BottomBar from '@/domains/shared/components/BottomBar';
-import { useAppSelector } from '@/store/hooks';
+import { setSelectedDate as setAlertsSelectedDate } from '@/domains/alerts/store/alertsSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import Feather from '@expo/vector-icons/Feather';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import DailyReportDateSelector from '../components/DailyReportDateSelector';
@@ -18,6 +19,8 @@ export default function DailyReportScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
+  const params = useLocalSearchParams<{ date?: string }>();
+  const dispatch = useAppDispatch();
 
   const {
     selectedDate,
@@ -43,6 +46,26 @@ export default function DailyReportScreen() {
 
   // Sync DateSelector (alerts store) with daily report date
   const alertsSelectedDate = useAppSelector((state) => state.alerts.selectedDate);
+  const hasProcessedInitialDate = useRef(false);
+
+  // Set date from query parameter if provided (when navigating from HomeScreen card)
+  // Only process once on initial mount to allow user to change dates afterward
+  useEffect(() => {
+    if (params.date && !hasProcessedInitialDate.current) {
+      // Set in alerts store (used by DailyReportDateSelector)
+      dispatch(setAlertsSelectedDate(params.date));
+      // Also set in useDailyReport hook
+      const year = parseInt(params.date.split('-')[0]);
+      const month = parseInt(params.date.split('-')[1]) - 1;
+      const day = parseInt(params.date.split('-')[2]);
+      const date = new Date(year, month, day);
+      const currentDateString = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+      if (params.date !== currentDateString && isPastDate(date)) {
+        setSelectedDate(date);
+      }
+      hasProcessedInitialDate.current = true;
+    }
+  }, [params.date, dispatch, alertsSelectedDate, setSelectedDate, selectedDate, isPastDate]);
 
   useEffect(() => {
     if (alertsSelectedDate) {
@@ -52,12 +75,13 @@ export default function DailyReportScreen() {
       const date = new Date(year, month, day);
 
       // Only update if the date is different to avoid infinite loops
+      // Trust the DateSelector's validation (it already handles 21:00 GMT rule)
       const currentDateString = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-      if (currentDateString !== alertsSelectedDate && isPastDate(date)) {
+      if (currentDateString !== alertsSelectedDate) {
         setSelectedDate(date);
       }
     }
-  }, [alertsSelectedDate, selectedDate, setSelectedDate, isPastDate]);
+  }, [alertsSelectedDate, selectedDate, setSelectedDate]);
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
@@ -81,7 +105,7 @@ export default function DailyReportScreen() {
     if (isDateSelectorHidden) return; // Already hidden
     const now = Date.now();
     if (now - lastStateChangeTime.current < STATE_CHANGE_COOLDOWN) return; // Cooldown period
-    
+
     lastStateChangeTime.current = now;
     setIsDateSelectorHidden(true);
     Animated.parallel([
@@ -102,7 +126,7 @@ export default function DailyReportScreen() {
     if (!isDateSelectorHidden) return; // Already shown
     const now = Date.now();
     if (now - lastStateChangeTime.current < STATE_CHANGE_COOLDOWN) return; // Cooldown period
-    
+
     lastStateChangeTime.current = now;
     setIsDateSelectorHidden(false);
     Animated.parallel([
@@ -160,6 +184,13 @@ export default function DailyReportScreen() {
     }
     // Note: We don't show when scrolling up - only when reaching the top
   }, [hideDateSelector, showDateSelector, isDateSelectorHidden]);
+
+  // Check if viewing today (after 21:00 GMT / 9:00 PM) for no data message
+  const isViewingToday = useMemo(() => {
+    const now = new Date();
+    const gmtHours = now.getUTCHours();
+    return isToday(selectedDate) && gmtHours >= 21;
+  }, [selectedDate, isToday]);
 
   return (
     <SafeAreaView
@@ -238,7 +269,11 @@ export default function DailyReportScreen() {
         {!reportData && !loading && !error && (
           <View style={styles.noDataContainer}>
             <Feather name="inbox" size={32} color={BluePalette.textTertiary} />
-            <Text style={styles.noDataText}>No data available for this date</Text>
+            <Text style={styles.noDataText}>
+              {isViewingToday
+                ? 'Data for today is not yet available. Please check back later.'
+                : 'No data available for this date'}
+            </Text>
           </View>
         )}
 

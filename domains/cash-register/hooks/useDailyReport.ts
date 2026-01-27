@@ -1,6 +1,6 @@
 import apiClient from '@/api/client';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DailyReportData } from '../types/dailyReport';
 
 // Date utility functions
@@ -27,12 +27,39 @@ const isToday = (date: Date): boolean => {
   return isSameDay(date, new Date());
 };
 
+// Check if current day should be available
+// Logic: Day X is available after 21:00 GMT on day X, until 21:00 GMT on day X+1
+// Example: Jan 25 is available from Jan 25 21:00 GMT until Jan 26 21:00 GMT
+const isCurrentDayAvailable = (): boolean => {
+  const now = new Date();
+  const gmtHours = now.getUTCHours();
+  // Available if GMT time is >= 21:00 (9:00 PM)
+  return gmtHours >= 21;
+};
+
 const isPastDate = (date: Date): boolean => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const dateToCheck = new Date(date);
-  dateToCheck.setHours(0, 0, 0, 0);
-  return dateToCheck < today;
+  const compareDate = new Date(date);
+  compareDate.setHours(0, 0, 0, 0);
+
+  // If comparing today, check if it's after 21:00 GMT (9:00 PM)
+  if (isSameDay(date, today)) {
+    return isCurrentDayAvailable();
+  }
+
+  return compareDate < today; // Past dates are always available
+};
+
+// Get default date (today if >= 21:00 GMT, otherwise yesterday)
+const getDefaultDate = (): Date => {
+  const today = new Date();
+  if (isCurrentDayAvailable()) {
+    return today;
+  }
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  return yesterday;
 };
 
 export const useDailyReport = () => {
@@ -41,18 +68,15 @@ export const useDailyReport = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
     if (params.date) {
       const parsedDate = parseDateString(params.date);
-      // If the parsed date is today or future, default to yesterday
-      if (!isPastDate(parsedDate)) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        return yesterday;
+      // If the parsed date is valid (past or today after 21:00 GMT), use it
+      if (isPastDate(parsedDate)) {
+        return parsedDate;
       }
-      return parsedDate;
+      // Otherwise, use default date
+      return getDefaultDate();
     }
-    // Default to yesterday
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday;
+    // Default to today (if after 21:00 GMT) or yesterday
+    return getDefaultDate();
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(selectedDate);
@@ -60,19 +84,34 @@ export const useDailyReport = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Use ref to track the current request's date to prevent race conditions
+  const currentRequestDateRef = useRef<string>('');
+
   // Fetch daily report data when selectedDate changes
   useEffect(() => {
+    // Clear old data immediately when date changes
+    setReportData(null);
+    setError(null);
+
+    const dateString = formatDateString(selectedDate);
+    currentRequestDateRef.current = dateString;
+
     const fetchDailyReport = async () => {
       try {
         setLoading(true);
-        setError(null);
-        const dateString = formatDateString(selectedDate);
         const { data } = await apiClient.get<DailyReportData>('/kpi/daily-report', {
           params: {
             date: dateString,
           },
         });
-        
+
+        // Verify this response is still for the current selected date
+        // (prevents race conditions if user switches dates quickly)
+        if (currentRequestDateRef.current !== dateString) {
+          // Date changed while request was in flight, ignore this response
+          return;
+        }
+
         // Check if response is empty (no data)
         if (!data || Object.keys(data).length === 0) {
           setReportData(null);
@@ -80,13 +119,22 @@ export const useDailyReport = () => {
           setReportData(data);
         }
       } catch (err: any) {
+        // Verify this error is still for the current selected date
+        if (currentRequestDateRef.current !== dateString) {
+          // Date changed while request was in flight, ignore this error
+          return;
+        }
+
         const errorMessage =
           err?.response?.data?.message || err?.message || 'Failed to fetch daily report';
         setError(errorMessage);
         setReportData(null);
         console.error('Error fetching daily report:', err);
       } finally {
-        setLoading(false);
+        // Only update loading state if this is still the current date
+        if (currentRequestDateRef.current === dateString) {
+          setLoading(false);
+        }
       }
     };
 
@@ -138,7 +186,9 @@ export const useDailyReport = () => {
     const nextMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return nextMonth < today;
+    // Can navigate to next month if it's before today (or today if after 21:00 GMT)
+    const maxDate = isCurrentDayAvailable() ? today : new Date(today.getTime() - 24 * 60 * 60 * 1000);
+    return nextMonth <= maxDate;
   }, [calendarDate]);
 
   const handleMonthChange = (direction: 'prev' | 'next') => {

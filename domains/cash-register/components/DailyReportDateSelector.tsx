@@ -24,70 +24,57 @@ const parseDateString = (dateString: string): Date => {
   return new Date(dateString + 'T00:00:00');
 };
 
-const getLast7DaysFromYesterday = (): DateItem[] => {
+// Get the last 7 available days (not week-based)
+const getLast7Days = (): DateItem[] => {
   const items: DateItem[] = [];
   const today = new Date();
+  let daysAdded = 0;
+  let dayOffset = 0;
 
-  // Start from yesterday (i=1) since reports are only available at end of day
-  for (let i = 1; i <= 7; i++) {
+  // Start from today (if available) or yesterday
+  while (daysAdded < 7 && dayOffset < 30) {
     const d = new Date(today);
-    d.setDate(today.getDate() - i);
+    d.setDate(today.getDate() - dayOffset);
 
-    const month = d.toLocaleDateString('en-US', { month: 'short' });
-    const day = d.getDate().toString();
-    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+    if (isPastDate(d)) {
+      const month = d.toLocaleDateString('en-US', { month: 'short' });
+      const day = d.getDate().toString();
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
 
-    items.push({
-      month,
-      day,
-      dayName,
-      date: formatDate(d),
-    });
+      items.push({
+        month,
+        day,
+        dayName,
+        date: formatDate(d),
+      });
+      daysAdded++;
+    }
+    dayOffset++;
   }
 
   return items;
 };
 
-const getWeekDaysFromDate = (dateString: string): DateItem[] => {
+// Get last 7 days including selected date
+const getLast7DaysFromDate = (dateString: string): DateItem[] => {
   const selectedDate = parseDateString(dateString);
   const items: DateItem[] = [];
   const dateSet = new Set<string>();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  // First, ensure the selected date is included (if it's not today)
-  const selectedDateKey = formatDate(selectedDate);
-  if (!isToday(selectedDate) && isPastDate(selectedDate) && !dateSet.has(selectedDateKey)) {
-    const month = selectedDate.toLocaleDateString('en-US', { month: 'short' });
-    const dayNum = selectedDate.getDate().toString();
-    const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'short' });
-    
-    items.push({
-      month,
-      day: dayNum,
-      dayName,
-      date: selectedDateKey,
-    });
-    dateSet.add(selectedDateKey);
-  }
-  
-  // Get the start of the week (Sunday) for the selected date
-  const startOfWeek = new Date(selectedDate);
-  const day = selectedDate.getDay();
-  startOfWeek.setDate(selectedDate.getDate() - day);
-  
-  // Get 7 days starting from Sunday, excluding today
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(startOfWeek);
-    d.setDate(startOfWeek.getDate() + i);
+
+  // Start from the selected date and go backwards to get 7 days
+  let dayOffset = 0;
+  let daysAdded = 0;
+
+  while (daysAdded < 7 && dayOffset < 30) {
+    const d = new Date(selectedDate);
+    d.setDate(selectedDate.getDate() - dayOffset);
     const dateKey = formatDate(d);
-    
-    // Exclude today and future dates, avoid duplicates
-    if (!isToday(d) && isPastDate(d) && !dateSet.has(dateKey)) {
+
+    if (isPastDate(d) && !dateSet.has(dateKey)) {
       const month = d.toLocaleDateString('en-US', { month: 'short' });
       const dayNum = d.getDate().toString();
       const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-      
+
       items.push({
         month,
         day: dayNum,
@@ -95,45 +82,19 @@ const getWeekDaysFromDate = (dateString: string): DateItem[] => {
         date: dateKey,
       });
       dateSet.add(dateKey);
+      daysAdded++;
     }
+    dayOffset++;
   }
-  
-  // If we don't have 7 items, fill with previous days (before the week)
-  if (items.length < 7) {
-    const firstDate = items.length > 0 ? parseDateString(items[0].date) : startOfWeek;
-    const needed = 7 - items.length;
-    let daysBack = 1;
-    
-    while (items.length < 7 && daysBack <= 30) {
-      const d = new Date(firstDate);
-      d.setDate(firstDate.getDate() - daysBack);
-      const dateKey = formatDate(d);
-      
-      if (!isToday(d) && isPastDate(d) && !dateSet.has(dateKey)) {
-        const month = d.toLocaleDateString('en-US', { month: 'short' });
-        const dayNum = d.getDate().toString();
-        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-        
-        items.unshift({
-          month,
-          day: dayNum,
-          dayName,
-          date: dateKey,
-        });
-        dateSet.add(dateKey);
-      }
-      daysBack++;
-    }
-  }
-  
-  // Sort by date descending (newest first) and take first 7
+
+  // Sort by date descending (newest first)
   items.sort((a, b) => {
     const dateA = parseDateString(a.date).getTime();
     const dateB = parseDateString(b.date).getTime();
     return dateB - dateA;
   });
-  
-  return items.slice(0, 7);
+
+  return items;
 };
 
 const getDaysInMonth = (date: Date): number => {
@@ -156,47 +117,75 @@ const isToday = (date: Date): boolean => {
   return isSameDay(date, new Date());
 };
 
+// Check if current day should be available
+// Logic: Day X is available after 21:00 GMT on day X, until 21:00 GMT on day X+1
+// Example: Jan 25 is available from Jan 25 21:00 GMT until Jan 26 21:00 GMT
+const isCurrentDayAvailable = (): boolean => {
+  const now = new Date();
+  const gmtHours = now.getUTCHours();
+  // Available if GMT time is >= 21:00 (9:00 PM)
+  return gmtHours >= 21;
+};
+
 const isPastDate = (date: Date): boolean => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const compareDate = new Date(date);
   compareDate.setHours(0, 0, 0, 0);
-  // Exclude today - only past dates
-  return compareDate < today;
+
+  // If comparing today, check if it's after 21:00 GMT (9:00 PM)
+  if (isSameDay(date, today)) {
+    return isCurrentDayAvailable();
+  }
+
+  return compareDate < today; // Past dates are always available
+};
+
+// Get default date (today if >= 21:00 GMT, otherwise yesterday)
+const getDefaultDate = (): string => {
+  const today = new Date();
+  if (isCurrentDayAvailable()) {
+    return formatDate(today);
+  }
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  return formatDate(yesterday);
 };
 
 export default function DailyReportDateSelector() {
   const dispatch = useAppDispatch();
   const selectedDateFromStore = useAppSelector((state) => state.alerts.selectedDate);
-  
-  // Default to yesterday if no date is selected
-  const getYesterday = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return formatDate(yesterday);
-  };
-  
-  const selectedDate = selectedDateFromStore || getYesterday();
-  
+
+  const selectedDate = selectedDateFromStore || getDefaultDate();
+
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(() => {
     return selectedDate ? parseDateString(selectedDate) : new Date();
   });
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Calculate dates based on selected date (week days) or default to last 7 days from yesterday
+  // Calculate dates - show last 7 days, but include selected date if it's outside that range
   const dates = useMemo(() => {
-    if (selectedDate) {
-      return getWeekDaysFromDate(selectedDate);
+    const last7Days = getLast7Days();
+
+    // If selected date is in the last 7 days, return them as is
+    if (selectedDate && last7Days.some(d => d.date === selectedDate)) {
+      return last7Days;
     }
-    return getLast7DaysFromYesterday();
+
+    // If selected date is outside the last 7 days, show 7 days including the selected date
+    if (selectedDate) {
+      return getLast7DaysFromDate(selectedDate);
+    }
+
+    return last7Days;
   }, [selectedDate]);
 
-  // Initialize with yesterday if no date is set
+  // Initialize with default date if no date is set
   useEffect(() => {
     if (!selectedDateFromStore) {
-      const yesterday = getYesterday();
-      dispatch(setSelectedDate(yesterday));
+      const defaultDate = getDefaultDate();
+      dispatch(setSelectedDate(defaultDate));
     }
   }, [dispatch, selectedDateFromStore]);
 
@@ -226,9 +215,8 @@ export default function DailyReportDateSelector() {
 
   const selectedDateFormatted = useMemo(() => {
     if (!selectedDate) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      return yesterday.toLocaleDateString('en-US', {
+      const defaultDate = parseDateString(getDefaultDate());
+      return defaultDate.toLocaleDateString('en-US', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -246,20 +234,18 @@ export default function DailyReportDateSelector() {
     if (selectedDate) {
       setCalendarDate(parseDateString(selectedDate));
     } else {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      setCalendarDate(yesterday);
+      setCalendarDate(parseDateString(getDefaultDate()));
     }
     setShowCalendar(true);
   };
 
   const handleDateSelect = (date: Date) => {
-    // Exclude today - only allow past dates
-    if (isToday(date) || !isPastDate(date)) return;
+    // Only allow past dates (including today if >= 21:00 GMT)
+    if (!isPastDate(date)) return;
     const formattedDate = formatDate(date);
     dispatch(setSelectedDate(formattedDate));
     setShowCalendar(false);
-    
+
     setCalendarDate(date);
   };
 
@@ -302,9 +288,9 @@ export default function DailyReportDateSelector() {
     const nextMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    return nextMonth <= yesterday;
+    // Can navigate to next month if it's before today (or today if after 21:00 GMT)
+    const maxDate = isCurrentDayAvailable() ? today : new Date(today.getTime() - 24 * 60 * 60 * 1000);
+    return nextMonth <= maxDate;
   }, [calendarDate]);
 
   return (
@@ -313,10 +299,10 @@ export default function DailyReportDateSelector() {
         <Text style={styles.headerText}>{selectedDateFormatted}</Text>
         <Feather name="chevron-down" size={18} color={BluePalette.merge} />
       </Pressable>
-      
-      <ScrollView 
+
+      <ScrollView
         ref={scrollViewRef}
-        horizontal 
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.scrollView}
         contentContainerStyle={styles.container}
@@ -378,10 +364,10 @@ export default function DailyReportDateSelector() {
                 style={styles.navButton}
                 disabled={!canNavigateNext}
               >
-                <Feather 
-                  name="chevron-right" 
-                  size={20} 
-                  color={canNavigateNext ? BluePalette.textPrimary : BluePalette.textTertiary} 
+                <Feather
+                  name="chevron-right"
+                  size={20}
+                  color={canNavigateNext ? BluePalette.textPrimary : BluePalette.textTertiary}
                 />
               </Pressable>
             </View>
@@ -402,7 +388,7 @@ export default function DailyReportDateSelector() {
 
                 const isSelected = selectedDate ? isSameDay(date, parseDateString(selectedDate)) : false;
                 const isCurrentDay = isToday(date);
-                const isDisabled = isCurrentDay || !isPastDate(date);
+                const isDisabled = !isPastDate(date);
 
                 return (
                   <Pressable

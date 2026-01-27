@@ -129,8 +129,8 @@ function StatisticsCard({ revenue, loading, onPress }: StatisticsCardProps) {
                 {revenue !== null ? formatCurrency(revenue) : '--'}
               </Text>
               <View style={styles.statisticsDateRow}>
-                <Text style={styles.statisticsDate}>
-                  {monthName} {year}
+                <Text style={styles.statisticsDate} numberOfLines={2}>
+                  {t('statistics.kpi.revenue')} {t('home.features.datePrefix')} {monthName} {year}
                 </Text>
                 <View style={styles.arrowContainer}>
                   <Feather name="chevron-right" size={24} color={BluePalette.merge} />
@@ -152,11 +152,11 @@ export default function HomeScreen() {
   const { isTablet, width } = useDeviceType();
   const maxContentWidth = getMaxContentWidth(isTablet);
   const { user } = useAppSelector((state) => state.auth);
-  const alerts = useAppSelector((state) => state.alerts.items);
 
   // State for data fetching
   const [statisticsRevenue, setStatisticsRevenue] = useState<number | null>(null);
   const [statisticsLoading, setStatisticsLoading] = useState(true);
+  const [alertsCount, setAlertsCount] = useState<number>(0);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [cashRegisterData, setCashRegisterData] = useState<DailyReportData | null>(null);
   const [cashRegisterLoading, setCashRegisterLoading] = useState(true);
@@ -175,17 +175,13 @@ export default function HomeScreen() {
 
   // Format date utilities
   const formatDate = (date: Date, format: 'day-month' | 'day-month-year' = 'day-month') => {
+    const day = date.getDate();
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
     if (format === 'day-month') {
-      return date.toLocaleDateString('en-US', {
-        day: 'numeric',
-        month: 'short',
-      });
+      return `${day} ${month}`;
     }
-    return date.toLocaleDateString('en-US', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
   };
 
   const formatCurrency = (amount: number) => {
@@ -195,6 +191,24 @@ export default function HomeScreen() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  // Get the date to display for cards
+  // Logic: After 21:00 GMT on day X, show day X. Before 21:00 GMT on day X, show day X-1.
+  // Example: On Jan 25 at 22:00 GMT → show Jan 25. On Jan 26 at 10:00 GMT → show Jan 25.
+  const getCardDisplayDate = (): Date => {
+    const now = new Date();
+    const gmtHours = now.getUTCHours();
+
+    // If GMT time is >= 21:00 (9:00 PM), show current day
+    // Otherwise show previous day
+    if (gmtHours >= 21) {
+      return now;
+    }
+
+    const previousDay = new Date(now);
+    previousDay.setDate(now.getDate() - 1);
+    return previousDay;
   };
 
   // Fetch statistics for current month
@@ -217,42 +231,44 @@ export default function HomeScreen() {
     fetchStatistics();
   }, []);
 
-  // Fetch alerts for previous day
+  // Fetch alerts for the card display date
   useEffect(() => {
-    const fetchPreviousDayAlerts = async () => {
+    const fetchCardAlerts = async () => {
       try {
         setAlertsLoading(true);
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const year = yesterday.getFullYear();
-        const month = String(yesterday.getMonth() + 1).padStart(2, '0');
-        const day = String(yesterday.getDate()).padStart(2, '0');
+        const displayDate = getCardDisplayDate();
+        const year = displayDate.getFullYear();
+        const month = String(displayDate.getMonth() + 1).padStart(2, '0');
+        const day = String(displayDate.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
 
-        await dispatch(fetchAlerts({
+        const result = await dispatch(fetchAlerts({
           date: `${dateString}T00:00:00`,
           endDate: `${dateString}T23:59:59`,
         })).unwrap();
+
+        // Store the count in local state to prevent it from changing when AlertScreen updates Redux
+        setAlertsCount(result?.length || 0);
       } catch (error) {
         console.error('Error fetching alerts:', error);
+        setAlertsCount(0);
       } finally {
         setAlertsLoading(false);
       }
     };
 
-    fetchPreviousDayAlerts();
+    fetchCardAlerts();
   }, [dispatch]);
 
-  // Fetch cash register data for previous day
+  // Fetch cash register data for the card display date
   useEffect(() => {
-    const fetchPreviousDayReport = async () => {
+    const fetchCardReport = async () => {
       try {
         setCashRegisterLoading(true);
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const year = yesterday.getFullYear();
-        const month = String(yesterday.getMonth() + 1).padStart(2, '0');
-        const day = String(yesterday.getDate()).padStart(2, '0');
+        const displayDate = getCardDisplayDate();
+        const year = displayDate.getFullYear();
+        const month = String(displayDate.getMonth() + 1).padStart(2, '0');
+        const day = String(displayDate.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
 
         const { data } = await apiClient.get<DailyReportData>('/kpi/daily-report', {
@@ -272,22 +288,28 @@ export default function HomeScreen() {
       }
     };
 
-    fetchPreviousDayReport();
+    fetchCardReport();
   }, []);
 
-  // Get previous day and month for alerts
-  const previousDateForAlerts = useMemo(() => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return formatDate(yesterday, 'day-month');
-  }, []);
+  // Get display date for alerts card
+  const displayDateForAlerts = useMemo(() => getCardDisplayDate(), []);
+  const dateForAlerts = useMemo(() => {
+    return formatDate(displayDateForAlerts, 'day-month');
+  }, [displayDateForAlerts]);
 
-  // Get previous day and month for cash register
-  const previousDate = useMemo(() => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return formatDate(yesterday, 'day-month');
-  }, []);
+  // Get display date for cash register card
+  const displayDateForCashRegister = useMemo(() => getCardDisplayDate(), []);
+  const dateForCashRegister = useMemo(() => {
+    return formatDate(displayDateForCashRegister, 'day-month');
+  }, [displayDateForCashRegister]);
+
+  // Format date string for navigation (YYYY-MM-DD)
+  const formatDateForNavigation = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const toggleLanguage = async () => {
     const newLanguage = language === 'fr' ? 'en' : 'fr';
@@ -302,8 +324,8 @@ export default function HomeScreen() {
       color: BluePalette.error,
       route: '/alerts' as const,
       enabled: FeatureFlags.ALERTES_ENABLED,
-      value: alertsLoading ? undefined : alerts.length,
-      dateLabel: previousDateForAlerts,
+      value: alertsLoading ? undefined : alertsCount,
+      dateLabel: dateForAlerts,
     },
     {
       icon: 'credit-card',
@@ -317,7 +339,7 @@ export default function HomeScreen() {
         : cashRegisterData?.revenue.totalTTC
           ? formatCurrency(cashRegisterData.revenue.totalTTC)
           : '--',
-      dateLabel: previousDate,
+      dateLabel: dateForCashRegister,
     },
     {
       icon: 'dollar-sign',
@@ -392,7 +414,10 @@ export default function HomeScreen() {
               cardWidth={cardWidth}
               value={features[0].value}
               dateLabel={features[0].dateLabel}
-              onPress={() => router.push('/alerts' as any)}
+              onPress={() => {
+                const dateParam = formatDateForNavigation(displayDateForAlerts);
+                router.push(`/alerts?date=${dateParam}` as any);
+              }}
             />
             <FeatureCard
               icon={features[1].icon}
@@ -403,7 +428,10 @@ export default function HomeScreen() {
               cardWidth={cardWidth}
               value={features[1].value}
               dateLabel={features[1].dateLabel}
-              onPress={() => router.push('/caisse/daily-report' as any)}
+              onPress={() => {
+                const dateParam = formatDateForNavigation(displayDateForCashRegister);
+                router.push(`/caisse/daily-report?date=${dateParam}` as any);
+              }}
             />
 
             {/* Second Row: Charges, Check In/Out */}
@@ -523,7 +551,7 @@ const styles = StyleSheet.create({
   },
   statisticsCardContent: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 16,
   },
   statisticsIconContainer: {
@@ -548,17 +576,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: BluePalette.textPrimary,
     letterSpacing: -0.5,
+    marginTop: 4,
   },
   statisticsDateRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 2,
+    gap: 8,
   },
   statisticsDate: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
     color: BluePalette.textTertiary,
+    flex: 1,
+    flexShrink: 1,
   },
   loadingIndicator: {
     marginVertical: 8,
@@ -611,8 +643,8 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: BluePalette.textPrimary,
+    fontWeight: '600',
+    color: BluePalette.textSecondary,
     letterSpacing: -0.3,
   },
   featureTitleDisabled: {
@@ -659,6 +691,6 @@ const styles = StyleSheet.create({
   arrowContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    flexShrink: 0,
   },
 });
