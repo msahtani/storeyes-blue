@@ -1,18 +1,19 @@
-import apiClient from '@/api/client';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { DailyReportData } from '../types/dailyReport';
+import apiClient from "@/api/client";
+import { getDisplayDate, getDisplayDateString } from "@/utils/getDisplayDate";
+import { useLocalSearchParams } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { DailyReportData } from "../types/dailyReport";
 
 // Date utility functions
 const formatDateString = (date: Date): string => {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
 const parseDateString = (dateString: string): Date => {
-  return new Date(dateString + 'T00:00:00');
+  return new Date(dateString + "T00:00:00");
 };
 
 const isSameDay = (date1: Date, date2: Date): boolean => {
@@ -27,40 +28,18 @@ const isToday = (date: Date): boolean => {
   return isSameDay(date, new Date());
 };
 
-// Check if current day should be available
-// Logic: Day X is available after 21:00 GMT on day X, until 21:00 GMT on day X+1
-// Example: Jan 25 is available from Jan 25 21:00 GMT until Jan 26 21:00 GMT
-const isCurrentDayAvailable = (): boolean => {
-  const now = new Date();
-  const gmtHours = now.getUTCHours();
-  // Available if GMT time is >= 21:00 (9:00 PM)
-  return gmtHours >= 21;
-};
-
+// Check if date is on or before display date (21:00 GMT rule)
 const isPastDate = (date: Date): boolean => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const compareDate = new Date(date);
-  compareDate.setHours(0, 0, 0, 0);
-
-  // If comparing today, check if it's after 21:00 GMT (9:00 PM)
-  if (isSameDay(date, today)) {
-    return isCurrentDayAvailable();
-  }
-
-  return compareDate < today; // Past dates are always available
+  return formatDateString(date) <= getDisplayDateString();
 };
 
-// Get default date (today if >= 21:00 GMT, otherwise yesterday)
-const getDefaultDate = (): Date => {
-  const today = new Date();
-  if (isCurrentDayAvailable()) {
-    return today;
-  }
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  return yesterday;
+// Check if current UTC day is the display date (for canNavigateNext)
+const isCurrentDayAvailable = (): boolean => {
+  return new Date().getUTCHours() >= 21;
 };
+
+// Get default date (display date per 21:00 GMT rule)
+const getDefaultDate = (): Date => getDisplayDate();
 
 export const useDailyReport = () => {
   const params = useLocalSearchParams<{ date?: string }>();
@@ -85,7 +64,7 @@ export const useDailyReport = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Use ref to track the current request's date to prevent race conditions
-  const currentRequestDateRef = useRef<string>('');
+  const currentRequestDateRef = useRef<string>("");
 
   // Fetch daily report data when selectedDate changes
   useEffect(() => {
@@ -99,11 +78,14 @@ export const useDailyReport = () => {
     const fetchDailyReport = async () => {
       try {
         setLoading(true);
-        const { data } = await apiClient.get<DailyReportData>('/kpi/daily-report', {
-          params: {
-            date: dateString,
+        const { data } = await apiClient.get<DailyReportData>(
+          "/kpi/daily-report",
+          {
+            params: {
+              date: dateString,
+            },
           },
-        });
+        );
 
         // Verify this response is still for the current selected date
         // (prevents race conditions if user switches dates quickly)
@@ -126,10 +108,12 @@ export const useDailyReport = () => {
         }
 
         const errorMessage =
-          err?.response?.data?.message || err?.message || 'Failed to fetch daily report';
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to fetch daily report";
         setError(errorMessage);
         setReportData(null);
-        console.error('Error fetching daily report:', err);
+        console.error("Error fetching daily report:", err);
       } finally {
         // Only update loading state if this is still the current date
         if (currentRequestDateRef.current === dateString) {
@@ -142,11 +126,11 @@ export const useDailyReport = () => {
   }, [selectedDate]);
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -170,33 +154,44 @@ export const useDailyReport = () => {
 
     // Add all days of the month
     for (let day = 1; day <= daysInMonth; day++) {
-      days.push(new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day));
+      days.push(
+        new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day),
+      );
     }
 
     return days;
   }, [calendarDate]);
 
   const monthYearLabel = useMemo(() => {
-    return calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return calendarDate.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
   }, [calendarDate]);
 
-  const weekDayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekDayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const canNavigateNext = useMemo(() => {
-    const nextMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1);
+    const nextMonth = new Date(
+      calendarDate.getFullYear(),
+      calendarDate.getMonth() + 1,
+      1,
+    );
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     // Can navigate to next month if it's before today (or today if after 21:00 GMT)
-    const maxDate = isCurrentDayAvailable() ? today : new Date(today.getTime() - 24 * 60 * 60 * 1000);
+    const maxDate = isCurrentDayAvailable()
+      ? today
+      : new Date(today.getTime() - 24 * 60 * 60 * 1000);
     return nextMonth <= maxDate;
   }, [calendarDate]);
 
-  const handleMonthChange = (direction: 'prev' | 'next') => {
+  const handleMonthChange = (direction: "prev" | "next") => {
     setCalendarDate((prev) => {
       const newDate = new Date(prev);
-      if (direction === 'prev') {
+      if (direction === "prev") {
         newDate.setMonth(prev.getMonth() - 1);
-      } else if (direction === 'next' && canNavigateNext) {
+      } else if (direction === "next" && canNavigateNext) {
         newDate.setMonth(prev.getMonth() + 1);
       }
       return newDate;
@@ -211,7 +206,7 @@ export const useDailyReport = () => {
   };
 
   const handleDateChange = (event: any, date?: Date) => {
-    if (event.type === 'set' && date) {
+    if (event.type === "set" && date) {
       setSelectedDate(date);
     }
     setShowDatePicker(false);
@@ -243,4 +238,3 @@ export const useDailyReport = () => {
     handleDateChange,
   };
 };
-

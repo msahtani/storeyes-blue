@@ -1,27 +1,37 @@
-import { Text } from '@/components/Themed';
-import { BluePalette } from '@/constants/Colors';
-import { useI18n } from '@/constants/i18n/I18nContext';
-import BottomBar from '@/domains/shared/components/BottomBar';
-import Feather from '@expo/vector-icons/Feather';
-import { useFocusEffect } from '@react-navigation/native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import WeekSelector from '../components/WeekSelector';
+import { Text } from "@/components/Themed";
+import { BluePalette } from "@/constants/Colors";
+import { useI18n } from "@/constants/i18n/I18nContext";
+import BottomBar from "@/domains/shared/components/BottomBar";
+import { formatAmountMAD } from "@/utils/formatAmount";
+import Feather from "@expo/vector-icons/Feather";
+import { useFocusEffect } from "@react-navigation/native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  convertFixedChargeDetailToFrontend,
-  deleteFixedCharge,
-  getFixedChargeById,
-} from '../services/chargesService';
-import { FixedChargeCategory, FixedChargeDetail } from '../types/charge';
-
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
+import {
+    SafeAreaView,
+    useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import WeekSelector from "../components/WeekSelector";
+import {
+    convertFixedChargeDetailToFrontend,
+    deleteFixedCharge,
+    getFixedChargeById,
+} from "../services/chargesService";
+import { FixedChargeCategory, FixedChargeDetail } from "../types/charge";
 
 const categoryLabels: Record<FixedChargeCategory, string> = {
-  personnel: 'Personnel',
-  water: 'Water',
-  electricity: 'Electricity',
-  wifi: 'Wi-Fi',
+  personnel: "Personnel",
+  water: "Water",
+  electricity: "Electricity",
+  wifi: "Wi-Fi",
 };
 
 export default function FixedChargeDetailScreen() {
@@ -46,7 +56,7 @@ export default function FixedChargeDetailScreen() {
     // Fallback to current month if no month param
     const now = new Date();
     const year = now.getFullYear();
-    const monthNum = String(now.getMonth() + 1).padStart(2, '0');
+    const monthNum = String(now.getMonth() + 1).padStart(2, "0");
     return `${year}-${monthNum}`;
   }, [month]);
 
@@ -60,7 +70,7 @@ export default function FixedChargeDetailScreen() {
     try {
       const chargeId = parseInt(id, 10);
       if (isNaN(chargeId)) {
-        throw new Error('Invalid charge ID');
+        throw new Error("Invalid charge ID");
       }
 
       const response = await getFixedChargeById(chargeId, monthKey);
@@ -70,9 +80,9 @@ export default function FixedChargeDetailScreen() {
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||
-        'Failed to load charge details';
+        "Failed to load charge details";
       setError(errorMessage);
-      console.error('Error fetching charge:', err);
+      console.error("Error fetching charge:", err);
       setCharge(null);
     } finally {
       setLoading(false);
@@ -88,7 +98,7 @@ export default function FixedChargeDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchCharge();
-    }, [fetchCharge])
+    }, [fetchCharge]),
   );
 
   const handleDelete = () => {
@@ -98,57 +108,55 @@ export default function FixedChargeDetailScreen() {
     if (isNaN(chargeId)) return;
 
     Alert.alert(
-      'Delete Charge',
-      'Are you sure you want to delete this charge? This action cannot be undone.',
+      "Delete Charge",
+      "Are you sure you want to delete this charge? This action cannot be undone.",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             try {
               setDeleting(true);
               await deleteFixedCharge(chargeId);
-              Alert.alert('Success', 'Charge deleted successfully', [
-                { text: 'OK', onPress: () => router.back() },
+              Alert.alert("Success", "Charge deleted successfully", [
+                { text: "OK", onPress: () => router.back() },
               ]);
             } catch (err: any) {
               const errorMessage =
                 err?.response?.data?.message ||
                 err?.message ||
-                'Failed to delete charge';
-              Alert.alert('Error', errorMessage);
-              console.error('Error deleting charge:', err);
+                "Failed to delete charge";
+              Alert.alert("Error", errorMessage);
+              console.error("Error deleting charge:", err);
             } finally {
               setDeleting(false);
             }
           },
         },
-      ]
+      ],
     );
   };
 
-
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'MAD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatAmount = formatAmountMAD;
 
   if (loading) {
     return (
       <SafeAreaView
-        edges={['left', 'right']}
+        edges={["left", "right"]}
         style={[styles.container, { backgroundColor: BluePalette.white }]}
       >
         <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+            <Feather
+              name="arrow-left"
+              size={24}
+              color={BluePalette.textPrimary}
+            />
           </Pressable>
-          <Text style={styles.headerTitle}>{t('charges.fixed.details.title')}</Text>
+          <Text style={styles.headerTitle}>
+            {t("charges.fixed.details.title")}
+          </Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loaderContainer}>
@@ -162,19 +170,25 @@ export default function FixedChargeDetailScreen() {
   if (error || !charge) {
     return (
       <SafeAreaView
-        edges={['left', 'right']}
+        edges={["left", "right"]}
         style={[styles.container, { backgroundColor: BluePalette.white }]}
       >
         <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+            <Feather
+              name="arrow-left"
+              size={24}
+              color={BluePalette.textPrimary}
+            />
           </Pressable>
-          <Text style={styles.headerTitle}>{t('charges.fixed.details.title')}</Text>
+          <Text style={styles.headerTitle}>
+            {t("charges.fixed.details.title")}
+          </Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.messageContainer}>
           <Text style={styles.message}>
-            {error || t('charges.fixed.details.notFound')}
+            {error || t("charges.fixed.details.notFound")}
           </Text>
         </View>
         <BottomBar />
@@ -186,12 +200,16 @@ export default function FixedChargeDetailScreen() {
 
   return (
     <SafeAreaView
-      edges={['left', 'right']}
+      edges={["left", "right"]}
       style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
     >
       <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+          <Feather
+            name="arrow-left"
+            size={24}
+            color={BluePalette.textPrimary}
+          />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {categoryLabel}
@@ -199,10 +217,12 @@ export default function FixedChargeDetailScreen() {
         <View style={styles.headerActions}>
           <Pressable
             style={styles.editButton}
-            onPress={() => router.push({
-              pathname: `/charges/fixed/edit/${id}` as any,
-              params: { category: charge.category, month: monthKey },
-            })}
+            onPress={() =>
+              router.push({
+                pathname: `/charges/fixed/edit/${id}` as any,
+                params: { category: charge.category, month: monthKey },
+              })
+            }
             disabled={deleting}
           >
             <Feather name="edit-2" size={20} color={BluePalette.merge} />
@@ -222,7 +242,7 @@ export default function FixedChargeDetailScreen() {
       </View>
 
       {/* Week Selector - Only for personnel category, at the top */}
-      {charge.category === 'personnel' && (
+      {charge.category === "personnel" && (
         <View style={styles.weekSelectorContainer}>
           <WeekSelector
             monthKey={monthKey}
@@ -242,12 +262,14 @@ export default function FixedChargeDetailScreen() {
       >
         {/* Total Amount Card */}
         <View style={styles.totalCard}>
-          <Text style={styles.totalLabel}>{t('charges.fixed.details.total')}</Text>
+          <Text style={styles.totalLabel}>
+            {t("charges.fixed.details.total")}
+          </Text>
           <Text style={styles.totalAmount}>
             {(() => {
               // In week view for personnel, show total for selected week across all employees
               if (
-                charge.category === 'personnel' &&
+                charge.category === "personnel" &&
                 selectedWeek &&
                 charge.personnelData &&
                 charge.personnelData.length > 0
@@ -255,7 +277,10 @@ export default function FixedChargeDetailScreen() {
                 let weekTotal = 0;
                 charge.personnelData.forEach((group) => {
                   group.employees.forEach((employee) => {
-                    if (employee.weekSalaries && employee.weekSalaries[selectedWeek] !== undefined) {
+                    if (
+                      employee.weekSalaries &&
+                      employee.weekSalaries[selectedWeek] !== undefined
+                    ) {
                       weekTotal += employee.weekSalaries[selectedWeek];
                     }
                   });
@@ -270,138 +295,186 @@ export default function FixedChargeDetailScreen() {
         </View>
 
         {/* Personnel Types - Special layout for personnel category */}
-        {charge.category === 'personnel' && charge.personnelData && charge.personnelData.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                {t('charges.fixed.details.personnel')}
-              </Text>
-              {selectedWeek && (
-                <View style={styles.weekBadge}>
-                  <Feather name="calendar" size={14} color={BluePalette.merge} />
-                  <Text style={styles.weekBadgeText}>Week View</Text>
-                </View>
-              )}
-            </View>
-            {charge.personnelData.map((personnelType, index) => {
-              const typeIcons: Record<string, string> = {
-                server: 'user',
-                barman: 'coffee',
-                cleaner: 'droplet',
-              };
-              const typeIcon = typeIcons[personnelType.type] || 'users';
-
-              return (
-                <View key={index} style={styles.personnelTypeContainer}>
-                  <View style={styles.personnelTypeHeader}>
-                    <View style={styles.personnelTypeTitleContainer}>
-                      <View style={styles.personnelTypeIconContainer}>
-                        <Feather name={typeIcon as any} size={18} color={BluePalette.merge} />
-                      </View>
-                      <Text style={styles.personnelTypeTitle}>
-                        {personnelType.type.charAt(0).toUpperCase() + personnelType.type.slice(1)}
-                      </Text>
-                    </View>
-                    <View style={styles.personnelTypeTotalBadge}>
-                      <Text style={styles.personnelTypeTotal}>
-                        {(() => {
-                          // In week view, show total for selected week for this personnel type
-                          if (
-                            charge.category === 'personnel' &&
-                            selectedWeek &&
-                            personnelType.employees &&
-                            personnelType.employees.length > 0
-                          ) {
-                            const typeWeekTotal = personnelType.employees.reduce((sum, employee) => {
-                              if (employee.weekSalaries && employee.weekSalaries[selectedWeek] !== undefined) {
-                                return sum + employee.weekSalaries[selectedWeek];
-                              }
-                              return sum;
-                            }, 0);
-                            return formatAmount(typeWeekTotal);
-                          }
-
-                          // Default: show monthly total amount for this type
-                          return formatAmount(personnelType.totalAmount);
-                        })()}
-                      </Text>
-                    </View>
+        {charge.category === "personnel" &&
+          charge.personnelData &&
+          charge.personnelData.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>
+                  {t("charges.fixed.details.personnel")}
+                </Text>
+                {selectedWeek && (
+                  <View style={styles.weekBadge}>
+                    <Feather
+                      name="calendar"
+                      size={14}
+                      color={BluePalette.merge}
+                    />
+                    <Text style={styles.weekBadgeText}>Week View</Text>
                   </View>
-                  <View style={styles.employeesContainer}>
-                    {personnelType.employees.map((employee) => (
-                      <View key={employee.id} style={styles.employeeCard}>
-                        <View style={styles.employeeHeader}>
-                          <View style={styles.employeeInfo}>
-                            <Text style={styles.employeeName}>{employee.name}</Text>
-                            {employee.position && (
-                              <Text style={styles.employeePosition}>{employee.position}</Text>
+                )}
+              </View>
+              {charge.personnelData.map((personnelType, index) => {
+                const typeIcons: Record<string, string> = {
+                  server: "user",
+                  barman: "coffee",
+                  cleaner: "droplet",
+                };
+                const typeIcon = typeIcons[personnelType.type] || "users";
+
+                return (
+                  <View key={index} style={styles.personnelTypeContainer}>
+                    <View style={styles.personnelTypeHeader}>
+                      <View style={styles.personnelTypeTitleContainer}>
+                        <View style={styles.personnelTypeIconContainer}>
+                          <Feather
+                            name={typeIcon as any}
+                            size={18}
+                            color={BluePalette.merge}
+                          />
+                        </View>
+                        <Text style={styles.personnelTypeTitle}>
+                          {personnelType.type.charAt(0).toUpperCase() +
+                            personnelType.type.slice(1)}
+                        </Text>
+                      </View>
+                      <View style={styles.personnelTypeTotalBadge}>
+                        <Text style={styles.personnelTypeTotal}>
+                          {(() => {
+                            // In week view, show total for selected week for this personnel type
+                            if (
+                              charge.category === "personnel" &&
+                              selectedWeek &&
+                              personnelType.employees &&
+                              personnelType.employees.length > 0
+                            ) {
+                              const typeWeekTotal =
+                                personnelType.employees.reduce(
+                                  (sum, employee) => {
+                                    if (
+                                      employee.weekSalaries &&
+                                      employee.weekSalaries[selectedWeek] !==
+                                        undefined
+                                    ) {
+                                      return (
+                                        sum +
+                                        employee.weekSalaries[selectedWeek]
+                                      );
+                                    }
+                                    return sum;
+                                  },
+                                  0,
+                                );
+                              return formatAmount(typeWeekTotal);
+                            }
+
+                            // Default: show monthly total amount for this type
+                            return formatAmount(personnelType.totalAmount);
+                          })()}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.employeesContainer}>
+                      {personnelType.employees.map((employee) => (
+                        <View key={employee.id} style={styles.employeeCard}>
+                          <View style={styles.employeeHeader}>
+                            <View style={styles.employeeInfo}>
+                              <Text style={styles.employeeName}>
+                                {employee.name}
+                              </Text>
+                              {employee.position && (
+                                <Text style={styles.employeePosition}>
+                                  {employee.position}
+                                </Text>
+                              )}
+                            </View>
+                            <View style={styles.employeeSalaryBadge}>
+                              <Text style={styles.employeeSalary}>
+                                {(() => {
+                                  // Determine what salary to display based on selected week
+                                  let displaySalary: number | undefined;
+
+                                  if (
+                                    selectedWeek &&
+                                    employee.weekSalaries &&
+                                    employee.weekSalaries[selectedWeek] !==
+                                      undefined
+                                  ) {
+                                    // Show salary for selected week (week key is Monday date in YYYY-MM-DD format)
+                                    displaySalary =
+                                      employee.weekSalaries[selectedWeek];
+                                  } else if (
+                                    employee.monthSalary !== undefined
+                                  ) {
+                                    // Show monthly salary
+                                    displaySalary = employee.monthSalary;
+                                  } else if (
+                                    employee.weekSalary !== undefined
+                                  ) {
+                                    // Fallback to weekSalary
+                                    displaySalary = employee.weekSalary;
+                                  } else if (employee.salary !== undefined) {
+                                    // Fallback to salary
+                                    displaySalary = employee.salary;
+                                  }
+
+                                  return displaySalary !== undefined
+                                    ? formatAmount(displaySalary)
+                                    : "N/A";
+                                })()}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.employeeDetails}>
+                            {employee.hours && (
+                              <View style={styles.employeeDetailItem}>
+                                <View style={styles.employeeDetailIcon}>
+                                  <Feather
+                                    name="clock"
+                                    size={14}
+                                    color={BluePalette.merge}
+                                  />
+                                </View>
+                                <Text style={styles.employeeDetailText}>
+                                  {employee.hours}h/month
+                                </Text>
+                              </View>
+                            )}
+                            {employee.startDate && (
+                              <View style={styles.employeeDetailItem}>
+                                <View style={styles.employeeDetailIcon}>
+                                  <Feather
+                                    name="calendar"
+                                    size={14}
+                                    color={BluePalette.merge}
+                                  />
+                                </View>
+                                <Text style={styles.employeeDetailText}>
+                                  Since{" "}
+                                  {new Date(
+                                    employee.startDate,
+                                  ).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </Text>
+                              </View>
                             )}
                           </View>
-                          <View style={styles.employeeSalaryBadge}>
-                            <Text style={styles.employeeSalary}>
-                              {(() => {
-                                // Determine what salary to display based on selected week
-                                let displaySalary: number | undefined;
-
-                                if (selectedWeek && employee.weekSalaries && employee.weekSalaries[selectedWeek] !== undefined) {
-                                  // Show salary for selected week (week key is Monday date in YYYY-MM-DD format)
-                                  displaySalary = employee.weekSalaries[selectedWeek];
-                                } else if (employee.monthSalary !== undefined) {
-                                  // Show monthly salary
-                                  displaySalary = employee.monthSalary;
-                                } else if (employee.weekSalary !== undefined) {
-                                  // Fallback to weekSalary
-                                  displaySalary = employee.weekSalary;
-                                } else if (employee.salary !== undefined) {
-                                  // Fallback to salary
-                                  displaySalary = employee.salary;
-                                }
-
-                                return displaySalary !== undefined ? formatAmount(displaySalary) : 'N/A';
-                              })()}
-                            </Text>
-                          </View>
                         </View>
-                        <View style={styles.employeeDetails}>
-                          {employee.hours && (
-                            <View style={styles.employeeDetailItem}>
-                              <View style={styles.employeeDetailIcon}>
-                                <Feather name="clock" size={14} color={BluePalette.merge} />
-                              </View>
-                              <Text style={styles.employeeDetailText}>
-                                {employee.hours}h/month
-                              </Text>
-                            </View>
-                          )}
-                          {employee.startDate && (
-                            <View style={styles.employeeDetailItem}>
-                              <View style={styles.employeeDetailIcon}>
-                                <Feather name="calendar" size={14} color={BluePalette.merge} />
-                              </View>
-                              <Text style={styles.employeeDetailText}>
-                                Since {new Date(employee.startDate).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  year: 'numeric',
-                                })}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                    ))}
+                      ))}
+                    </View>
                   </View>
-                </View>
-              );
-            })}
-          </View>
-        )}
-
+                );
+              })}
+            </View>
+          )}
 
         {/* Notes */}
         {charge.notes && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              {t('charges.fixed.details.notes')}
+              {t("charges.fixed.details.notes")}
             </Text>
             <View style={styles.notesCard}>
               <Text style={styles.notesText}>{charge.notes}</Text>
@@ -420,9 +493,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 12,
     backgroundColor: BluePalette.backgroundNew,
@@ -434,25 +507,25 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: BluePalette.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: BluePalette.border,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textPrimary,
     letterSpacing: -0.5,
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 12,
   },
   headerSpacer: {
     width: 40,
   },
   headerActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   editButton: {
@@ -460,8 +533,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: BluePalette.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: BluePalette.border,
   },
@@ -470,8 +543,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: BluePalette.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: BluePalette.border,
   },
@@ -483,14 +556,14 @@ const styles = StyleSheet.create({
     borderBottomColor: BluePalette.border,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 4,
   },
   weekBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     backgroundColor: BluePalette.selectedBackground,
     paddingHorizontal: 12,
@@ -501,7 +574,7 @@ const styles = StyleSheet.create({
   },
   weekBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.merge,
   },
   scrollView: {
@@ -522,14 +595,14 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textTertiary,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   totalAmount: {
     fontSize: 36,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.white,
     letterSpacing: -1,
   },
@@ -538,25 +611,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   comparisonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   comparisonLabel: {
     fontSize: 14,
     color: BluePalette.textTertiary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   comparisonValue: {
     fontSize: 16,
     color: BluePalette.white,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   changeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -569,7 +642,7 @@ const styles = StyleSheet.create({
   },
   changeText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   changeTextUp: {
     color: BluePalette.error,
@@ -578,7 +651,7 @@ const styles = StyleSheet.create({
     color: BluePalette.success,
   },
   warningCard: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: `${BluePalette.error}10`,
     borderRadius: 12,
     padding: 16,
@@ -592,7 +665,7 @@ const styles = StyleSheet.create({
   },
   warningTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.error,
   },
   warningText: {
@@ -605,7 +678,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     letterSpacing: -0.3,
   },
@@ -618,9 +691,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   breakdownItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: BluePalette.border,
@@ -628,12 +701,12 @@ const styles = StyleSheet.create({
   breakdownLabel: {
     fontSize: 15,
     color: BluePalette.textDark,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   breakdownAmount: {
     fontSize: 16,
     color: BluePalette.textDark,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   chartContainer: {
     backgroundColor: BluePalette.white,
@@ -641,7 +714,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: BluePalette.border,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -664,36 +737,36 @@ const styles = StyleSheet.create({
   },
   loaderContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
   },
   messageContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   message: {
     color: BluePalette.primaryDark,
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: -0.3,
   },
   personnelTypeContainer: {
     marginBottom: 24,
   },
   personnelTypeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 2,
     borderBottomColor: BluePalette.merge,
   },
   personnelTypeTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   personnelTypeIconContainer: {
@@ -701,14 +774,14 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: BluePalette.backgroundNew,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   personnelTypeTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
-    textTransform: 'capitalize',
+    textTransform: "capitalize",
     letterSpacing: -0.3,
   },
   personnelTypeTotalBadge: {
@@ -721,7 +794,7 @@ const styles = StyleSheet.create({
   },
   personnelTypeTotal: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.white,
     letterSpacing: -0.3,
   },
@@ -734,7 +807,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: 1.5,
     borderColor: BluePalette.border,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -745,9 +818,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   employeeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: 12,
   },
   employeeInfo: {
@@ -756,7 +829,7 @@ const styles = StyleSheet.create({
   },
   employeeName: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     letterSpacing: -0.3,
   },
@@ -770,7 +843,7 @@ const styles = StyleSheet.create({
   },
   employeeSalary: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.white,
     letterSpacing: -0.2,
   },
@@ -778,20 +851,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: BluePalette.textDark,
     opacity: 0.65,
-    fontWeight: '500',
+    fontWeight: "500",
     marginTop: 2,
   },
   employeeDetails: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 16,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: BluePalette.border,
   },
   employeeDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   employeeDetailIcon: {
@@ -799,14 +872,13 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     backgroundColor: BluePalette.backgroundNew,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   employeeDetailText: {
     fontSize: 13,
     color: BluePalette.textDark,
     opacity: 0.75,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });
-

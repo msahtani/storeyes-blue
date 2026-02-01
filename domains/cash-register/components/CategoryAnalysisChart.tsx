@@ -1,8 +1,9 @@
-import { Text } from '@/components/Themed';
-import { BluePalette } from '@/constants/Colors';
-import React, { useMemo } from 'react';
-import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
-import { CategoryData } from '../types/dailyReport';
+import { Text } from "@/components/Themed";
+import { BluePalette } from "@/constants/Colors";
+import { formatAmountMAD } from "@/utils/formatAmount";
+import React, { useMemo } from "react";
+import { Dimensions, ScrollView, StyleSheet, View } from "react-native";
+import { CategoryData } from "../types/dailyReport";
 
 interface CategoryAnalysisChartProps {
   categories: CategoryData[];
@@ -23,9 +24,9 @@ const COLORS = [
 
 export default function CategoryAnalysisChart({
   categories,
-  currency = 'MAD',
+  currency = "MAD",
 }: CategoryAnalysisChartProps) {
-  const screenWidth = Dimensions.get('window').width;
+  const screenWidth = Dimensions.get("window").width;
   const chartWidth = screenWidth - 40 - 32; // Container padding + chart padding
 
   const { maxRevenue, sortedCategories } = useMemo(() => {
@@ -34,17 +35,13 @@ export default function CategoryAnalysisChart({
     return { maxRevenue: max, sortedCategories: sorted };
   }, [categories]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => formatAmountMAD(amount);
 
   const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US').format(num);
+    return new Intl.NumberFormat("fr-FR", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
   };
 
   if (categories.length === 0) {
@@ -83,7 +80,12 @@ export default function CategoryAnalysisChart({
                       ]}
                     />
                   </View>
-                  <Text style={styles.barValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                  <Text
+                    style={styles.barValue}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                  >
                     {formatCurrency(category.revenue)}
                   </Text>
                 </View>
@@ -93,7 +95,11 @@ export default function CategoryAnalysisChart({
         </View>
 
         {/* Summary Table */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.tableScrollContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={true}
+          style={styles.tableScrollContainer}
+        >
           <View style={styles.tableWrapper}>
             <View style={styles.tableHeader}>
               <Text style={[styles.tableHeaderCell, styles.categoryColumn]}>
@@ -121,19 +127,38 @@ export default function CategoryAnalysisChart({
                 >
                   <View style={styles.categoryCell}>
                     <View
-                      style={[styles.categoryColorIndicator, { backgroundColor: color }]}
+                      style={[
+                        styles.categoryColorIndicator,
+                        { backgroundColor: color },
+                      ]}
                     />
-                    <Text style={styles.categoryName} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
+                    <Text
+                      style={styles.categoryName}
+                      numberOfLines={2}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.85}
+                    >
                       {category.category}
                     </Text>
                   </View>
-                  <Text style={[styles.tableCell, styles.revenueColumn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+                  <Text
+                    style={[styles.tableCell, styles.revenueColumn]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
+                  >
                     {formatCurrency(category.revenue)}
                   </Text>
-                  <Text style={[styles.tableCell, styles.quantityColumn]} numberOfLines={1}>
+                  <Text
+                    style={[styles.tableCell, styles.quantityColumn]}
+                    numberOfLines={1}
+                  >
                     {formatNumber(category.quantity)}
                   </Text>
-                  <Text style={[styles.tableCell, styles.transactionsColumn]} numberOfLines={1}>
+                  <Text
+                    style={[styles.tableCell, styles.transactionsColumn]}
+                    numberOfLines={1}
+                  >
                     {formatNumber(category.transactions)}
                   </Text>
                 </View>
@@ -152,7 +177,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     letterSpacing: -0.3,
   },
@@ -162,7 +187,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: BluePalette.border,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -179,24 +204,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   barLabelContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   barLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textDark,
     flex: 1,
   },
   barPercentage: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textTertiary,
   },
   barContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     minHeight: BAR_HEIGHT + 4,
   },
@@ -204,7 +229,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     height: BAR_HEIGHT,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   bar: {
     height: BAR_HEIGHT,
@@ -213,11 +238,11 @@ const styles = StyleSheet.create({
   },
   barValue: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     minWidth: 85,
     maxWidth: 100,
-    textAlign: 'right',
+    textAlign: "right",
     flexShrink: 0,
   },
   tableScrollContainer: {
@@ -228,16 +253,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: BluePalette.border,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
   },
   tableHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: BluePalette.merge,
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -246,14 +271,14 @@ const styles = StyleSheet.create({
   },
   tableHeaderCell: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.white,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
@@ -264,8 +289,8 @@ const styles = StyleSheet.create({
     backgroundColor: BluePalette.whiteLight,
   },
   categoryCell: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     width: 140,
     flexShrink: 0,
@@ -285,7 +310,7 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textDark,
     flex: 1,
     minWidth: 0,
@@ -293,31 +318,31 @@ const styles = StyleSheet.create({
   },
   tableCell: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: "500",
     color: BluePalette.textDark,
   },
-  categoryColumn: {
-    width: 140,
-    flexShrink: 0,
-    paddingRight: 8,
-  },
+  // categoryColumn: {
+  //   width: 140,
+  //   flexShrink: 0,
+  //   paddingRight: 8,
+  // },
   revenueColumn: {
     width: 130,
-    textAlign: 'right',
+    textAlign: "right",
     paddingLeft: 8,
     paddingRight: 8,
     flexShrink: 0,
   },
   quantityColumn: {
     width: 90,
-    textAlign: 'right',
+    textAlign: "right",
     paddingLeft: 8,
     paddingRight: 8,
     flexShrink: 0,
   },
   transactionsColumn: {
     width: 110,
-    textAlign: 'right',
+    textAlign: "right",
     paddingLeft: 8,
     paddingRight: 8,
     flexShrink: 0,

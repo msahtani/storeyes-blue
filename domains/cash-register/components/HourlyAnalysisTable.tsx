@@ -1,8 +1,9 @@
-import { Text } from '@/components/Themed';
-import { BluePalette } from '@/constants/Colors';
-import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { HourlyData } from '../types/dailyReport';
+import { Text } from "@/components/Themed";
+import { BluePalette } from "@/constants/Colors";
+import { formatAmountMAD } from "@/utils/formatAmount";
+import React from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { HourlyData } from "../types/dailyReport";
 
 interface HourlyAnalysisTableProps {
   hourlyData: HourlyData[];
@@ -11,19 +12,15 @@ interface HourlyAnalysisTableProps {
 
 export default function HourlyAnalysisTable({
   hourlyData,
-  currency = 'MAD',
+  currency = "MAD",
 }: HourlyAnalysisTableProps) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => formatAmountMAD(amount);
 
   const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US').format(num);
+    return new Intl.NumberFormat("fr-FR", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
   };
 
   if (hourlyData.length === 0) {
@@ -33,20 +30,44 @@ export default function HourlyAnalysisTable({
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Hourly Analysis</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.tableScrollContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={true}
+        style={styles.tableScrollContainer}
+      >
         <View style={styles.tableWrapper}>
           {/* Header */}
           <View style={styles.tableHeader}>
-            <Text style={[styles.headerCell, styles.hourColumn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            <Text
+              style={[styles.headerCell, styles.hourColumn]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               Hour
             </Text>
-            <Text style={[styles.headerCell, styles.revenueColumn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            <Text
+              style={[styles.headerCell, styles.revenueColumn]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               Revenue (MAD)
             </Text>
-            <Text style={[styles.headerCell, styles.transactionsColumn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            <Text
+              style={[styles.headerCell, styles.transactionsColumn]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               Transactions
             </Text>
-            <Text style={[styles.headerCell, styles.itemsColumn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            <Text
+              style={[styles.headerCell, styles.itemsColumn]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               Items Sold
             </Text>
           </View>
@@ -55,18 +76,23 @@ export default function HourlyAnalysisTable({
           {hourlyData.map((data, index) => (
             <View
               key={index}
-              style={[
-                styles.tableRow,
-                index % 2 === 0 && styles.tableRowEven,
-              ]}
+              style={[styles.tableRow, index % 2 === 0 && styles.tableRowEven]}
             >
               <Text style={[styles.cell, styles.hourColumn]} numberOfLines={1}>
                 {data.hour}
               </Text>
-              <Text style={[styles.cell, styles.revenueColumn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+              <Text
+                style={[styles.cell, styles.revenueColumn]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
                 {formatCurrency(data.revenue)}
               </Text>
-              <Text style={[styles.cell, styles.transactionsColumn]} numberOfLines={1}>
+              <Text
+                style={[styles.cell, styles.transactionsColumn]}
+                numberOfLines={1}
+              >
                 {formatNumber(data.transactions)}
               </Text>
               <Text style={[styles.cell, styles.itemsColumn]} numberOfLines={1}>
@@ -86,7 +112,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     letterSpacing: -0.3,
   },
@@ -98,8 +124,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: BluePalette.border,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -109,8 +135,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tableHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: BluePalette.merge,
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -119,14 +145,14 @@ const styles = StyleSheet.create({
   },
   headerCell: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.white,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
@@ -138,7 +164,7 @@ const styles = StyleSheet.create({
   },
   cell: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: "500",
     color: BluePalette.textDark,
   },
   hourColumn: {
@@ -148,21 +174,21 @@ const styles = StyleSheet.create({
   },
   revenueColumn: {
     width: 130,
-    textAlign: 'right',
+    textAlign: "right",
     paddingLeft: 8,
     paddingRight: 8,
     flexShrink: 0,
   },
   transactionsColumn: {
     width: 110,
-    textAlign: 'right',
+    textAlign: "right",
     paddingLeft: 8,
     paddingRight: 8,
     flexShrink: 0,
   },
   itemsColumn: {
     width: 90,
-    textAlign: 'right',
+    textAlign: "right",
     paddingLeft: 8,
     paddingRight: 8,
     flexShrink: 0,

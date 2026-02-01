@@ -1,4 +1,4 @@
-import { apiClient } from '@/api/client';
+import { apiClient } from "@/api/client";
 import {
   ApiResponse,
   AvailableEmployee,
@@ -12,7 +12,7 @@ import {
   UpdateFixedChargeRequest,
   UpdateVariableChargeRequest,
   VariableChargeResponse,
-} from '../types/charge';
+} from "../types/charge";
 
 /**
  * Charges Service - Frontend API Integration
@@ -32,9 +32,12 @@ export const getFixedCharges = async (params?: {
   category?: ChargeCategory;
   period?: ChargePeriod;
 }): Promise<FixedChargeResponse[]> => {
-  const { data } = await apiClient.get<ApiResponse<FixedChargeResponse[]>>('/charges/fixed', {
-    params,
-  });
+  const { data } = await apiClient.get<ApiResponse<FixedChargeResponse[]>>(
+    "/charges/fixed",
+    {
+      params,
+    },
+  );
   return data.data;
 };
 
@@ -46,13 +49,13 @@ export const getFixedCharges = async (params?: {
  */
 export const getFixedChargeById = async (
   id: number,
-  month?: string
+  month?: string,
 ): Promise<FixedChargeDetailResponse> => {
   const { data } = await apiClient.get<ApiResponse<FixedChargeDetailResponse>>(
     `/charges/fixed/${id}`,
     {
       params: month ? { month } : undefined,
-    }
+    },
   );
   return data.data;
 };
@@ -63,10 +66,10 @@ export const getFixedChargeById = async (
  * @returns Array of fixed charges for the month
  */
 export const getFixedChargesByMonth = async (
-  monthKey: string
+  monthKey: string,
 ): Promise<FixedChargeResponse[]> => {
   const { data } = await apiClient.get<ApiResponse<FixedChargeResponse[]>>(
-    `/charges/fixed/month/${monthKey}`
+    `/charges/fixed/month/${monthKey}`,
   );
   return data.data;
 };
@@ -81,13 +84,13 @@ export const getFixedChargesByMonth = async (
 export const getFixedChargesByWeek = async (
   monthKey: string,
   weekKey: string,
-  category?: ChargeCategory
+  category?: ChargeCategory,
 ): Promise<FixedChargeResponse[]> => {
   const { data } = await apiClient.get<ApiResponse<FixedChargeResponse[]>>(
     `/charges/fixed/month/${monthKey}/week/${weekKey}`,
     {
       params: category ? { category } : undefined,
-    }
+    },
   );
   return data.data;
 };
@@ -98,11 +101,11 @@ export const getFixedChargesByWeek = async (
  * @returns Created charge
  */
 export const createFixedCharge = async (
-  request: CreateFixedChargeRequest
+  request: CreateFixedChargeRequest,
 ): Promise<FixedChargeResponse> => {
   const { data } = await apiClient.post<ApiResponse<FixedChargeResponse>>(
-    '/charges/fixed',
-    request
+    "/charges/fixed",
+    request,
   );
   return data.data;
 };
@@ -115,11 +118,11 @@ export const createFixedCharge = async (
  */
 export const updateFixedCharge = async (
   id: number,
-  request: UpdateFixedChargeRequest
+  request: UpdateFixedChargeRequest,
 ): Promise<FixedChargeResponse> => {
   const { data } = await apiClient.put<ApiResponse<FixedChargeResponse>>(
     `/charges/fixed/${id}`,
-    request
+    request,
   );
   return data.data;
 };
@@ -138,13 +141,13 @@ export const deleteFixedCharge = async (id: number): Promise<void> => {
  * @returns Array of available employees
  */
 export const getAvailableEmployees = async (
-  type?: EmployeeType
+  type?: EmployeeType,
 ): Promise<AvailableEmployee[]> => {
   const { data } = await apiClient.get<ApiResponse<AvailableEmployee[]>>(
-    '/charges/fixed/personnel/employees',
+    "/charges/fixed/personnel/employees",
     {
       params: type ? { type } : undefined,
-    }
+    },
   );
   return data.data;
 };
@@ -174,10 +177,10 @@ export const getVariableCharges = async (params?: {
   }
 
   const { data } = await apiClient.get<ApiResponse<VariableChargeResponse[]>>(
-    '/charges/variable',
+    "/charges/variable",
     {
       params: Object.keys(queryParams).length > 0 ? queryParams : undefined,
-    }
+    },
   );
   return data.data;
 };
@@ -188,10 +191,10 @@ export const getVariableCharges = async (params?: {
  * @returns Variable charge details
  */
 export const getVariableChargeById = async (
-  id: number
+  id: number,
 ): Promise<VariableChargeResponse> => {
   const { data } = await apiClient.get<ApiResponse<VariableChargeResponse>>(
-    `/charges/variable/${id}`
+    `/charges/variable/${id}`,
   );
   return data.data;
 };
@@ -202,11 +205,11 @@ export const getVariableChargeById = async (
  * @returns Created charge
  */
 export const createVariableCharge = async (
-  request: CreateVariableChargeRequest
+  request: CreateVariableChargeRequest,
 ): Promise<VariableChargeResponse> => {
   const { data } = await apiClient.post<ApiResponse<VariableChargeResponse>>(
-    '/charges/variable',
-    request
+    "/charges/variable",
+    request,
   );
   return data.data;
 };
@@ -219,11 +222,11 @@ export const createVariableCharge = async (
  */
 export const updateVariableCharge = async (
   id: number,
-  request: UpdateVariableChargeRequest
+  request: UpdateVariableChargeRequest,
 ): Promise<VariableChargeResponse> => {
   const { data } = await apiClient.put<ApiResponse<VariableChargeResponse>>(
     `/charges/variable/${id}`,
-    request
+    request,
   );
   return data.data;
 };
@@ -236,54 +239,91 @@ export const deleteVariableCharge = async (id: number): Promise<void> => {
   await apiClient.delete(`/charges/variable/${id}`);
 };
 
+// ==================== Number Formatting Utilities ====================
+
+/** Allow digits, spaces (thousands), and comma (decimal) - normalize '.' to ',' */
+const normalizeAmountInput = (value: string): string => {
+  // Allow digits, space, comma. Replace dot with comma for consistency
+  let result = value.replace(/\./g, ",").replace(/[^\d\s,]/g, "");
+  // Ensure only one decimal separator (comma)
+  const commaIndex = result.indexOf(",");
+  if (commaIndex !== -1) {
+    result =
+      result.slice(0, commaIndex + 1) +
+      result.slice(commaIndex + 1).replace(/,/g, "");
+  }
+  return result;
+};
+
+/**
+ * Parse user input to number (accepts comma as decimal, spaces as thousands)
+ */
+export const parseAmountInput = (value: string): number => {
+  const cleaned = value.replace(/\s/g, "").replace(",", ".");
+  return parseFloat(cleaned) || 0;
+};
+
+export { formatAmountForDisplay } from "@/utils/formatAmount";
+
+/**
+ * Normalize amount input for TextInput (use in onChangeText)
+ */
+export const formatAmountInput = normalizeAmountInput;
+
 // ==================== Utility Functions ====================
 
 /**
  * Helper to convert backend enum values to frontend lowercase format
  */
 export const convertCategoryToFrontend = (
-  category: ChargeCategory
-): 'personnel' | 'water' | 'electricity' | 'wifi' => {
-  return category.toLowerCase() as 'personnel' | 'water' | 'electricity' | 'wifi';
+  category: ChargeCategory,
+): "personnel" | "water" | "electricity" | "wifi" => {
+  return category.toLowerCase() as
+    | "personnel"
+    | "water"
+    | "electricity"
+    | "wifi";
 };
 
 export const convertCategoryFromFrontend = (
-  category: 'personnel' | 'water' | 'electricity' | 'wifi'
+  category: "personnel" | "water" | "electricity" | "wifi",
 ): ChargeCategory => {
   return category.toUpperCase() as ChargeCategory;
 };
 
-export const convertPeriodToFrontend = (period: ChargePeriod): 'week' | 'month' => {
-  return period.toLowerCase() as 'week' | 'month';
+export const convertPeriodToFrontend = (
+  period: ChargePeriod,
+): "week" | "month" => {
+  return period.toLowerCase() as "week" | "month";
 };
 
 export const convertPeriodFromFrontend = (
-  period: 'week' | 'month'
+  period: "week" | "month",
 ): ChargePeriod => {
   return period.toUpperCase() as ChargePeriod;
 };
 
 export const convertTrendToFrontend = (
-  trend: 'UP' | 'DOWN' | 'STABLE' | null
-): 'up' | 'down' | 'stable' | undefined => {
+  trend: "UP" | "DOWN" | "STABLE" | null,
+): "up" | "down" | "stable" | undefined => {
   if (!trend) return undefined;
-  return trend.toLowerCase() as 'up' | 'down' | 'stable';
+  return trend.toLowerCase() as "up" | "down" | "stable";
 };
 
 /**
  * Convert backend EmployeeType to frontend PersonnelType
  */
 export const convertEmployeeTypeToFrontend = (
-  type: EmployeeType
-): 'server' | 'barman' | 'cleaner' => {
-  return type.toLowerCase() as 'server' | 'barman' | 'cleaner';
+  type: EmployeeType,
+): "server" | "barman" | "cleaner" => {
+  return type.toLowerCase() as "server" | "barman" | "cleaner";
 };
 
 /**
  * Convert frontend PersonnelType to backend EmployeeType
  */
 export const convertEmployeeTypeFromFrontend = (
-  type: 'server' | 'barman' | 'cleaner'
+  type: "server" | "barman" | "cleaner",
 ): EmployeeType => {
   return type.toUpperCase() as EmployeeType;
 };
@@ -292,15 +332,15 @@ export const convertEmployeeTypeFromFrontend = (
  * Convert backend FixedChargeResponse to frontend FixedCharge format
  */
 export const convertFixedChargeToFrontend = (
-  charge: FixedChargeResponse
+  charge: FixedChargeResponse,
 ): {
   id: string;
-  category: 'personnel' | 'water' | 'electricity' | 'wifi';
+  category: "personnel" | "water" | "electricity" | "wifi";
   amount: number;
-  period: 'week' | 'month';
+  period: "week" | "month";
   monthKey?: string;
   weekKey?: string | null;
-  trend?: 'up' | 'down' | 'stable';
+  trend?: "up" | "down" | "stable";
   trendPercentage?: number;
   abnormalIncrease?: boolean;
   createdAt?: string;
@@ -325,22 +365,22 @@ export const convertFixedChargeToFrontend = (
  * Convert backend FixedChargeDetailResponse to frontend FixedChargeDetail format
  */
 export const convertFixedChargeDetailToFrontend = (
-  charge: FixedChargeDetailResponse
+  charge: FixedChargeDetailResponse,
 ): {
   id: string;
-  category: 'personnel' | 'water' | 'electricity' | 'wifi';
+  category: "personnel" | "water" | "electricity" | "wifi";
   amount: number;
-  period: 'week' | 'month';
+  period: "week" | "month";
   monthKey?: string;
   weekKey?: string | null;
-  trend?: 'up' | 'down' | 'stable';
+  trend?: "up" | "down" | "stable";
   trendPercentage?: number;
   abnormalIncrease?: boolean;
   previousAmount?: number;
   notes?: string;
   chartData?: Array<{ period: string; amount: number }>;
   personnelData?: Array<{
-    type: 'server' | 'barman' | 'cleaner';
+    type: "server" | "barman" | "cleaner";
     totalAmount: number;
     employees: Array<{
       id: string;
@@ -349,8 +389,8 @@ export const convertFixedChargeDetailToFrontend = (
       hours?: number;
       position?: string;
       startDate?: string;
-      type?: 'server' | 'barman' | 'cleaner';
-      salaryByPeriod?: 'week' | 'month';
+      type?: "server" | "barman" | "cleaner";
+      salaryByPeriod?: "week" | "month";
       weekSalary?: number;
       monthSalary?: number;
       weekSalaries?: Record<string, number>;
@@ -384,7 +424,7 @@ export const convertFixedChargeDetailToFrontend = (
         position: emp.position,
         startDate: emp.startDate,
         type: convertEmployeeTypeToFrontend(emp.type),
-        salaryByPeriod: emp.salaryByPeriod.toLowerCase() as 'week' | 'month',
+        salaryByPeriod: emp.salaryByPeriod.toLowerCase() as "week" | "month",
         weekSalary: emp.weekSalary,
         monthSalary: emp.monthSalary,
         weekSalaries: emp.weekSalaries,

@@ -1,10 +1,11 @@
-import { Text } from '@/components/Themed';
-import { BluePalette } from '@/constants/Colors';
-import { useI18n } from '@/constants/i18n/I18nContext';
-import Feather from '@expo/vector-icons/Feather';
-import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { FixedCharge, FixedChargeCategory } from '../types/charge';
+import { Text } from "@/components/Themed";
+import { BluePalette } from "@/constants/Colors";
+import { useI18n } from "@/constants/i18n/I18nContext";
+import { formatAmountMAD } from "@/utils/formatAmount";
+import Feather from "@expo/vector-icons/Feather";
+import React from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { FixedCharge, FixedChargeCategory } from "../types/charge";
 
 interface FixedChargeCardProps {
   category: FixedChargeCategory;
@@ -14,33 +15,31 @@ interface FixedChargeCardProps {
 }
 
 const categoryIcons: Record<FixedChargeCategory, string> = {
-  personnel: 'users',
-  water: 'droplet',
-  electricity: 'zap',
-  wifi: 'wifi',
+  personnel: "users",
+  water: "droplet",
+  electricity: "zap",
+  wifi: "wifi",
 };
 
 const categoryLabels: Record<FixedChargeCategory, string> = {
-  personnel: 'Personnel',
-  water: 'Water',
-  electricity: 'Electricity',
-  wifi: 'Wi-Fi',
+  personnel: "Personnel",
+  water: "Water",
+  electricity: "Electricity",
+  wifi: "Wi-Fi",
 };
 
-export default function FixedChargeCard({ category, charge, isWarned = false, onPress }: FixedChargeCardProps) {
+export default function FixedChargeCard({
+  category,
+  charge,
+  isWarned = false,
+  onPress,
+}: FixedChargeCardProps) {
   const { t } = useI18n();
   const icon = categoryIcons[category];
   const label = categoryLabels[category];
   const isEmpty = !charge;
 
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'MAD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatAmount = formatAmountMAD;
 
   return (
     <Pressable
@@ -51,13 +50,19 @@ export default function FixedChargeCard({ category, charge, isWarned = false, on
         pressed && styles.cardPressed,
       ]}
       onPress={onPress}
-      android_ripple={{ color: 'rgba(6, 182, 212, 0.2)' }}
+      android_ripple={{ color: "rgba(6, 182, 212, 0.2)" }}
     >
       <View style={styles.cardContent}>
-        <View style={[
-          styles.iconContainer,
-          { backgroundColor: isEmpty ? `${BluePalette.textTertiary}15` : `${BluePalette.merge}15` }
-        ]}>
+        <View
+          style={[
+            styles.iconContainer,
+            {
+              backgroundColor: isEmpty
+                ? `${BluePalette.textTertiary}15`
+                : `${BluePalette.merge}15`,
+            },
+          ]}
+        >
           <Feather
             name={icon as any}
             size={24}
@@ -66,21 +71,28 @@ export default function FixedChargeCard({ category, charge, isWarned = false, on
         </View>
 
         <View style={styles.cardInfo}>
-          <Text style={[
-            styles.categoryLabel,
-            isEmpty && styles.categoryLabelEmpty
-          ]}>
+          <Text
+            style={[styles.categoryLabel, isEmpty && styles.categoryLabelEmpty]}
+          >
             {label}
           </Text>
           {isEmpty ? (
             <View style={styles.emptyState}>
               {isWarned ? (
                 <>
-                  <Feather name="alert-circle" size={14} color={BluePalette.warning} />
-                  <Text style={styles.warnedText}>{t('charges.fixed.notFilledMonthEnded')}</Text>
+                  <Feather
+                    name="alert-circle"
+                    size={14}
+                    color={BluePalette.warning}
+                  />
+                  <Text style={styles.warnedText}>
+                    {t("charges.fixed.notFilledMonthEnded")}
+                  </Text>
                 </>
               ) : (
-                <Text style={styles.emptyText}>{t('charges.fixed.notFilled')}</Text>
+                <Text style={styles.emptyText}>
+                  {t("charges.fixed.notFilled")}
+                </Text>
               )}
             </View>
           ) : (
@@ -92,7 +104,11 @@ export default function FixedChargeCard({ category, charge, isWarned = false, on
 
         {isWarned && (
           <View style={styles.warnedBadge}>
-            <Feather name="alert-triangle" size={18} color={BluePalette.warning} />
+            <Feather
+              name="alert-triangle"
+              size={18}
+              color={BluePalette.warning}
+            />
           </View>
         )}
       </View>
@@ -108,7 +124,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BluePalette.border,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -118,7 +134,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardEmpty: {
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     opacity: 0.7,
   },
   cardWarned: {
@@ -131,16 +147,16 @@ const styles = StyleSheet.create({
     borderColor: BluePalette.merge,
   },
   cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   iconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   cardInfo: {
     flex: 1,
@@ -148,52 +164,51 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textPrimary,
   },
   categoryLabelEmpty: {
     color: BluePalette.textTertiary,
   },
   emptyState: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginTop: 2,
   },
   emptyText: {
     fontSize: 14,
     color: BluePalette.textTertiary,
-    fontWeight: '500',
-    fontStyle: 'italic',
+    fontWeight: "500",
+    fontStyle: "italic",
   },
   warnedText: {
     fontSize: 13,
     color: BluePalette.warning,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   amountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   amount: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textPrimary,
     letterSpacing: -0.5,
   },
   trendContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   trendText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textTertiary,
   },
   warnedBadge: {
     padding: 4,
   },
 });
-

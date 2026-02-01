@@ -1,26 +1,34 @@
-import { Text } from '@/components/Themed';
-import { BluePalette } from '@/constants/Colors';
-import { useI18n } from '@/constants/i18n/I18nContext';
-import BottomBar from '@/domains/shared/components/BottomBar';
-import Feather from '@expo/vector-icons/Feather';
-import { useFocusEffect } from '@react-navigation/native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Text } from "@/components/Themed";
+import { BluePalette } from "@/constants/Colors";
+import { useI18n } from "@/constants/i18n/I18nContext";
+import BottomBar from "@/domains/shared/components/BottomBar";
+import { formatAmountMAD } from "@/utils/formatAmount";
+import Feather from "@expo/vector-icons/Feather";
+import { useFocusEffect } from "@react-navigation/native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getVariableChargeById } from '../services/chargesService';
-import { VariableChargeDetail } from '../types/charge';
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Image,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
+import {
+    SafeAreaView,
+    useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import {
+    deleteVariableCharge,
+    getVariableChargeById,
+} from "../services/chargesService";
+import { VariableChargeDetail } from "../types/charge";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function VariableChargeDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -32,6 +40,7 @@ export default function VariableChargeDetailScreen() {
   const [charge, setCharge] = useState<VariableChargeDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
@@ -46,7 +55,7 @@ export default function VariableChargeDetailScreen() {
     try {
       const chargeId = parseInt(id, 10);
       if (isNaN(chargeId)) {
-        throw new Error('Invalid charge ID');
+        throw new Error("Invalid charge ID");
       }
 
       const response = await getVariableChargeById(chargeId);
@@ -70,9 +79,9 @@ export default function VariableChargeDetailScreen() {
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||
-        'Failed to load charge details';
+        "Failed to load charge details";
       setError(errorMessage);
-      console.error('Error fetching variable charge:', err);
+      console.error("Error fetching variable charge:", err);
       setCharge(null);
     } finally {
       setLoading(false);
@@ -88,31 +97,61 @@ export default function VariableChargeDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchCharge();
-    }, [fetchCharge])
+    }, [fetchCharge]),
   );
 
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'MAD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
+  const formatAmount = formatAmountMAD;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
+  };
+
+  const handleDelete = () => {
+    if (!id) return;
+
+    const chargeId = parseInt(id, 10);
+    if (isNaN(chargeId)) return;
+
+    Alert.alert(
+      "Delete Charge",
+      "Are you sure you want to delete this variable charge? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              await deleteVariableCharge(chargeId);
+              Alert.alert("Success", "Charge deleted successfully", [
+                { text: "OK", onPress: () => router.back() },
+              ]);
+            } catch (err: any) {
+              const errorMessage =
+                err?.response?.data?.message ||
+                err?.message ||
+                "Failed to delete charge";
+              Alert.alert("Error", errorMessage);
+              console.error("Error deleting variable charge:", err);
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleImagePress = (url: string) => {
     // Ensure url is a valid non-empty string before setting state
-    if (url && typeof url === 'string' && url.length > 0) {
+    if (url && typeof url === "string" && url.length > 0) {
       setSelectedImageUrl(url);
       setImageModalVisible(true);
     }
@@ -121,15 +160,22 @@ export default function VariableChargeDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView
-        edges={['left', 'right']}
-        style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
+        edges={["left", "right"]}
+        style={[
+          styles.container,
+          { backgroundColor: BluePalette.backgroundNew },
+        ]}
       >
         <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+            <Feather
+              name="arrow-left"
+              size={24}
+              color={BluePalette.textPrimary}
+            />
           </Pressable>
           <Text style={styles.headerTitle}>
-            {t('charges.variable.details.title')}
+            {t("charges.variable.details.title")}
           </Text>
           <View style={styles.headerSpacer} />
         </View>
@@ -144,21 +190,28 @@ export default function VariableChargeDetailScreen() {
   if (error || !charge) {
     return (
       <SafeAreaView
-        edges={['left', 'right']}
-        style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
+        edges={["left", "right"]}
+        style={[
+          styles.container,
+          { backgroundColor: BluePalette.backgroundNew },
+        ]}
       >
         <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+            <Feather
+              name="arrow-left"
+              size={24}
+              color={BluePalette.textPrimary}
+            />
           </Pressable>
           <Text style={styles.headerTitle}>
-            {t('charges.variable.details.title')}
+            {t("charges.variable.details.title")}
           </Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.messageContainer}>
           <Text style={styles.message}>
-            {error || t('charges.variable.details.notFound')}
+            {error || t("charges.variable.details.notFound")}
           </Text>
         </View>
         <BottomBar />
@@ -168,22 +221,39 @@ export default function VariableChargeDetailScreen() {
 
   return (
     <SafeAreaView
-      edges={['left', 'right']}
+      edges={["left", "right"]}
       style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
     >
       <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+          <Feather
+            name="arrow-left"
+            size={24}
+            color={BluePalette.textPrimary}
+          />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {charge.name}
         </Text>
-        <Pressable
-          style={styles.editButton}
-          onPress={() => router.push(`/charges/variable/edit/${id}` as any)}
-        >
-          <Feather name="edit-2" size={20} color={BluePalette.merge} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            style={[styles.editButton, deleting && styles.headerButtonDisabled]}
+            onPress={() => router.push(`/charges/variable/edit/${id}` as any)}
+            disabled={deleting}
+          >
+            <Feather name="edit-2" size={20} color={BluePalette.merge} />
+          </Pressable>
+          <Pressable
+            style={[
+              styles.deleteHeaderButton,
+              deleting && styles.headerButtonDisabled,
+            ]}
+            onPress={handleDelete}
+            disabled={deleting}
+          >
+            <Feather name="trash-2" size={20} color={BluePalette.error} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -197,7 +267,7 @@ export default function VariableChargeDetailScreen() {
         {/* Amount Card */}
         <View style={styles.amountCard}>
           <Text style={styles.amountLabel}>
-            {t('charges.variable.details.amount')}
+            {t("charges.variable.details.amount")}
           </Text>
           <Text style={styles.amountValue}>{formatAmount(charge.amount)}</Text>
         </View>
@@ -205,14 +275,14 @@ export default function VariableChargeDetailScreen() {
         {/* Details */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {t('charges.variable.details.details')}
+            {t("charges.variable.details.details")}
           </Text>
           <View style={styles.detailsCard}>
             <View style={styles.detailRow}>
               <View style={styles.detailLabelContainer}>
                 <Feather name="calendar" size={16} color={BluePalette.merge} />
                 <Text style={styles.detailLabel}>
-                  {t('charges.variable.details.date')}
+                  {t("charges.variable.details.date")}
                 </Text>
               </View>
               <Text style={styles.detailValue}>{formatDate(charge.date)}</Text>
@@ -222,7 +292,7 @@ export default function VariableChargeDetailScreen() {
               <View style={styles.detailLabelContainer}>
                 <Feather name="tag" size={16} color={BluePalette.merge} />
                 <Text style={styles.detailLabel}>
-                  {t('charges.variable.details.category')}
+                  {t("charges.variable.details.category")}
                 </Text>
               </View>
               <Text style={styles.detailValue}>{charge.category}</Text>
@@ -233,7 +303,7 @@ export default function VariableChargeDetailScreen() {
                 <View style={styles.detailLabelContainer}>
                   <Feather name="truck" size={16} color={BluePalette.merge} />
                   <Text style={styles.detailLabel}>
-                    {t('charges.variable.details.supplier')}
+                    {t("charges.variable.details.supplier")}
                   </Text>
                 </View>
                 <Text style={styles.detailValue}>{charge.supplier}</Text>
@@ -246,7 +316,7 @@ export default function VariableChargeDetailScreen() {
         {charge.notes && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              {t('charges.variable.details.notes')}
+              {t("charges.variable.details.notes")}
             </Text>
             <View style={styles.notesCard}>
               <Text style={styles.notesText}>{charge.notes}</Text>
@@ -304,13 +374,15 @@ export default function VariableChargeDetailScreen() {
             >
               <Feather name="x" size={24} color={BluePalette.textPrimary} />
             </Pressable>
-            {selectedImageUrl && typeof selectedImageUrl === 'string' && selectedImageUrl.length > 0 && (
-              <Image
-                source={{ uri: selectedImageUrl }}
-                style={styles.modalImage}
-                resizeMode="contain"
-              />
-            )}
+            {selectedImageUrl &&
+              typeof selectedImageUrl === "string" &&
+              selectedImageUrl.length > 0 && (
+                <Image
+                  source={{ uri: selectedImageUrl }}
+                  style={styles.modalImage}
+                  resizeMode="contain"
+                />
+              )}
           </View>
         </View>
       </Modal>
@@ -326,9 +398,9 @@ const styles = StyleSheet.create({
     backgroundColor: BluePalette.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 12,
     backgroundColor: BluePalette.backgroundNew,
@@ -340,32 +412,50 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: BluePalette.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: BluePalette.border,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textPrimary,
     letterSpacing: -0.5,
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 12,
   },
   headerSpacer: {
     width: 40,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerButtonDisabled: {
+    opacity: 0.5,
   },
   editButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: BluePalette.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: BluePalette.border,
+  },
+  deleteHeaderButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BluePalette.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: BluePalette.error,
   },
   scrollView: {
     flex: 1,
@@ -381,19 +471,19 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 1,
     borderColor: BluePalette.border,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 8,
   },
   amountLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textTertiary,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   amountValue: {
     fontSize: 36,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.white,
     letterSpacing: -1,
   },
@@ -402,7 +492,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     letterSpacing: -0.3,
   },
@@ -415,27 +505,27 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 8,
   },
   detailLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   detailLabel: {
     fontSize: 14,
     color: BluePalette.textTertiary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   detailValue: {
     fontSize: 15,
     color: BluePalette.white,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
-    textAlign: 'right',
+    textAlign: "right",
   },
   notesCard: {
     backgroundColor: BluePalette.backgroundNew,
@@ -454,7 +544,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: BluePalette.border,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   imageCardPressed: {
     opacity: 0.7,
@@ -462,15 +552,15 @@ const styles = StyleSheet.create({
   },
   imagePlaceholder: {
     padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 12,
     backgroundColor: BluePalette.surfaceDark,
   },
   imagePlaceholderText: {
     fontSize: 14,
     color: BluePalette.textPrimary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   missingReceiptCard: {
     backgroundColor: `${BluePalette.warning}10`,
@@ -478,38 +568,38 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: BluePalette.warning,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   missingReceiptText: {
     fontSize: 15,
     color: BluePalette.textDark,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: "rgba(0, 0, 0, 0.95)",
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContent: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   modalCloseButton: {
-    position: 'absolute',
+    position: "absolute",
     right: 20,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 10,
   },
   modalImage: {
@@ -518,14 +608,14 @@ const styles = StyleSheet.create({
   },
   loaderContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
   },
   messageContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   message: {
     color: BluePalette.textDark,
@@ -533,4 +623,3 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 });
-

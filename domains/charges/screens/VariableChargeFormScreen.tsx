@@ -22,7 +22,10 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   createVariableCharge,
+  formatAmountForDisplay,
+  formatAmountInput,
   getVariableChargeById,
+  parseAmountInput,
   updateVariableCharge,
 } from '../services/chargesService';
 
@@ -73,7 +76,7 @@ export default function VariableChargeFormScreen() {
           // Populate form
           setFormData({
             name: response.name,
-            amount: response.amount.toString(),
+            amount: formatAmountForDisplay(response.amount),
             category: response.category,
             supplier: response.supplier || '',
             notes: response.notes || '',
@@ -122,7 +125,7 @@ export default function VariableChargeFormScreen() {
     if (!formData.amount.trim()) {
       newErrors.amount = 'Amount is required';
     } else {
-      const amountNum = parseFloat(formData.amount);
+      const amountNum = parseAmountInput(formData.amount);
       if (isNaN(amountNum) || amountNum <= 0) {
         newErrors.amount = 'Amount must be a positive number';
       }
@@ -179,7 +182,7 @@ export default function VariableChargeFormScreen() {
         // Update existing charge
         const updateRequest = {
           name: formData.name.trim(),
-          amount: parseFloat(formData.amount),
+          amount: parseAmountInput(formData.amount),
           date: selectedDate!,
           category: formData.category.trim(),
           supplier: formData.supplier.trim() || undefined,
@@ -192,7 +195,7 @@ export default function VariableChargeFormScreen() {
         // Create new charge
         const createRequest = {
           name: formData.name.trim(),
-          amount: parseFloat(formData.amount),
+          amount: parseAmountInput(formData.amount),
           date: selectedDate!,
           category: formData.category.trim(),
           supplier: formData.supplier.trim() || undefined,
@@ -291,18 +294,13 @@ export default function VariableChargeFormScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Amount *</Text>
             <View style={[styles.inputWrapper, errors.amount && styles.inputError]}>
-              <Feather
-                name="dollar-sign"
-                size={18}
-                color={errors.amount ? BluePalette.error : BluePalette.textDark}
-                style={styles.inputIcon}
-              />
+              <Text style={styles.amountCurrencyLabel}>MAD</Text>
               <TextInput
                 style={styles.input}
-                placeholder="0.00"
+                placeholder="0,00"
                 placeholderTextColor="rgba(10, 31, 58, 0.5)"
                 value={formData.amount}
-                onChangeText={(value) => updateField('amount', value.replace(/[^0-9.]/g, ''))}
+                onChangeText={(value) => updateField('amount', formatAmountInput(value))}
                 keyboardType="decimal-pad"
               />
             </View>
@@ -568,6 +566,12 @@ const styles = StyleSheet.create({
     backgroundColor: `${BluePalette.error}15`,
   },
   inputIcon: {
+    marginRight: 12,
+  },
+  amountCurrencyLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: BluePalette.textDark,
     marginRight: 12,
   },
   input: {

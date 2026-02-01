@@ -26,7 +26,10 @@ import {
   convertFixedChargeDetailToFrontend,
   convertPeriodFromFrontend,
   createFixedCharge,
+  formatAmountForDisplay,
+  formatAmountInput,
   getFixedChargeById,
+  parseAmountInput,
   updateFixedCharge,
 } from '../services/chargesService';
 import {
@@ -138,7 +141,7 @@ export default function FixedChargeFormScreen() {
           return sum + (emp.weekSalary || emp.salary || 0);
         }
       }, 0);
-      setFormData((prev) => ({ ...prev, amount: total.toFixed(2) }));
+      setFormData((prev) => ({ ...prev, amount: formatAmountForDisplay(total) }));
     }
   }, [employees, isPersonnel, formData.period, selectedWeek]);
 
@@ -163,7 +166,7 @@ export default function FixedChargeFormScreen() {
 
         setFormData({
           category: chargeCategory,
-          amount: frontendCharge.amount.toString(),
+          amount: formatAmountForDisplay(frontendCharge.amount),
           period: frontendCharge.period,
           notes: frontendCharge.notes || '',
         });
@@ -298,7 +301,7 @@ export default function FixedChargeFormScreen() {
       if (!formData.amount.trim()) {
         newErrors.amount = 'Amount is required';
       } else {
-        const amountNum = parseFloat(formData.amount);
+        const amountNum = parseAmountInput(formData.amount);
         if (isNaN(amountNum) || amountNum <= 0) {
           newErrors.amount = 'Amount must be a positive number';
         }
@@ -357,7 +360,7 @@ export default function FixedChargeFormScreen() {
           // For monthly charges, send salary to redistribute or weekSalaries to update specific weeks
           if (formData.period === 'month') {
             if (emp.salary !== undefined) {
-              baseRequest.salary = parseFloat(emp.salary.toString());
+              baseRequest.salary = parseAmountInput(emp.salary.toString());
             }
             // Include weekSalaries if they exist (allows updating specific weeks)
             // Only include weekSalaries for the selected month
@@ -377,9 +380,9 @@ export default function FixedChargeFormScreen() {
             // For weekly charges, send only the selected week's salary
             // Don't send weekSalaries map - backend will handle it based on weekKey
             if (selectedWeek && emp.weekSalaries && emp.weekSalaries[selectedWeek] !== undefined) {
-              baseRequest.salary = parseFloat(emp.weekSalaries[selectedWeek].toString());
+              baseRequest.salary = parseAmountInput(emp.weekSalaries[selectedWeek].toString());
             } else {
-              baseRequest.salary = parseFloat((emp.weekSalary || emp.salary || 0).toString());
+              baseRequest.salary = parseAmountInput(String(emp.weekSalary || emp.salary || 0));
             }
           }
 
@@ -414,7 +417,7 @@ export default function FixedChargeFormScreen() {
         // Utility charge (water, electricity, wifi)
         if (isEditMode && id) {
           const updateRequest = {
-            amount: parseFloat(formData.amount),
+            amount: parseAmountInput(formData.amount),
             notes: formData.notes.trim() || undefined,
           };
 
@@ -425,7 +428,7 @@ export default function FixedChargeFormScreen() {
             period: ChargePeriod.MONTH, // Utilities are always monthly
             monthKey: selectedMonth,
             weekKey: null as string | null,
-            amount: parseFloat(formData.amount),
+            amount: parseAmountInput(formData.amount),
             notes: formData.notes.trim() || undefined,
           };
 
@@ -622,7 +625,7 @@ export default function FixedChargeFormScreen() {
               {employees.length > 0 && (
                 <View style={styles.autoAmountContainer}>
                   <Text style={styles.autoAmountText}>
-                    Total calculated from employees ({formData.period}): {employees.reduce((sum, emp) => {
+                    Total calculated from employees ({formData.period}): {formatAmountForDisplay(employees.reduce((sum, emp) => {
                       if (formData.period === 'month') {
                         if (emp.monthSalary !== undefined) {
                           return sum + emp.monthSalary;
@@ -649,7 +652,7 @@ export default function FixedChargeFormScreen() {
                         }
                         return sum + (emp.weekSalary || emp.salary || 0);
                       }
-                    }, 0).toFixed(2)}
+                    }, 0))}
                   </Text>
                 </View>
               )}
@@ -661,18 +664,13 @@ export default function FixedChargeFormScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Amount *</Text>
               <View style={[styles.inputWrapper, errors.amount && styles.inputError]}>
-                <Feather
-                  name="dollar-sign"
-                  size={18}
-                  color={errors.amount ? BluePalette.error : BluePalette.textDark}
-                  style={styles.inputIcon}
-                />
+                <Text style={styles.amountCurrencyLabel}>MAD</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="0.00"
+                  placeholder="0,00"
                   placeholderTextColor="rgba(10, 31, 58, 0.5)"
                   value={formData.amount}
-                  onChangeText={(value) => updateField('amount', value.replace(/[^0-9.]/g, ''))}
+                  onChangeText={(value) => updateField('amount', formatAmountInput(value))}
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -813,6 +811,12 @@ const styles = StyleSheet.create({
     backgroundColor: `${BluePalette.error}15`,
   },
   inputIcon: {
+    marginRight: 12,
+  },
+  amountCurrencyLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: BluePalette.textDark,
     marginRight: 12,
   },
   input: {

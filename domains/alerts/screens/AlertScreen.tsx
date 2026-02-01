@@ -1,26 +1,40 @@
-import { Text } from '@/components/Themed';
-import Colors, { BluePalette } from '@/constants/Colors';
-import { useI18n } from '@/constants/i18n/I18nContext';
-import AlertList from '@/domains/alerts/components/AlertList';
-import DateSelector from '@/domains/alerts/components/DateSelector';
-import BottomBar from '@/domains/shared/components/BottomBar';
-import Feather from '@expo/vector-icons/Feather';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text } from "@/components/Themed";
+import Colors, { BluePalette } from "@/constants/Colors";
+import { useI18n } from "@/constants/i18n/I18nContext";
+import AlertList from "@/domains/alerts/components/AlertList";
+import DateSelector from "@/domains/alerts/components/DateSelector";
+import BottomBar from "@/domains/shared/components/BottomBar";
+import Feather from "@expo/vector-icons/Feather";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+    Animated,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
+import {
+    SafeAreaView,
+    useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
-import { fetchAlerts, setSelectedDate } from '@/domains/alerts/store/alertsSlice';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { getMaxContentWidth, useDeviceType } from '@/utils/useDeviceType';
+import {
+    fetchAlerts,
+    setSelectedDate,
+} from "@/domains/alerts/store/alertsSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { getDisplayDateString } from "@/utils/getDisplayDate";
+import { getMaxContentWidth, useDeviceType } from "@/utils/useDeviceType";
 
 interface AlertScreenProps {
   backgroundColor?: string;
 }
 
 export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
-  const bgColor = backgroundColor || Colors.dark.background || BluePalette.background;
+  const bgColor =
+    backgroundColor || Colors.dark.background || BluePalette.background;
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ date?: string }>();
@@ -68,7 +82,7 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
     if (isDateSelectorHidden) return; // Already hidden
     const now = Date.now();
     if (now - lastStateChangeTime.current < STATE_CHANGE_COOLDOWN) return; // Cooldown period
-    
+
     lastStateChangeTime.current = now;
     setIsDateSelectorHidden(true);
     Animated.parallel([
@@ -89,7 +103,7 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
     if (!isDateSelectorHidden) return; // Already shown
     const now = Date.now();
     if (now - lastStateChangeTime.current < STATE_CHANGE_COOLDOWN) return; // Cooldown period
-    
+
     lastStateChangeTime.current = now;
     setIsDateSelectorHidden(false);
     Animated.parallel([
@@ -106,72 +120,65 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
     ]).start();
   }, [translateY, opacity, isDateSelectorHidden]);
 
-  const handleScroll = useCallback((event: any) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const scrollDelta = currentScrollY - scrollY.current;
-    scrollY.current = currentScrollY;
+  const handleScroll = useCallback(
+    (event: any) => {
+      const currentScrollY = event.nativeEvent.contentOffset.y;
+      const scrollDelta = currentScrollY - scrollY.current;
+      scrollY.current = currentScrollY;
 
-    // Show when completely at the top
-    if (currentScrollY <= TOP_THRESHOLD) {
-      // Reset accumulated delta when at top
-      accumulatedDelta.current = 0;
-      if (isDateSelectorHidden) {
-        showDateSelector();
+      // Show when completely at the top
+      if (currentScrollY <= TOP_THRESHOLD) {
+        // Reset accumulated delta when at top
+        accumulatedDelta.current = 0;
+        if (isDateSelectorHidden) {
+          showDateSelector();
+        }
+        return;
       }
-      return;
-    }
 
-    // Accumulate scroll delta (with decay to prevent infinite accumulation)
-    if (Math.abs(scrollDelta) > 1) {
-      // Add to accumulated delta, but cap it to prevent overflow
-      accumulatedDelta.current += scrollDelta;
-      // Apply decay factor (0.7) to gradually reduce accumulated delta
-      accumulatedDelta.current *= 0.7;
-    } else {
-      // Small movements decay faster
-      accumulatedDelta.current *= 0.5;
-    }
+      // Accumulate scroll delta (with decay to prevent infinite accumulation)
+      if (Math.abs(scrollDelta) > 1) {
+        // Add to accumulated delta, but cap it to prevent overflow
+        accumulatedDelta.current += scrollDelta;
+        // Apply decay factor (0.7) to gradually reduce accumulated delta
+        accumulatedDelta.current *= 0.7;
+      } else {
+        // Small movements decay faster
+        accumulatedDelta.current *= 0.5;
+      }
 
-    // Only process hide/show if we're past minimum scroll threshold
-    if (currentScrollY <= MIN_SCROLL_FOR_HIDE) {
-      return; // Don't process hide/show near the top
-    }
+      // Only process hide/show if we're past minimum scroll threshold
+      if (currentScrollY <= MIN_SCROLL_FOR_HIDE) {
+        return; // Don't process hide/show near the top
+      }
 
-    // Hide: Only if accumulated delta shows consistent downward scrolling
-    if (
-      !isDateSelectorHidden &&
-      accumulatedDelta.current > ACCUMULATED_DELTA_THRESHOLD
-    ) {
-      hideDateSelector();
-      accumulatedDelta.current = 0; // Reset after state change
-    }
-    // Note: We don't show when scrolling up - only when reaching the top
-  }, [hideDateSelector, showDateSelector, isDateSelectorHidden]);
+      // Hide: Only if accumulated delta shows consistent downward scrolling
+      if (
+        !isDateSelectorHidden &&
+        accumulatedDelta.current > ACCUMULATED_DELTA_THRESHOLD
+      ) {
+        hideDateSelector();
+        accumulatedDelta.current = 0; // Reset after state change
+      }
+      // Note: We don't show when scrolling up - only when reaching the top
+    },
+    [hideDateSelector, showDateSelector, isDateSelectorHidden],
+  );
 
   const handleRefresh = useCallback(() => {
-    // Use the selected date from DateSelector, or fallback to today
-    const dateParam = selectedDate || (() => {
-      const today = new Date();
-      // Format date in local timezone to avoid UTC conversion issues
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    })();
+    // Use the selected date from DateSelector, or fallback to display date (21:00 GMT rule)
+    const dateParam = selectedDate || getDisplayDateString();
 
     dispatch(
       fetchAlerts({
         date: `${dateParam}T00:00:00`,
         endDate: `${dateParam}T23:59:59`,
-      })
+      }),
     );
   }, [dispatch, selectedDate]);
 
   return (
-    <SafeAreaView
-      style={[styles.container]}
-      edges={['left', 'right']}
-    >
+    <SafeAreaView style={[styles.container]} edges={["left", "right"]}>
       {/* Header with back button */}
       <View
         style={[styles.topHeader, { paddingTop: insets.top + 5 }]}
@@ -182,13 +189,14 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
           }
         }}
       >
-        <Pressable
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Feather
+            name="arrow-left"
+            size={24}
+            color={BluePalette.textPrimary}
+          />
         </Pressable>
-        <Text style={styles.headerTitle}>{t('alerts.screen.title')}</Text>
+        <Text style={styles.headerTitle}>{t("alerts.screen.title")}</Text>
         <Pressable
           style={({ pressed }) => [
             styles.refreshButton,
@@ -196,7 +204,11 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
           ]}
           onPress={handleRefresh}
         >
-          <FontAwesome name="refresh" size={22} color={BluePalette.textPrimary} />
+          <FontAwesome
+            name="refresh"
+            size={22}
+            color={BluePalette.textPrimary}
+          />
         </Pressable>
       </View>
 
@@ -207,7 +219,7 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
           {
             transform: [{ translateY }],
             opacity,
-            position: isDateSelectorHidden ? 'absolute' : 'relative',
+            position: isDateSelectorHidden ? "absolute" : "relative",
             top: isDateSelectorHidden ? topHeaderHeight : 0,
             left: 0,
             right: 0,
@@ -219,13 +231,10 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
       </Animated.View>
 
       <ScrollView
-        style={[
-          styles.scrollView,
-          { zIndex: isDateSelectorHidden ? 1 : 0 }
-        ]}
+        style={[styles.scrollView, { zIndex: isDateSelectorHidden ? 1 : 0 }]}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: bottomPadding }
+          { paddingBottom: bottomPadding },
         ]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
@@ -250,9 +259,9 @@ const styles = StyleSheet.create({
     backgroundColor: BluePalette.white,
   },
   topHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 12,
     backgroundColor: BluePalette.backgroundNew,
@@ -264,14 +273,14 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: BluePalette.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: BluePalette.border,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textPrimary,
     letterSpacing: -0.5,
   },
@@ -280,8 +289,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: BluePalette.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: BluePalette.border,
   },
@@ -296,7 +305,7 @@ const styles = StyleSheet.create({
     borderBottomColor: BluePalette.border,
     marginTop: 0,
     paddingTop: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   scrollView: {
     flex: 1,
@@ -305,10 +314,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   contentWrapper: {
-    width: '100%',
+    width: "100%",
   },
 });
-

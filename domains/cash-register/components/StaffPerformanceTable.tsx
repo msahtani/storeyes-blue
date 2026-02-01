@@ -1,9 +1,10 @@
-import { Text } from '@/components/Themed';
-import { BluePalette } from '@/constants/Colors';
-import Feather from '@expo/vector-icons/Feather';
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { StaffPerformance } from '../types/dailyReport';
+import { Text } from "@/components/Themed";
+import { BluePalette } from "@/constants/Colors";
+import { formatAmountMAD } from "@/utils/formatAmount";
+import Feather from "@expo/vector-icons/Feather";
+import React, { useMemo } from "react";
+import { StyleSheet, View } from "react-native";
+import { StaffPerformance } from "../types/dailyReport";
 
 interface StaffPerformanceTableProps {
   staff: StaffPerformance[];
@@ -12,19 +13,15 @@ interface StaffPerformanceTableProps {
 
 export default function StaffPerformanceTable({
   staff,
-  currency = 'MAD',
+  currency = "MAD",
 }: StaffPerformanceTableProps) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => formatAmountMAD(amount);
 
   const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US').format(num);
+    return new Intl.NumberFormat("fr-FR", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
   };
 
   // Get top 2 servers (or all if less than 2)
@@ -48,10 +45,11 @@ export default function StaffPerformanceTable({
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Staff/Server Performance</Text>
-      
+
       <View style={styles.cardsContainer}>
         {displayStaff.map((member, index) => {
-          const revenuePercentage = totalRevenue > 0 ? (member.revenue / totalRevenue) * 100 : 0;
+          const revenuePercentage =
+            totalRevenue > 0 ? (member.revenue / totalRevenue) * 100 : 0;
 
           return (
             <View key={index} style={styles.card}>
@@ -68,28 +66,40 @@ export default function StaffPerformanceTable({
               {/* Metrics Grid */}
               <View style={styles.metricsGrid}>
                 <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel} numberOfLines={1}>Revenue</Text>
-                  <Text style={styles.metricValue} numberOfLines={1}>{formatCurrency(member.revenue)}</Text>
+                  <Text style={styles.metricLabel} numberOfLines={1}>
+                    Revenue
+                  </Text>
+                  <Text style={styles.metricValue} numberOfLines={1}>
+                    {formatCurrency(member.revenue)}
+                  </Text>
                 </View>
-                
+
                 <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel} numberOfLines={1}>Transactions</Text>
-                  <Text style={styles.metricValue} numberOfLines={1}>{formatNumber(member.transactions)}</Text>
+                  <Text style={styles.metricLabel} numberOfLines={1}>
+                    Transactions
+                  </Text>
+                  <Text style={styles.metricValue} numberOfLines={1}>
+                    {formatNumber(member.transactions)}
+                  </Text>
                 </View>
-                
+
                 <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel} numberOfLines={1}>Avg Value</Text>
-                  <Text style={styles.metricValue} numberOfLines={1}>{formatCurrency(member.avgValue)}</Text>
+                  <Text style={styles.metricLabel} numberOfLines={1}>
+                    Avg Value
+                  </Text>
+                  <Text style={styles.metricValue} numberOfLines={1}>
+                    {formatCurrency(member.avgValue)}
+                  </Text>
                 </View>
               </View>
 
               {/* Progress Bar */}
               <View style={styles.progressBarContainer}>
-                <View 
+                <View
                   style={[
                     styles.progressBar,
-                    { width: `${revenuePercentage}%` }
-                  ]} 
+                    { width: `${revenuePercentage}%` },
+                  ]}
                 />
               </View>
               <Text style={styles.progressText}>
@@ -109,7 +119,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     letterSpacing: -0.3,
     marginBottom: 8,
@@ -118,21 +128,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    width: '100%',
+    width: "100%",
     backgroundColor: BluePalette.white,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
     borderColor: BluePalette.border,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
   },
   headerSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginBottom: 16,
   },
@@ -141,20 +151,20 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: `${BluePalette.backgroundNew}15`,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     flexShrink: 0,
   },
   serverName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     flex: 1,
     minWidth: 0,
   },
   metricsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: 12,
     marginBottom: 16,
   },
@@ -165,25 +175,25 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textDark,
     opacity: 0.6,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   metricValue: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.primaryLight,
   },
   progressBarContainer: {
     height: 6,
     backgroundColor: `${BluePalette.backgroundNew}20`,
     borderRadius: 3,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressBar: {
-    height: '100%',
+    height: "100%",
     backgroundColor: BluePalette.surface,
     borderRadius: 3,
   },
@@ -191,7 +201,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: BluePalette.textDark,
     opacity: 0.6,
-    fontWeight: '500',
+    fontWeight: "500",
     marginTop: 6,
   },
 });

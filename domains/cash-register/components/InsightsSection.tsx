@@ -1,9 +1,10 @@
-import { Text } from '@/components/Themed';
-import { BluePalette } from '@/constants/Colors';
-import Feather from '@expo/vector-icons/Feather';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { DailyReportInsights } from '../types/dailyReport';
+import { Text } from "@/components/Themed";
+import { BluePalette } from "@/constants/Colors";
+import { formatAmountMAD } from "@/utils/formatAmount";
+import Feather from "@expo/vector-icons/Feather";
+import React from "react";
+import { StyleSheet, View } from "react-native";
+import { DailyReportInsights } from "../types/dailyReport";
 
 interface InsightsSectionProps {
   insights: DailyReportInsights;
@@ -12,46 +13,42 @@ interface InsightsSectionProps {
 
 export default function InsightsSection({
   insights,
-  currency = 'MAD',
+  currency = "MAD",
 }: InsightsSectionProps) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => formatAmountMAD(amount);
 
   const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US').format(num);
+    return new Intl.NumberFormat("fr-FR", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
   };
 
   const insightCards = [
     {
-      icon: 'clock',
-      title: 'Peak Hour',
+      icon: "clock",
+      title: "Peak Hour",
       value: insights.peakHour.time,
       subtitle: formatCurrency(insights.peakHour.revenue),
       color: BluePalette.merge,
     },
     {
-      icon: 'star',
-      title: 'Best Selling Product',
+      icon: "star",
+      title: "Best Selling Product",
       value: insights.bestSellingProduct.name,
       subtitle: `${formatNumber(insights.bestSellingProduct.quantity)} units`,
       color: BluePalette.warning,
     },
     {
-      icon: 'dollar-sign',
-      title: 'Highest Transaction',
+      icon: "dollar-sign",
+      title: "Highest Transaction",
       value: formatCurrency(insights.highestValueTransaction),
-      subtitle: 'Single transaction value',
+      subtitle: "Single transaction value",
       color: BluePalette.success,
     },
     {
-      icon: 'activity',
-      title: 'Busiest Period',
+      icon: "activity",
+      title: "Busiest Period",
       value: insights.busiestPeriod.period,
       subtitle: `${formatNumber(insights.busiestPeriod.transactions)} transactions`,
       color: BluePalette.primaryLight,
@@ -70,7 +67,12 @@ export default function InsightsSection({
       <View style={styles.insightsGrid}>
         {insightCards.map((card, index) => (
           <View key={index} style={styles.insightCard}>
-            <View style={[styles.iconContainer, { backgroundColor: `${card.color}15` }]}>
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: `${card.color}15` },
+              ]}
+            >
               <Feather name={card.icon as any} size={20} color={card.color} />
             </View>
             <Text style={styles.insightTitle}>{card.title}</Text>
@@ -102,22 +104,24 @@ export default function InsightsSection({
                     styles.comparisonValue,
                     {
                       color: getComparisonColor(
-                        insights.revenueComparison.vsPreviousDay
+                        insights.revenueComparison.vsPreviousDay,
                       ),
                     },
                   ]}
                 >
-                  {insights.revenueComparison.vsPreviousDay >= 0 ? '+' : ''}
+                  {insights.revenueComparison.vsPreviousDay >= 0 ? "+" : ""}
                   {insights.revenueComparison.vsPreviousDay.toFixed(1)}%
                 </Text>
                 <Feather
                   name={
                     insights.revenueComparison.vsPreviousDay >= 0
-                      ? 'trending-up'
-                      : 'trending-down'
+                      ? "trending-up"
+                      : "trending-down"
                   }
                   size={16}
-                  color={getComparisonColor(insights.revenueComparison.vsPreviousDay)}
+                  color={getComparisonColor(
+                    insights.revenueComparison.vsPreviousDay,
+                  )}
                 />
               </View>
             )}
@@ -136,22 +140,24 @@ export default function InsightsSection({
                     styles.comparisonValue,
                     {
                       color: getComparisonColor(
-                        insights.revenueComparison.vsPreviousWeek
+                        insights.revenueComparison.vsPreviousWeek,
                       ),
                     },
                   ]}
                 >
-                  {insights.revenueComparison.vsPreviousWeek >= 0 ? '+' : ''}
+                  {insights.revenueComparison.vsPreviousWeek >= 0 ? "+" : ""}
                   {insights.revenueComparison.vsPreviousWeek.toFixed(1)}%
                 </Text>
                 <Feather
                   name={
                     insights.revenueComparison.vsPreviousWeek >= 0
-                      ? 'trending-up'
-                      : 'trending-down'
+                      ? "trending-up"
+                      : "trending-down"
                   }
                   size={16}
-                  color={getComparisonColor(insights.revenueComparison.vsPreviousWeek)}
+                  color={getComparisonColor(
+                    insights.revenueComparison.vsPreviousWeek,
+                  )}
                 />
               </View>
             )}
@@ -168,24 +174,24 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     letterSpacing: -0.3,
   },
   insightsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
   },
   insightCard: {
     flex: 1,
-    minWidth: '47%',
+    minWidth: "47%",
     backgroundColor: BluePalette.white,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: BluePalette.border,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -198,28 +204,28 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 12,
   },
   insightTitle: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textTertiary,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   insightValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     marginBottom: 4,
   },
   insightSubtitle: {
     fontSize: 12,
     color: BluePalette.textTertiary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   comparisonContainer: {
     marginTop: 8,
@@ -231,12 +237,12 @@ const styles = StyleSheet.create({
   },
   comparisonTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     marginBottom: 12,
   },
   comparisonGrid: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   comparisonCard: {
@@ -246,23 +252,23 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: BluePalette.border,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 8,
   },
   comparisonHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   comparisonLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textTertiary,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   comparisonValue: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });

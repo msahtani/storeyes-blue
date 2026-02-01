@@ -1,9 +1,10 @@
-import { Text } from '@/components/Themed';
-import { BluePalette } from '@/constants/Colors';
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
-import { ChartDataPoint } from '../types/statistics';
+import { Text } from "@/components/Themed";
+import { BluePalette } from "@/constants/Colors";
+import { formatAmountMAD } from "@/utils/formatAmount";
+import React, { useMemo } from "react";
+import { StyleSheet, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
+import { ChartDataPoint } from "../types/statistics";
 
 interface DoughnutChartProps {
   data: ChartDataPoint[];
@@ -13,7 +14,10 @@ interface DoughnutChartProps {
 const CHART_SIZE = 220;
 const INNER_RADIUS_PERCENT = 0.6; // 60% of outer radius for doughnut hole
 
-export default function DoughnutChart({ data, size = CHART_SIZE }: DoughnutChartProps) {
+export default function DoughnutChart({
+  data,
+  size = CHART_SIZE,
+}: DoughnutChartProps) {
   const { segments, revenue, total } = useMemo(() => {
     if (data.length === 0) {
       return { segments: [], revenue: 0, total: 0 };
@@ -31,18 +35,20 @@ export default function DoughnutChart({ data, size = CHART_SIZE }: DoughnutChart
     const totalAmount = chargesValue + profitValue; // Should equal revenue
 
     // Calculate percentages of charges and profit relative to revenue
-    const chargesPercentage = revenueValue > 0 ? (chargesValue / revenueValue) * 100 : 0;
-    const profitPercentage = revenueValue > 0 ? (profitValue / revenueValue) * 100 : 0;
+    const chargesPercentage =
+      revenueValue > 0 ? (chargesValue / revenueValue) * 100 : 0;
+    const profitPercentage =
+      revenueValue > 0 ? (profitValue / revenueValue) * 100 : 0;
 
     const segments = [
       {
-        name: 'Charges',
+        name: "Charges",
         value: chargesValue,
         percentage: chargesPercentage,
         color: BluePalette.warning,
       },
       {
-        name: 'Profit',
+        name: "Profit",
         value: profitValue,
         percentage: profitPercentage,
         color: BluePalette.success,
@@ -56,14 +62,7 @@ export default function DoughnutChart({ data, size = CHART_SIZE }: DoughnutChart
     };
   }, [data]);
 
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'MAD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatAmount = formatAmountMAD;
 
   if (data.length === 0) {
     return null;
@@ -156,12 +155,18 @@ export default function DoughnutChart({ data, size = CHART_SIZE }: DoughnutChart
       <View style={styles.legend}>
         {segments.map((segment, index) => (
           <View key={index} style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: segment.color }]} />
+            <View
+              style={[styles.legendColor, { backgroundColor: segment.color }]}
+            />
             <View style={styles.legendTextContainer}>
               <Text style={styles.legendName}>{segment.name}</Text>
-              <Text style={styles.legendValue}>{formatAmount(segment.value)}</Text>
+              <Text style={styles.legendValue}>
+                {formatAmount(segment.value)}
+              </Text>
             </View>
-            <Text style={styles.legendPercentage}>{segment.percentage.toFixed(1)}%</Text>
+            <Text style={styles.legendPercentage}>
+              {segment.percentage.toFixed(1)}%
+            </Text>
           </View>
         ))}
       </View>
@@ -171,48 +176,48 @@ export default function DoughnutChart({ data, size = CHART_SIZE }: DoughnutChart
 
 const styles = StyleSheet.create({
   wrapper: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 24,
   },
   chartContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   doughnutOuter: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
   },
   doughnutInner: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
     borderColor: BluePalette.border,
     zIndex: 10,
   },
   centerTitle: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textDark,
     opacity: 0.7,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   centerValue: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     letterSpacing: -0.5,
     marginTop: 4,
   },
   legend: {
-    width: '100%',
+    width: "100%",
     gap: 14,
   },
   legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     backgroundColor: BluePalette.white,
     padding: 12,
@@ -231,20 +236,20 @@ const styles = StyleSheet.create({
   },
   legendName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textDark,
   },
   legendValue: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
     color: BluePalette.textDark,
     opacity: 0.7,
   },
   legendPercentage: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textDark,
     minWidth: 50,
-    textAlign: 'right',
+    textAlign: "right",
   },
 });

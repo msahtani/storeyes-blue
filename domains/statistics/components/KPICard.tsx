@@ -1,10 +1,11 @@
-import { Text } from '@/components/Themed';
-import { BluePalette } from '@/constants/Colors';
-import { useI18n } from '@/constants/i18n/I18nContext';
-import Feather from '@expo/vector-icons/Feather';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { StatusType } from '../types/statistics';
+import { Text } from "@/components/Themed";
+import { BluePalette } from "@/constants/Colors";
+import { useI18n } from "@/constants/i18n/I18nContext";
+import { formatAmountMAD } from "@/utils/formatAmount";
+import Feather from "@expo/vector-icons/Feather";
+import React from "react";
+import { StyleSheet, View } from "react-native";
+import { StatusType } from "../types/statistics";
 
 interface KPICardProps {
   title: string;
@@ -28,23 +29,18 @@ export default function KPICard({
   const { t } = useI18n();
   const formatAmount = (amount: number) => {
     if (formatCurrency) {
-      return new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'MAD',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount);
+      return formatAmountMAD(amount);
     }
     return `${amount.toFixed(1)}%`;
   };
 
   const getStatusColor = () => {
     switch (status) {
-      case 'good':
+      case "good":
         return BluePalette.success;
-      case 'medium':
+      case "medium":
         return BluePalette.warning;
-      case 'critical':
+      case "critical":
         return BluePalette.error;
       default:
         return BluePalette.textTertiary;
@@ -53,12 +49,12 @@ export default function KPICard({
 
   const getStatusIcon = () => {
     switch (status) {
-      case 'good':
-        return 'trending-up';
-      case 'medium':
-        return 'minus';
-      case 'critical':
-        return 'trending-down';
+      case "good":
+        return "trending-up";
+      case "medium":
+        return "minus";
+      case "critical":
+        return "trending-down";
       default:
         return null;
     }
@@ -67,7 +63,12 @@ export default function KPICard({
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: `${BluePalette.merge}15` }]}>
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: `${BluePalette.merge}15` },
+          ]}
+        >
           <Feather name={icon as any} size={20} color={BluePalette.merge} />
         </View>
         <Text style={styles.cardTitle}>{title}</Text>
@@ -76,14 +77,12 @@ export default function KPICard({
       <View style={styles.cardContent}>
         <Text style={styles.cardValue}>{formatAmount(value)}</Text>
 
-        {subtitle && (
-          <Text style={styles.cardSubtitle}>{subtitle}</Text>
-        )}
+        {subtitle && <Text style={styles.cardSubtitle}>{subtitle}</Text>}
 
         {evolution !== undefined && (
           <View style={styles.evolutionContainer}>
             <Feather
-              name={evolution >= 0 ? 'arrow-up' : 'arrow-down'}
+              name={evolution >= 0 ? "arrow-up" : "arrow-down"}
               size={12}
               color={evolution >= 0 ? BluePalette.success : BluePalette.error}
             />
@@ -91,19 +90,29 @@ export default function KPICard({
               style={[
                 styles.evolutionText,
                 {
-                  color: evolution >= 0 ? BluePalette.success : BluePalette.error,
+                  color:
+                    evolution >= 0 ? BluePalette.success : BluePalette.error,
                 },
               ]}
             >
-              {evolution >= 0 ? '+' : ''}
+              {evolution >= 0 ? "+" : ""}
               {evolution.toFixed(1)}%
             </Text>
           </View>
         )}
 
         {status && (
-          <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor()}15` }]}>
-            <Feather name={getStatusIcon() as any} size={12} color={getStatusColor()} />
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: `${getStatusColor()}15` },
+            ]}
+          >
+            <Feather
+              name={getStatusIcon() as any}
+              size={12}
+              color={getStatusColor()}
+            />
             <Text style={[styles.statusText, { color: getStatusColor() }]}>
               {t(`statistics.status.${status}`)}
             </Text>
@@ -122,7 +131,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BluePalette.border,
     width: 280,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -132,8 +141,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 12,
   },
@@ -141,14 +150,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   cardTitle: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     color: BluePalette.textTertiary,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
     flex: 1,
   },
@@ -157,30 +166,30 @@ const styles = StyleSheet.create({
   },
   cardValue: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     color: BluePalette.textPrimary,
     letterSpacing: -0.5,
   },
   cardSubtitle: {
     fontSize: 12,
     color: BluePalette.textTertiary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   evolutionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     marginTop: 4,
   },
   evolutionText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -188,9 +197,8 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontWeight: "700",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
 });
-
