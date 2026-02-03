@@ -8,23 +8,23 @@ import { getDisplayDateString } from "@/utils/getDisplayDate";
 import Feather from "@expo/vector-icons/Feather";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import {
-    SafeAreaView,
-    useSafeAreaInsets,
+  SafeAreaView,
+  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import DailyReportDateSelector from "../components/DailyReportDateSelector";
 import PeakPeriodsLineChart from "../components/PeakPeriodsLineChart";
@@ -49,6 +49,7 @@ export default function DailyReportScreen() {
     reportData,
     loading,
     error,
+    updatingBreakdown,
     calendarDays,
     monthYearLabel,
     weekDayLabels,
@@ -59,6 +60,7 @@ export default function DailyReportScreen() {
     isPastDate,
     handleMonthChange,
     handleDateSelect,
+    updateRevenueBreakdown,
   } = useDailyReport();
 
   // Sync DateSelector (alerts store) with daily report date
@@ -315,6 +317,8 @@ export default function DailyReportScreen() {
             <RevenueMetricsOverview
               revenue={reportData.revenue}
               currency="MAD"
+              onUpdateTpe={updateRevenueBreakdown}
+              updatingBreakdown={updatingBreakdown}
             />
 
             {/* Peak Periods Analysis */}

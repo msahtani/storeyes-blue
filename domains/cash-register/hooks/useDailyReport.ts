@@ -62,6 +62,7 @@ export const useDailyReport = () => {
   const [reportData, setReportData] = useState<DailyReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatingBreakdown, setUpdatingBreakdown] = useState(false);
 
   // Use ref to track the current request's date to prevent race conditions
   const currentRequestDateRef = useRef<string>("");
@@ -212,6 +213,33 @@ export const useDailyReport = () => {
     setShowDatePicker(false);
   };
 
+  const updateRevenueBreakdown = async (tpe: number) => {
+    const dateString = formatDateString(selectedDate);
+    try {
+      setUpdatingBreakdown(true);
+      setError(null);
+      const { data } = await apiClient.patch<DailyReportData>(
+        "/kpi/daily-report/revenue-breakdown",
+        { tpe },
+        { params: { date: dateString } }
+      );
+      if (data) {
+        setReportData(data);
+      }
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error?.message ||
+        err?.message ||
+        "Failed to update revenue breakdown";
+      setError(errorMessage);
+      console.error("Error updating revenue breakdown:", err);
+      throw err;
+    } finally {
+      setUpdatingBreakdown(false);
+    }
+  };
+
   return {
     // State
     selectedDate,
@@ -223,6 +251,7 @@ export const useDailyReport = () => {
     reportData,
     loading,
     error,
+    updatingBreakdown,
     // Computed values
     calendarDays,
     monthYearLabel,
@@ -236,5 +265,6 @@ export const useDailyReport = () => {
     handleMonthChange,
     handleDateSelect,
     handleDateChange,
+    updateRevenueBreakdown,
   };
 };

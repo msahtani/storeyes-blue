@@ -152,6 +152,21 @@ export default function StatisticsScreen() {
     // Note: We don't show when scrolling up - only when reaching the top
   }, [hideDateSelector, showDateSelector, isDateSelectorHidden]);
 
+  // Build a single chart point from KPI so DoughnutChart always shows the same values as the KPI cards.
+  // (chartData from API can be sub-period points e.g. last day of week, so using it caused mismatch.)
+  const doughnutDataFromKpi = React.useMemo(() => {
+    if (!statistics) return [];
+    const { kpi } = statistics;
+    return [
+      {
+        period: 'current',
+        revenue: kpi.revenue,
+        charges: kpi.charges,
+        profit: kpi.profit,
+      },
+    ];
+  }, [statistics]);
+
   // Fetch statistics when period or date changes
   useEffect(() => {
     let cancelled = false;
@@ -336,13 +351,13 @@ export default function StatisticsScreen() {
               />
             </ScrollView>
 
-            {/* Doughnut Chart */}
+            {/* Doughnut Chart - uses KPI-derived data so revenue/charges/profit match the KPI cards */}
             <View style={styles.chartSection}>
               <Text style={styles.sectionTitle}>
                 {t('statistics.chart.title')}
               </Text>
               <View style={styles.chartContainer}>
-                <DoughnutChart data={statistics.chartData} />
+                <DoughnutChart data={doughnutDataFromKpi} />
               </View>
             </View>
 

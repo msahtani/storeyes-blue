@@ -6,6 +6,10 @@ export interface DailyRevenueMetrics {
   transactions: number;
   avgTransactionValue: number;
   revenuePerTransaction: number;
+  /** TPE (card payment) - owner-entered. Espèce = totalTTC - tpe (computed). */
+  tpe?: number;
+  /** Espèce (cash) = totalTTC - tpe. Computed from backend. */
+  espece?: number;
 }
 
 export interface HourlyData {
