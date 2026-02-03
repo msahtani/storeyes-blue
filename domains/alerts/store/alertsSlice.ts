@@ -49,6 +49,15 @@ const alertsSlice = createSlice({
     setSelectedDate: (state, action: PayloadAction<string>) => {
       state.selectedDate = action.payload;
     },
+    updateAlertHumanJudgement: (
+      state,
+      action: PayloadAction<{ id: number; humanJudgement: string }>
+    ) => {
+      const item = state.items.find((a) => a.id === action.payload.id);
+      if (item) {
+        item.humanJudgement = action.payload.humanJudgement;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -67,5 +76,5 @@ const alertsSlice = createSlice({
   },
 });
 
-export const { setSelectedDate } = alertsSlice.actions;
+export const { setSelectedDate, updateAlertHumanJudgement } = alertsSlice.actions;
 export default alertsSlice.reducer;

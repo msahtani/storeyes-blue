@@ -5,11 +5,15 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import apiClient from '@/api/client';
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
+import { updateAlertHumanJudgement } from '@/domains/alerts/store/alertsSlice';
+import { AlertDetails as AlertDetailsType, getHumanJudgementLabelKey } from '@/domains/alerts/types/alert';
 import BottomBar from '@/domains/shared/components/BottomBar';
-import { useAppSelector } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { formatAmountMAD } from '@/utils/formatAmount';
 import { getMaxContentWidth, useDeviceType } from '@/utils/useDeviceType';
 import Feather from '@expo/vector-icons/Feather';
 
@@ -28,9 +32,14 @@ export default function AlertDetailsScreen() {
   const sourceScrollRef = useRef<ScrollView>(null);
   const [sourceScrollIndex, setSourceScrollIndex] = useState(0);
 
+  const dispatch = useAppDispatch();
   const alert = useAppSelector((state) =>
     state.alerts.items.find((item) => String(item.id) === String(id))
   );
+  const [details, setDetails] = useState<AlertDetailsType | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(true);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [submittingJudgement, setSubmittingJudgement] = useState(false);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -262,6 +271,69 @@ export default function AlertDetailsScreen() {
     if (!alert) return false;
     return !!(alert.secondaryVideoUrl && alert.mainVideoUrl);
   }, [alert]);
+
+  const displayAlert = useMemo(() => {
+    if (details) return details;
+    if (alert) return { ...alert, sales: [] } as AlertDetailsType;
+    return null;
+  }, [alert, details]);
+
+  useEffect(() => {
+    if (!id) {
+      setLoadingDetails(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingDetails(true);
+    setDetailsError(null);
+    apiClient
+      .get<AlertDetailsType>(`/alerts/${id}/details`)
+      .then(({ data }) => {
+        if (!cancelled) {
+          setDetails(data);
+          setDetailsError(null);
+        }
+      })
+      .catch((err: any) => {
+        if (!cancelled) {
+          setDetailsError(err?.response?.data?.message || err?.message || t('alerts.details.loadError'));
+          setDetails(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDetails(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, t]);
+
+  const submitHumanJudgement = useCallback(
+    async (humanJudgement: 'TRUE_POSITIVE' | 'FALSE_POSITIVE') => {
+      if (!id || submittingJudgement || !displayAlert) return;
+      setSubmittingJudgement(true);
+      try {
+        const { data } = await apiClient.patch<AlertDetailsType & { sales?: AlertDetailsType['sales'] }>(
+          `/alerts/${id}/human-judgement`,
+          { humanJudgement }
+        );
+        setDetails((prev) =>
+          prev
+            ? { ...prev, ...data, humanJudgement, sales: data.sales ?? prev.sales }
+            : ({ ...data, sales: [] } as AlertDetailsType)
+        );
+        dispatch(updateAlertHumanJudgement({ id: Number(id), humanJudgement }));
+      } catch (_) {
+        // Error could be shown via toast or inline
+      } finally {
+        setSubmittingJudgement(false);
+      }
+    },
+    [id, submittingJudgement, displayAlert, dispatch]
+  );
+
+  const canAnswerJudgement =
+    displayAlert && displayAlert.humanJudgement === 'NEW';
 
   const handleSourceChange = useCallback((index: number) => {
     if (!alert || !player) return;
@@ -639,11 +711,11 @@ export default function AlertDetailsScreen() {
         <View style={[styles.contentWrapper, { maxWidth: maxContentWidth }]}>
           <View style={styles.details}>
           <View style={styles.detailsHeader}>
-            <Text style={styles.title}>{alert.productName || t('alerts.details.title')}</Text>
+            <Text style={styles.title}>{displayAlert?.productName || t('alerts.details.title')}</Text>
             <View style={styles.dateContainer}>
               <Feather name="calendar" size={14} color={BluePalette.textDark} />
               <Text style={styles.subtitle}>
-                {new Date(alert.alertDate).toLocaleString('en-US', {
+                {displayAlert && new Date(displayAlert.alertDate).toLocaleString('en-US', {
                   dateStyle: 'medium',
                   timeStyle: 'short',
                 })}
@@ -659,20 +731,94 @@ export default function AlertDetailsScreen() {
               </View>
               <View style={styles.statusBadge}>
                 <Text style={styles.detailCardValue}>
-                  {alert.humanJudgement || t('alerts.details.notAvailable')}
+                  {displayAlert?.humanJudgement && getHumanJudgementLabelKey(displayAlert.humanJudgement)
+                    ? t(getHumanJudgementLabelKey(displayAlert.humanJudgement)!)
+                    : t('alerts.details.notAvailable')}
                 </Text>
               </View>
             </View>
 
-            {alert.humanJudgementComment ? (
+            {displayAlert?.humanJudgementComment ? (
               <View style={styles.detailCard}>
                 <View style={styles.detailCardHeader}>
                   <Feather name="message-circle" size={16} color={BluePalette.merge} />
                   <Text style={styles.detailCardLabel}>{t('alerts.details.comment')}</Text>
                 </View>
                 <Text style={styles.commentText}>
-                  {alert.humanJudgementComment}
+                  {displayAlert.humanJudgementComment}
                 </Text>
+              </View>
+            ) : null}
+
+            {/* Last orders / Sales */}
+            {details?.sales && details.sales.length > 0 ? (
+              <View style={styles.detailCard}>
+                <View style={styles.detailCardHeader}>
+                  <Feather name="shopping-bag" size={16} color={BluePalette.merge} />
+                  <Text style={styles.detailCardLabel}>{t('alerts.details.lastOrdersSales')}</Text>
+                </View>
+                <View style={styles.salesList}>
+                  {details.sales.map((sale) => (
+                    <View key={sale.id} style={styles.saleRow}>
+                      <View style={styles.saleRowLeft}>
+                        <Text style={styles.saleProductName} numberOfLines={1}>
+                          {sale.productName}
+                        </Text>
+                        <Text style={styles.saleTime}>
+                          {new Date(sale.soldAt).toLocaleString('en-US', {
+                            timeStyle: 'short',
+                          })}
+                        </Text>
+                      </View>
+                      <View style={styles.saleRowRight}>
+                        <Text style={styles.saleQuantity}>×{sale.quantity}</Text>
+                        <Text style={styles.saleTotal}>{formatAmountMAD(sale.totalPrice)}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            {/* Human judgement: Is this a true alert? */}
+            {canAnswerJudgement ? (
+              <View style={styles.judgementCard}>
+                <Text style={styles.judgementQuestion}>{t('alerts.details.judgementQuestion')}</Text>
+                <Text style={styles.judgementHint}>{t('alerts.details.judgementHint')}</Text>
+                <View style={styles.judgementButtons}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.judgementButton,
+                      styles.judgementButtonYes,
+                      pressed && styles.judgementButtonPressed,
+                      submittingJudgement && styles.judgementButtonDisabled,
+                    ]}
+                    onPress={() => submitHumanJudgement('TRUE_POSITIVE')}
+                    disabled={submittingJudgement}
+                  >
+                    {submittingJudgement ? (
+                      <ActivityIndicator size="small" color={BluePalette.white} />
+                    ) : (
+                      <>
+                        <Feather name="check-circle" size={20} color={BluePalette.white} />
+                        <Text style={styles.judgementButtonTextYes}>{t('alerts.details.judgementYes')}</Text>
+                      </>
+                    )}
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.judgementButton,
+                      styles.judgementButtonNo,
+                      pressed && styles.judgementButtonPressed,
+                      submittingJudgement && styles.judgementButtonDisabled,
+                    ]}
+                    onPress={() => submitHumanJudgement('FALSE_POSITIVE')}
+                    disabled={submittingJudgement}
+                  >
+                    <Feather name="x-circle" size={20} />
+                    <Text style={styles.judgementButtonTextNo}>{t('alerts.details.judgementNo')}</Text>
+                  </Pressable>
+                </View>
               </View>
             ) : null}
           </View>
@@ -947,6 +1093,109 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     lineHeight: 22,
     opacity: 0.8,
+  },
+  salesList: {
+    gap: 0,
+  },
+  saleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: BluePalette.border,
+  },
+  saleRowLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  saleRowRight: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  saleProductName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: BluePalette.textDark,
+  },
+  saleTime: {
+    fontSize: 12,
+    color: BluePalette.textTertiary,
+    fontWeight: '500',
+  },
+  saleQuantity: {
+    fontSize: 13,
+    color: BluePalette.textTertiary,
+    fontWeight: '500',
+  },
+  saleTotal: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: BluePalette.primaryDark,
+  },
+  judgementCard: {
+    backgroundColor: BluePalette.backgroundNew,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: BluePalette.border,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  judgementQuestion: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: BluePalette.textDark,
+    letterSpacing: -0.3,
+  },
+  judgementHint: {
+    fontSize: 13,
+    color: BluePalette.textTertiary,
+    fontWeight: '500',
+  },
+  judgementButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  judgementButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+  },
+  judgementButtonYes: {
+    backgroundColor: BluePalette.merge,
+    borderColor: BluePalette.merge,
+  },
+  judgementButtonNo: {
+    backgroundColor: BluePalette.white,
+    borderColor: BluePalette.border,
+  },
+  judgementButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  judgementButtonDisabled: {
+    opacity: 0.6,
+  },
+  judgementButtonTextYes: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: BluePalette.white,
+  },
+  judgementButtonTextNo: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: BluePalette.textDark,
   },
   messageContainer: {
     flex: 1,

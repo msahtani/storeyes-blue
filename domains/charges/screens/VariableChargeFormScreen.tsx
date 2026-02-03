@@ -9,30 +9,30 @@ import Feather from '@expo/vector-icons/Feather';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  createVariableCharge,
-  formatAmountForDisplay,
-  formatAmountInput,
-  getVariableChargeById,
-  parseAmountInput,
-  updateVariableCharge,
+    createVariableCharge,
+    formatAmountForDisplay,
+    formatAmountInput,
+    getVariableChargeById,
+    parseAmountInput,
+    updateVariableCharge,
 } from '../services/chargesService';
 
 const categories = ['Supplies', 'Maintenance', 'Equipment', 'Other'];
 
 export default function VariableChargeFormScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, date: dateParam } = useLocalSearchParams<{ id?: string; date?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
@@ -97,15 +97,17 @@ export default function VariableChargeFormScreen() {
           router.back();
         }
       } else {
-        // Initialize with today's date for new charge
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        dispatch(setSelectedDate(todayStr));
+        // New charge: use date from "New Variable Charge" button (current list day) or today
+        const initialDate =
+          dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+            ? dateParam
+            : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+        dispatch(setSelectedDate(initialDate));
       }
     };
 
     loadCharge();
-  }, [id, isEditMode, dispatch, router]);
+  }, [id, isEditMode, dateParam, dispatch, router]);
 
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -263,7 +265,7 @@ export default function VariableChargeFormScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Date *</Text>
             <View style={[styles.dateSelectorContainer, errors.date && styles.inputError]}>
-              <DateSelector />
+              <DateSelector variant="charges" />
             </View>
             {errors.date && <Text style={styles.errorText}>{errors.date}</Text>}
           </View>

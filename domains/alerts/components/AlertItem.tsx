@@ -1,5 +1,6 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
+import { useI18n } from '@/constants/i18n/I18nContext';
 import React from 'react';
 import { Image, Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
@@ -23,6 +24,7 @@ export default function AlertItem({
   onPress,
   style,
 }: AlertItemProps) {
+  const { t } = useI18n();
   return (
     <Pressable
       style={({ pressed }) => [
@@ -45,7 +47,7 @@ export default function AlertItem({
         )}
         {isNew && (
           <View style={styles.alertBadge}>
-            <Text style={styles.alertBadgeText}>ALERT</Text>
+            <Text style={styles.alertBadgeText}>{t('alerts.item.badge')}</Text>
           </View>
         )}
       </View>

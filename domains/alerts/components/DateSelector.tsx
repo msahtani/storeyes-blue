@@ -1,20 +1,20 @@
 import { Text } from "@/components/Themed";
 import { BluePalette } from "@/constants/Colors";
 import {
-    fetchAlerts,
-    setSelectedDate,
+  fetchAlerts,
+  setSelectedDate,
 } from "@/domains/alerts/store/alertsSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { getDisplayDateString } from "@/utils/getDisplayDate";
 import Feather from "@expo/vector-icons/Feather";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface DateItem {
@@ -134,13 +134,74 @@ const isCurrentDayAvailable = (): boolean => {
 // Get default date (display date per 21:00 GMT rule)
 const getDefaultDate = (): string => getDisplayDateString();
 
-export default function DateSelector() {
+// --- Charges variant: use calendar today (local), show and allow selecting current day ---
+const getLast7DaysIncludingToday = (): DateItem[] => {
+  const items: DateItem[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let offset = 0; offset < 7; offset++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - offset);
+    const dateStr = formatDate(date);
+    items.push({
+      month: date.toLocaleDateString("en-US", { month: "short" }),
+      day: date.getDate().toString(),
+      dayName: date.toLocaleDateString("en-US", { weekday: "short" }),
+      date: dateStr,
+    });
+  }
+  return items.sort((a, b) => b.date.localeCompare(a.date));
+};
+
+const getLast7DaysFromDateCharges = (dateString: string): DateItem[] => {
+  const date = parseDateString(dateString);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const items: DateItem[] = [];
+  for (let offset = 0; offset < 7; offset++) {
+    const d = new Date(date);
+    d.setDate(date.getDate() - offset);
+    const dateStr = formatDate(d);
+    if (d <= today) {
+      items.push({
+        month: d.toLocaleDateString("en-US", { month: "short" }),
+        day: d.getDate().toString(),
+        dayName: d.toLocaleDateString("en-US", { weekday: "short" }),
+        date: dateStr,
+      });
+    }
+  }
+  return items.sort((a, b) => b.date.localeCompare(a.date));
+};
+
+const isPastDateOrTodayCharges = (date: Date): boolean => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime() <= today.getTime();
+};
+
+const getDefaultDateCharges = (): string => formatDate(new Date());
+
+export type DateSelectorVariant = "alerts" | "charges";
+
+interface DateSelectorProps {
+  /** When "charges", shows current day and allows selecting it. Default "alerts" uses 21:00 GMT display date. */
+  variant?: DateSelectorVariant;
+}
+
+export default function DateSelector({ variant = "alerts" }: DateSelectorProps) {
   const dispatch = useAppDispatch();
   const selectedDateFromStore = useAppSelector(
     (state) => state.alerts.selectedDate,
   );
 
-  const selectedDate = selectedDateFromStore || getDefaultDate();
+  const isCharges = variant === "charges";
+  const selectedDate =
+    selectedDateFromStore ||
+    (isCharges ? getDefaultDateCharges() : getDefaultDate());
 
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(() => {
@@ -150,36 +211,42 @@ export default function DateSelector() {
 
   // Calculate dates - show last 7 days, but include selected date if it's outside that range
   const dates = useMemo(() => {
-    const last7Days = getLast7Days();
-
-    // If selected date is in the last 7 days, return them as is
-    if (selectedDate && last7Days.some((d) => d.date === selectedDate)) {
+    if (isCharges) {
+      const last7Days = getLast7DaysIncludingToday();
+      if (selectedDate && last7Days.some((d) => d.date === selectedDate)) {
+        return last7Days;
+      }
+      if (selectedDate) {
+        return getLast7DaysFromDateCharges(selectedDate);
+      }
       return last7Days;
     }
 
-    // If selected date is outside the last 7 days, show 7 days including the selected date
+    const last7Days = getLast7Days();
+    if (selectedDate && last7Days.some((d) => d.date === selectedDate)) {
+      return last7Days;
+    }
     if (selectedDate) {
       return getLast7DaysFromDate(selectedDate);
     }
-
     return last7Days;
-  }, [selectedDate]);
+  }, [selectedDate, isCharges]);
 
   // Initialize with default date if no date is set
   useEffect(() => {
     if (!selectedDateFromStore) {
-      const defaultDate = getDefaultDate();
+      const defaultDate = isCharges ? getDefaultDateCharges() : getDefaultDate();
       dispatch(setSelectedDate(defaultDate));
     }
-  }, [dispatch, selectedDateFromStore]);
+  }, [dispatch, selectedDateFromStore, isCharges]);
 
   useEffect(() => {
-    if (!selectedDate) return;
+    if (!selectedDate || isCharges) return;
 
     const start = `${selectedDate}T00:00:00`;
     const end = `${selectedDate}T23:59:59`;
     dispatch(fetchAlerts({ date: start, endDate: end }));
-  }, [dispatch, selectedDate]);
+  }, [dispatch, selectedDate, isCharges]);
 
   // Scroll to selected date when it changes or dates array updates
   useEffect(() => {
@@ -208,7 +275,8 @@ export default function DateSelector() {
 
   const selectedDateFormatted = useMemo(() => {
     if (!selectedDate) {
-      const defaultDate = parseDateString(getDefaultDate());
+      const defaultStr = isCharges ? getDefaultDateCharges() : getDefaultDate();
+      const defaultDate = parseDateString(defaultStr);
       return defaultDate.toLocaleDateString("en-US", {
         day: "numeric",
         month: "long",
@@ -221,25 +289,27 @@ export default function DateSelector() {
       month: "long",
       year: "numeric",
     });
-  }, [selectedDate]);
+  }, [selectedDate, isCharges]);
 
   const handleHeaderPress = () => {
     if (selectedDate) {
       setCalendarDate(parseDateString(selectedDate));
     } else {
-      setCalendarDate(parseDateString(getDefaultDate()));
+      const defaultStr = isCharges ? getDefaultDateCharges() : getDefaultDate();
+      setCalendarDate(parseDateString(defaultStr));
     }
     setShowCalendar(true);
   };
 
+  const isDateSelectable = (date: Date) =>
+    isCharges ? isPastDateOrTodayCharges(date) : isPastDate(date);
+
   const handleDateSelect = (date: Date) => {
-    // Allow today and past dates
-    if (!isPastDate(date)) return;
+    if (!isDateSelectable(date)) return;
     const formattedDate = formatDate(date);
     dispatch(setSelectedDate(formattedDate));
     setShowCalendar(false);
 
-    // Update the calendar date to show the selected date's month
     setCalendarDate(date);
   };
 
@@ -293,12 +363,13 @@ export default function DateSelector() {
     );
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    // Can navigate to next month if it's before today (or today if >= 21:00 GMT)
-    const maxDate = isCurrentDayAvailable()
+    const maxDate = isCharges
       ? today
-      : new Date(today.getTime() - 24 * 60 * 60 * 1000);
+      : isCurrentDayAvailable()
+        ? today
+        : new Date(today.getTime() - 24 * 60 * 60 * 1000);
     return nextMonth <= maxDate;
-  }, [calendarDate]);
+  }, [calendarDate, isCharges]);
 
   return (
     <View style={styles.wrapper}>
@@ -422,7 +493,7 @@ export default function DateSelector() {
                   ? isSameDay(date, parseDateString(selectedDate))
                   : false;
                 const isCurrentDay = isToday(date);
-                const isDisabled = !isPastDate(date); // Disable future dates and today before 21:00 GMT
+                const isDisabled = !isDateSelectable(date);
                 const uniqueKey = `${formatDate(date)}-${calendarDate.getFullYear()}-${calendarDate.getMonth()}-${index}`;
 
                 return (

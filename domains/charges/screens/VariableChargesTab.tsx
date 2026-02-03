@@ -134,12 +134,15 @@ export default function VariableChargesTab() {
   }, [selectedDate, dispatch]);
 
   const handleCreatePress = () => {
-    router.push('/charges/variable/create' as any);
+    const dateParam = selectedDate
+      ? `?date=${encodeURIComponent(selectedDate)}`
+      : '';
+    router.push(`/charges/variable/create${dateParam}` as any);
   };
 
   return (
     <View style={styles.container}>
-      <DateSelector />
+      <DateSelector variant="charges" />
 
       {/* Create Button */}
       <View style={styles.createButtonContainer}>

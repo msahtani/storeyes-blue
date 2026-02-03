@@ -4,12 +4,19 @@ import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
+import { useI18n } from '@/constants/i18n/I18nContext';
 import { useAppSelector } from '@/store/hooks';
 import AlertItem from './AlertItem';
 
+const VISIBLE_JUDGEMENTS = ['NEW', 'TRUE_POSITIVE'];
+
 export default function AlertList() {
   const router = useRouter();
+  const { t } = useI18n();
   const { items, status, error } = useAppSelector((state) => state.alerts);
+  const visibleItems = items.filter(
+    (a) => !a.humanJudgement || VISIBLE_JUDGEMENTS.includes(a.humanJudgement)
+  );
 
   const handlePress = useCallback(
     (id: number) => {
@@ -21,7 +28,7 @@ export default function AlertList() {
   if (status === 'loading') {
     return (
       <View style={styles.messageContainer}>
-        <Text style={styles.message}>Loading alerts…</Text>
+        <Text style={styles.message}>{t('alerts.list.loading')}</Text>
       </View>
     );
   }
@@ -29,27 +36,27 @@ export default function AlertList() {
   if (status === 'failed') {
     return (
       <View style={styles.messageContainer}>
-        <Text style={styles.message}>Failed to load alerts</Text>
+        <Text style={styles.message}>{t('alerts.list.failed')}</Text>
         {error ? <Text style={styles.message}>{error}</Text> : null}
       </View>
     );
   }
 
-  if (!items.length) {
+  if (!visibleItems.length) {
     return (
       <View style={styles.messageContainer}>
-        <Text style={styles.message}>No alerts for this date</Text>
+        <Text style={styles.message}>{t('alerts.list.empty')}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {items.map((alert) => (
+      {visibleItems.map((alert) => (
         <AlertItem
           key={alert.id}
           id={String(alert.id)}
-          title={alert.productName || 'Alert'}
+          title={alert.productName || t('alerts.list.defaultTitle')}
           timestamp={new Date(alert.alertDate).toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',

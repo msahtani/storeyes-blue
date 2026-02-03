@@ -37,7 +37,26 @@
       "comment": "Comment",
       "notAvailable": "N/A",
       "source1": "Source 1",
-      "source2": "Source 2"
+      "source2": "Source 2",
+      "lastOrdersSales": "Last orders / Sales",
+      "judgementQuestion": "Is this a true alert?",
+      "judgementHint": "Verify whether this detection is a real incident.",
+      "judgementYes": "Yes, true alert",
+      "judgementNo": "No, false alert",
+      "loadError": "Failed to load details",
+      "statusToVerify": "To verify",
+      "statusConfirmed": "Confirmed (real alert)",
+      "statusFalseAlert": "Not a real alert",
+      "statusUnknown": "Unknown"
+    },
+    "list": {
+      "loading": "Loading alerts…",
+      "failed": "Failed to load alerts",
+      "empty": "No alerts for this date",
+      "defaultTitle": "Alert"
+    },
+    "item": {
+      "badge": "ALERT"
     }
   },
   "charges": {
