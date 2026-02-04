@@ -43,6 +43,8 @@
       "judgementHint": "Indiquez si cette détection correspond à un incident réel.",
       "judgementYes": "Oui, vraie alerte",
       "judgementNo": "Non, fausse alerte",
+      "judgementYesShort": "Oui",
+      "judgementNoShort": "Non",
       "loadError": "Impossible de charger les détails",
       "statusToVerify": "À vérifier",
       "statusConfirmed": "Confirmée (vraie alerte)",

@@ -1,6 +1,7 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
+import Feather from '@expo/vector-icons/Feather';
 import React from 'react';
 import { Image, Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
@@ -11,6 +12,8 @@ export interface AlertItemProps {
   title: string;
   timestamp: string;
   isNew?: boolean;
+  /** When true, shows a check icon indicating confirmed true alert */
+  isConfirmed?: boolean;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 }
@@ -21,6 +24,7 @@ export default function AlertItem({
   title,
   timestamp,
   isNew = true,
+  isConfirmed = false,
   onPress,
   style,
 }: AlertItemProps) {
@@ -45,15 +49,20 @@ export default function AlertItem({
             <View style={styles.placeholderIcon} />
           </View>
         )}
-        {isNew && (
-          <View style={styles.alertBadge}>
-            <Text style={styles.alertBadgeText}>{t('alerts.item.badge')}</Text>
-          </View>
-        )}
+        <View style={styles.alertBadge}>
+          <Text style={styles.alertBadgeText}>{t('alerts.item.badge')}</Text>
+        </View>
       </View>
       
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={2}>{title}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title} numberOfLines={2}>{title}</Text>
+          {isConfirmed && (
+            <View style={styles.confirmedBadge}>
+              <Feather name="check-circle" size={18} color={BluePalette.merge} />
+            </View>
+          )}
+        </View>
         <View style={styles.footer}>
           <View style={styles.timestampContainer}>
             <View style={styles.timeIcon} />
@@ -133,11 +142,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
+  confirmedBadge: {
+    marginTop: 2,
+    flexShrink: 0,
+  },
   content: {
     padding: 14,
     gap: 10,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   title: {
+    flex: 1,
+    minWidth: 0,
     fontSize: 15,
     fontWeight: '600',
     color: BluePalette.textPrimary,

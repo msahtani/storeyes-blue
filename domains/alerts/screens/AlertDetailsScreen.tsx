@@ -323,13 +323,16 @@ export default function AlertDetailsScreen() {
             : ({ ...data, sales: [] } as AlertDetailsType)
         );
         dispatch(updateAlertHumanJudgement({ id: Number(id), humanJudgement }));
+        if (humanJudgement === 'FALSE_POSITIVE') {
+          router.replace('/alerts');
+        }
       } catch (_) {
         // Error could be shown via toast or inline
       } finally {
         setSubmittingJudgement(false);
       }
     },
-    [id, submittingJudgement, displayAlert, dispatch]
+    [id, submittingJudgement, displayAlert, dispatch, router]
   );
 
   const canAnswerJudgement =
@@ -800,8 +803,10 @@ export default function AlertDetailsScreen() {
                       <ActivityIndicator size="small" color={BluePalette.white} />
                     ) : (
                       <>
-                        <Feather name="check-circle" size={20} color={BluePalette.white} />
-                        <Text style={styles.judgementButtonTextYes}>{t('alerts.details.judgementYes')}</Text>
+                        <Feather name="check-circle" size={20} color={BluePalette.white} style={styles.judgementButtonIcon} />
+                        <Text style={styles.judgementButtonTextYes} numberOfLines={1}>
+                          {t('alerts.details.judgementYesShort')}
+                        </Text>
                       </>
                     )}
                   </Pressable>
@@ -815,8 +820,10 @@ export default function AlertDetailsScreen() {
                     onPress={() => submitHumanJudgement('FALSE_POSITIVE')}
                     disabled={submittingJudgement}
                   >
-                    <Feather name="x-circle" size={20} />
-                    <Text style={styles.judgementButtonTextNo}>{t('alerts.details.judgementNo')}</Text>
+                    <Feather name="x-circle" size={20} color={BluePalette.textDark} style={styles.judgementButtonIcon} />
+                    <Text style={styles.judgementButtonTextNo} numberOfLines={1}>
+                      {t('alerts.details.judgementNoShort')}
+                    </Text>
                   </Pressable>
                 </View>
               </View>
@@ -1167,10 +1174,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 14,
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     borderRadius: 12,
     borderWidth: 1.5,
+    overflow: 'hidden',
+    minWidth: 0,
   },
   judgementButtonYes: {
     backgroundColor: BluePalette.merge,
@@ -1187,13 +1197,16 @@ const styles = StyleSheet.create({
   judgementButtonDisabled: {
     opacity: 0.6,
   },
+  judgementButtonIcon: {
+    flexShrink: 0,
+  },
   judgementButtonTextYes: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700',
     color: BluePalette.white,
   },
   judgementButtonTextNo: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700',
     color: BluePalette.textDark,
   },

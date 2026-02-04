@@ -62,6 +62,7 @@ export default function AlertList() {
             minute: '2-digit',
           })}
           isNew={alert.humanJudgement === 'NEW'}
+          isConfirmed={alert.humanJudgement === 'TRUE_POSITIVE'}
           imageUri={alert.imageUrl && alert.imageUrl.length > 0 ? alert.imageUrl : undefined}
           onPress={() => handlePress(alert.id)}
           style={styles.card}

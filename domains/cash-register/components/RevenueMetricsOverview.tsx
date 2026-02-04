@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     fontSize: 15,
     fontWeight: "600",
-    color: BluePalette.primaryDark,
+    color: BluePalette.textPrimary,
     backgroundColor: BluePalette.surface,
     borderRadius: 8,
     borderWidth: 1,
