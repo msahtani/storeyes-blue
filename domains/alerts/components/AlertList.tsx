@@ -60,6 +60,7 @@ export default function AlertList() {
           timestamp={new Date(alert.alertDate).toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
+            hour12: false,
           })}
           isNew={alert.humanJudgement === 'NEW'}
           isConfirmed={alert.humanJudgement === 'TRUE_POSITIVE'}

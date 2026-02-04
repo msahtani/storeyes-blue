@@ -61,7 +61,7 @@ export default function AlertDetailsScreen() {
       year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
+      hour12: false,
     });
   }, [alert, t]);
 
@@ -721,6 +721,7 @@ export default function AlertDetailsScreen() {
                 {displayAlert && new Date(displayAlert.alertDate).toLocaleString('en-US', {
                   dateStyle: 'medium',
                   timeStyle: 'short',
+                  hour12: false,
                 })}
               </Text>
             </View>
@@ -770,6 +771,7 @@ export default function AlertDetailsScreen() {
                         <Text style={styles.saleTime}>
                           {new Date(sale.soldAt).toLocaleString('en-US', {
                             timeStyle: 'short',
+                            hour12: false,
                           })}
                         </Text>
                       </View>
@@ -1123,7 +1125,7 @@ const styles = StyleSheet.create({
   saleProductName: {
     fontSize: 15,
     fontWeight: '600',
-    color: BluePalette.textDark,
+    color: BluePalette.textSecondary,
   },
   saleTime: {
     fontSize: 12,
@@ -1138,7 +1140,7 @@ const styles = StyleSheet.create({
   saleTotal: {
     fontSize: 15,
     fontWeight: '700',
-    color: BluePalette.primaryDark,
+    color: BluePalette.mergeLight,
   },
   judgementCard: {
     backgroundColor: BluePalette.backgroundNew,
@@ -1156,7 +1158,7 @@ const styles = StyleSheet.create({
   judgementQuestion: {
     fontSize: 17,
     fontWeight: '700',
-    color: BluePalette.textDark,
+    color: BluePalette.textSecondary,
     letterSpacing: -0.3,
   },
   judgementHint: {
