@@ -7,6 +7,7 @@ import {
   CreateFixedChargeRequest,
   CreateVariableChargeRequest,
   EmployeeType,
+  FixedChargeCategory,
   FixedChargeDetailResponse,
   FixedChargeResponse,
   UpdateFixedChargeRequest,
@@ -152,6 +153,27 @@ export const getAvailableEmployees = async (
   return data.data;
 };
 
+/**
+ * Get authenticated user's last used period for personnel fixed charges (week or month).
+ * Used to pre-select period when creating a new personnel charge.
+ */
+export const getPersonnelChargeLastPeriod = async (): Promise<'week' | 'month'> => {
+  const { data } = await apiClient.get<ApiResponse<{ period: string }>>(
+    "/charges/fixed/personnel/last-period",
+  );
+  const period = data.data?.period;
+  return period === 'week' ? 'week' : 'month';
+};
+
+/**
+ * Save authenticated user's last used period for personnel fixed charges.
+ */
+export const setPersonnelChargeLastPeriod = async (
+  period: 'week' | 'month',
+): Promise<void> => {
+  await apiClient.put("/charges/fixed/personnel/last-period", { period });
+};
+
 // ==================== Variable Charges API ====================
 
 /**
@@ -277,16 +299,12 @@ export const formatAmountInput = normalizeAmountInput;
  */
 export const convertCategoryToFrontend = (
   category: ChargeCategory,
-): "personnel" | "water" | "electricity" | "wifi" => {
-  return category.toLowerCase() as
-    | "personnel"
-    | "water"
-    | "electricity"
-    | "wifi";
+): FixedChargeCategory => {
+  return category.toLowerCase() as FixedChargeCategory;
 };
 
 export const convertCategoryFromFrontend = (
-  category: "personnel" | "water" | "electricity" | "wifi",
+  category: FixedChargeCategory,
 ): ChargeCategory => {
   return category.toUpperCase() as ChargeCategory;
 };
@@ -335,7 +353,8 @@ export const convertFixedChargeToFrontend = (
   charge: FixedChargeResponse,
 ): {
   id: string;
-  category: "personnel" | "water" | "electricity" | "wifi";
+  category: FixedChargeCategory;
+  name?: string | null;
   amount: number;
   period: "week" | "month";
   monthKey?: string;
@@ -349,6 +368,7 @@ export const convertFixedChargeToFrontend = (
   return {
     id: charge.id.toString(),
     category: convertCategoryToFrontend(charge.category),
+    name: charge.name ?? undefined,
     amount: charge.amount,
     period: convertPeriodToFrontend(charge.period),
     monthKey: charge.monthKey,
@@ -368,7 +388,8 @@ export const convertFixedChargeDetailToFrontend = (
   charge: FixedChargeDetailResponse,
 ): {
   id: string;
-  category: "personnel" | "water" | "electricity" | "wifi";
+  category: FixedChargeCategory;
+  name?: string | null;
   amount: number;
   period: "week" | "month";
   monthKey?: string;
@@ -403,6 +424,7 @@ export const convertFixedChargeDetailToFrontend = (
   return {
     id: charge.id.toString(),
     category: convertCategoryToFrontend(charge.category),
+    name: charge.name ?? undefined,
     amount: charge.amount,
     period: convertPeriodToFrontend(charge.period),
     monthKey: charge.monthKey,

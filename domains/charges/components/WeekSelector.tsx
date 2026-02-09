@@ -1,5 +1,6 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
+import { useI18n } from '@/constants/i18n/I18nContext';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -28,6 +29,7 @@ export default function WeekSelector({
   selectedWeek,
   onWeekSelect,
 }: WeekSelectorProps) {
+  const { t } = useI18n();
   const weekScrollRef = useRef<ScrollView>(null);
 
   const weeks = useMemo((): WeekItem[] => {
@@ -87,7 +89,7 @@ export default function WeekSelector({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Select Week</Text>
+      <Text style={styles.label}>{t('charges.weekSelector.selectWeek')}</Text>
       <ScrollView
         ref={weekScrollRef}
         horizontal

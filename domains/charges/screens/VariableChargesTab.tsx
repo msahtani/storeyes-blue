@@ -154,7 +154,7 @@ export default function VariableChargesTab() {
           onPress={handleCreatePress}
         >
           <Feather name="plus" size={20} color={BluePalette.white} />
-          <Text style={styles.createButtonText}>New Variable Charge</Text>
+          <Text style={styles.createButtonText}>{t('charges.variableTab.newCharge')}</Text>
         </Pressable>
       </View>
 

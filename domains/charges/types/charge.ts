@@ -6,6 +6,7 @@ export enum ChargeCategory {
   WATER = 'WATER',
   ELECTRICITY = 'ELECTRICITY',
   WIFI = 'WIFI',
+  OTHER = 'OTHER',
 }
 
 export enum ChargePeriod {
@@ -27,7 +28,7 @@ export enum TrendDirection {
 
 // Legacy lowercase types for backward compatibility with existing UI code
 export type PeriodType = 'day' | 'week' | 'month';
-export type FixedChargeCategory = 'personnel' | 'water' | 'electricity' | 'wifi';
+export type FixedChargeCategory = 'personnel' | 'water' | 'electricity' | 'wifi' | 'other';
 export type PersonnelType = 'server' | 'barman' | 'cleaner';
 
 // API Response wrapper
@@ -41,6 +42,8 @@ export interface ApiResponse<T> {
 export interface FixedChargeResponse {
   id: number;
   category: ChargeCategory;
+  /** Custom name when category is OTHER; null for predefined categories */
+  name?: string | null;
   amount: number;
   period: ChargePeriod;
   monthKey: string; // Format: "YYYY-MM"
@@ -103,6 +106,8 @@ export interface CreateFixedChargeRequest {
   period: ChargePeriod;
   monthKey: string;
   weekKey: string | null;
+  /** Required when category is OTHER (e.g. "Rent", "Insurance") */
+  name?: string;
   notes?: string;
   amount?: number; // Required for non-personnel
   employees?: PersonnelEmployeeRequest[]; // Required for personnel
@@ -113,6 +118,8 @@ export interface UpdateFixedChargeRequest {
   period?: ChargePeriod;
   monthKey?: string;
   weekKey?: string;
+  /** Custom name when category is OTHER */
+  name?: string;
   notes?: string;
   employees?: PersonnelEmployeeRequest[];
 }
@@ -165,6 +172,8 @@ export interface AvailableEmployee {
 export interface FixedCharge {
   id: string; // Converted from number for UI compatibility
   category: FixedChargeCategory; // Converted from uppercase enum
+  /** Custom name when category is 'other' */
+  name?: string | null;
   amount: number;
   period: 'week' | 'month'; // Converted from uppercase enum
   monthKey?: string;

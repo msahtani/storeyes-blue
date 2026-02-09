@@ -27,13 +27,6 @@ import {
 } from "../services/chargesService";
 import { FixedChargeCategory, FixedChargeDetail } from "../types/charge";
 
-const categoryLabels: Record<FixedChargeCategory, string> = {
-  personnel: "Personnel",
-  water: "Water",
-  electricity: "Electricity",
-  wifi: "Wi-Fi",
-};
-
 export default function FixedChargeDetailScreen() {
   const { id, month } = useLocalSearchParams<{ id?: string; month?: string }>();
   const router = useRouter();
@@ -80,14 +73,14 @@ export default function FixedChargeDetailScreen() {
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||
-        "Failed to load charge details";
+        t("charges.common.loadFailed");
       setError(errorMessage);
       console.error("Error fetching charge:", err);
       setCharge(null);
     } finally {
       setLoading(false);
     }
-  }, [id, monthKey]);
+  }, [id, monthKey, t]);
 
   // Fetch charge detail when id or monthKey changes
   useEffect(() => {
@@ -108,26 +101,26 @@ export default function FixedChargeDetailScreen() {
     if (isNaN(chargeId)) return;
 
     Alert.alert(
-      "Delete Charge",
-      "Are you sure you want to delete this charge? This action cannot be undone.",
+      t("charges.fixed.details.deleteConfirmTitle"),
+      t("charges.fixed.details.deleteConfirmMessage"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("charges.fixed.form.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("charges.fixed.details.delete"),
           style: "destructive",
           onPress: async () => {
             try {
               setDeleting(true);
               await deleteFixedCharge(chargeId);
-              Alert.alert("Success", "Charge deleted successfully", [
-                { text: "OK", onPress: () => router.back() },
+              Alert.alert(t("charges.common.success"), t("charges.fixed.details.deleteSuccess"), [
+                { text: t("charges.common.ok"), onPress: () => router.back() },
               ]);
             } catch (err: any) {
               const errorMessage =
                 err?.response?.data?.message ||
                 err?.message ||
-                "Failed to delete charge";
-              Alert.alert("Error", errorMessage);
+                t("charges.common.loadFailed");
+              Alert.alert(t("charges.common.error"), errorMessage);
               console.error("Error deleting charge:", err);
             } finally {
               setDeleting(false);
@@ -196,7 +189,10 @@ export default function FixedChargeDetailScreen() {
     );
   }
 
-  const categoryLabel = categoryLabels[charge.category];
+  const categoryLabel =
+    charge.category === "other" && charge.name?.trim()
+      ? charge.name.trim()
+      : t(`charges.fixed.categories.${charge.category}`);
 
   return (
     <SafeAreaView
@@ -310,7 +306,7 @@ export default function FixedChargeDetailScreen() {
                       size={14}
                       color={BluePalette.merge}
                     />
-                    <Text style={styles.weekBadgeText}>Week View</Text>
+                    <Text style={styles.weekBadgeText}>{t("charges.fixed.details.weekView")}</Text>
                   </View>
                 )}
               </View>

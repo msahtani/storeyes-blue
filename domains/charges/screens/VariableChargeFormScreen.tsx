@@ -29,7 +29,12 @@ import {
     updateVariableCharge,
 } from '../services/chargesService';
 
-const categories = ['Supplies', 'Maintenance', 'Equipment', 'Other'];
+const getVariableCategories = (t: (key: string) => string) => [
+  t('charges.variable.form.categorySupplies'),
+  t('charges.variable.form.categoryMaintenance'),
+  t('charges.variable.form.categoryEquipment'),
+  t('charges.variable.form.categoryOther'),
+];
 
 export default function VariableChargeFormScreen() {
   const { id, date: dateParam } = useLocalSearchParams<{ id?: string; date?: string }>();
@@ -66,7 +71,7 @@ export default function VariableChargeFormScreen() {
         try {
           const chargeId = parseInt(id, 10);
           if (isNaN(chargeId)) {
-            Alert.alert('Error', 'Invalid charge ID');
+            Alert.alert(t('charges.common.error'), t('charges.common.invalidChargeId'));
             router.back();
             return;
           }
@@ -92,7 +97,7 @@ export default function VariableChargeFormScreen() {
             err?.response?.data?.message ||
             err?.message ||
             'Failed to load charge data';
-          Alert.alert('Error', errorMessage);
+          Alert.alert(t('charges.common.error'), errorMessage || t('charges.common.loadFailed'));
           console.error('Error loading variable charge:', err);
           router.back();
         }
@@ -121,24 +126,24 @@ export default function VariableChargeFormScreen() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = t('charges.common.nameRequired');
     }
 
     if (!formData.amount.trim()) {
-      newErrors.amount = 'Amount is required';
+      newErrors.amount = t('charges.common.amountRequired');
     } else {
       const amountNum = parseAmountInput(formData.amount);
       if (isNaN(amountNum) || amountNum <= 0) {
-        newErrors.amount = 'Amount must be a positive number';
+        newErrors.amount = t('charges.common.amountInvalid');
       }
     }
 
     if (!selectedDate) {
-      newErrors.date = 'Date is required';
+      newErrors.date = t('charges.common.dateRequired');
     }
 
     if (!formData.category) {
-      newErrors.category = 'Category is required';
+      newErrors.category = t('charges.common.categoryRequired');
     }
 
     setErrors(newErrors);
@@ -148,23 +153,23 @@ export default function VariableChargeFormScreen() {
   const handleTakePhoto = async () => {
     // DISABLED - Purchase Order section is hidden
     // ImagePicker code removed to prevent native module errors
-    Alert.alert('Info', 'Purchase order functionality is currently disabled.');
+    Alert.alert(t('charges.common.info'), t('charges.variable.form.purchaseOrderDisabled'));
   };
 
   const handlePickImage = async () => {
     // DISABLED - Purchase Order section is hidden
     // ImagePicker code removed to prevent native module errors
-    Alert.alert('Info', 'Purchase order functionality is currently disabled.');
+    Alert.alert(t('charges.common.info'), t('charges.variable.form.purchaseOrderDisabled'));
   };
 
   const handleRemoveImage = () => {
     Alert.alert(
-      'Remove Image',
-      'Are you sure you want to remove this purchase order image?',
+      t('charges.variable.form.removeImageTitle'),
+      t('charges.variable.form.removeImageMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('charges.variable.form.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('charges.variable.form.remove'),
           style: 'destructive',
           onPress: () => setFormData((prev) => ({ ...prev, purchaseOrderUri: null })),
         },
@@ -210,11 +215,11 @@ export default function VariableChargeFormScreen() {
 
       // Show success message
       Alert.alert(
-        'Success',
-        isEditMode ? 'Charge updated successfully' : 'Charge created successfully',
+        t('charges.common.success'),
+        isEditMode ? t('charges.common.successUpdated') : t('charges.common.successSaved'),
         [
           {
-            text: 'OK',
+            text: t('charges.common.ok'),
             onPress: () => router.back(),
           },
         ]
@@ -223,8 +228,8 @@ export default function VariableChargeFormScreen() {
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||
-        'Failed to save charge';
-      Alert.alert('Error', errorMessage);
+        t('charges.common.saveFailed');
+      Alert.alert(t('charges.common.error'), errorMessage);
       console.error('Error saving variable charge:', err);
     } finally {
       setIsSubmitting(false);
@@ -242,7 +247,7 @@ export default function VariableChargeFormScreen() {
           <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>
-          {isEditMode ? 'Edit Variable Charge' : 'New Variable Charge'}
+          {isEditMode ? t('charges.variable.form.titleEdit') : t('charges.variable.form.titleNew')}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -263,7 +268,7 @@ export default function VariableChargeFormScreen() {
         >
           {/* Date Selector */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Date *</Text>
+            <Text style={styles.sectionTitle}>{t('charges.variable.form.date')} *</Text>
             <View style={[styles.dateSelectorContainer, errors.date && styles.inputError]}>
               <DateSelector variant="charges" />
             </View>
@@ -272,7 +277,7 @@ export default function VariableChargeFormScreen() {
 
           {/* Name Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Name *</Text>
+            <Text style={styles.label}>{t('charges.variable.form.name')} *</Text>
             <View style={[styles.inputWrapper, errors.name && styles.inputError]}>
               <Feather
                 name="tag"
@@ -282,7 +287,7 @@ export default function VariableChargeFormScreen() {
               />
               <TextInput
                 style={styles.input}
-                placeholder="Enter charge name"
+                placeholder={t('charges.variable.form.placeholderName')}
                 placeholderTextColor="rgba(10, 31, 58, 0.5)"
                 value={formData.name}
                 onChangeText={(value) => updateField('name', value)}
@@ -294,12 +299,12 @@ export default function VariableChargeFormScreen() {
 
           {/* Amount Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Amount *</Text>
+            <Text style={styles.label}>{t('charges.variable.form.amount')} *</Text>
             <View style={[styles.inputWrapper, errors.amount && styles.inputError]}>
               <Text style={styles.amountCurrencyLabel}>MAD</Text>
               <TextInput
                 style={styles.input}
-                placeholder="0,00"
+                placeholder={t('charges.variable.form.placeholderAmount')}
                 placeholderTextColor="rgba(10, 31, 58, 0.5)"
                 value={formData.amount}
                 onChangeText={(value) => updateField('amount', formatAmountInput(value))}
@@ -311,9 +316,9 @@ export default function VariableChargeFormScreen() {
 
           {/* Category Selector */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Category *</Text>
+            <Text style={styles.label}>{t('charges.variable.form.category')} *</Text>
             <View style={styles.categoryContainer}>
-              {categories.map((category) => (
+              {getVariableCategories(t).map((category) => (
                 <Pressable
                   key={category}
                   style={({ pressed }) => [
@@ -339,7 +344,7 @@ export default function VariableChargeFormScreen() {
 
           {/* Supplier Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Supplier (Optional)</Text>
+            <Text style={styles.label}>{t('charges.variable.form.supplierOptional')}</Text>
             <View style={styles.inputWrapper}>
               <Feather
                 name="home"
@@ -349,7 +354,7 @@ export default function VariableChargeFormScreen() {
               />
               <TextInput
                 style={styles.input}
-                placeholder="Enter supplier name"
+                placeholder={t('charges.variable.form.placeholderSupplier')}
                 placeholderTextColor="rgba(10, 31, 58, 0.5)"
                 value={formData.supplier}
                 onChangeText={(value) => updateField('supplier', value)}
@@ -360,11 +365,11 @@ export default function VariableChargeFormScreen() {
 
           {/* Notes Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Notes (Optional)</Text>
+            <Text style={styles.label}>{t('charges.variable.form.notesOptional')}</Text>
             <View style={styles.textAreaWrapper}>
               <TextInput
                 style={styles.textArea}
-                placeholder="Add any additional notes..."
+                placeholder={t('charges.variable.form.placeholderNotes')}
                 placeholderTextColor="rgba(10, 31, 58, 0.5)"
                 value={formData.notes}
                 onChangeText={(value) => updateField('notes', value)}
@@ -472,7 +477,7 @@ export default function VariableChargeFormScreen() {
               <ActivityIndicator color={BluePalette.white} />
             ) : (
               <Text style={styles.submitButtonText}>
-                {isEditMode ? 'Update Charge' : 'Create Charge'}
+                {isEditMode ? t('charges.variable.form.buttonUpdate') : t('charges.variable.form.buttonCreate')}
               </Text>
             )}
           </Pressable>

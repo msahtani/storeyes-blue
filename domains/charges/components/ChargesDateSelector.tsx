@@ -1,5 +1,6 @@
 import { Text } from '@/components/Themed';
 import { BluePalette } from '@/constants/Colors';
+import { useI18n } from '@/constants/i18n/I18nContext';
 import Feather from '@expo/vector-icons/Feather';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -50,12 +51,16 @@ const getMonths = (count: number = 6): MonthItem[] => {
 interface ChargesDateSelectorProps {
   selectedMonth?: string; // Format: YYYY-MM
   onMonthSelect?: (monthKey: string) => void;
+  /** When true, user cannot change the month (e.g. edit mode: edit exactly the shown month). */
+  disabled?: boolean;
 }
 
 export default function ChargesDateSelector({
   selectedMonth,
   onMonthSelect,
+  disabled = false,
 }: ChargesDateSelectorProps) {
+  const { t } = useI18n();
   const [expandedMonth, setExpandedMonth] = useState<string | null>(selectedMonth || null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(() => {
@@ -103,11 +108,13 @@ export default function ChargesDateSelector({
   }, [expandedMonth, months]);
 
   const handleMonthPress = (monthKey: string) => {
+    if (disabled) return;
     setExpandedMonth(monthKey);
     onMonthSelect?.(monthKey);
   };
 
   const handleHeaderPress = () => {
+    if (disabled) return;
     if (expandedMonth) {
       setCalendarDate(parseMonthKey(expandedMonth));
     }
@@ -115,8 +122,10 @@ export default function ChargesDateSelector({
   };
 
   const handleMonthSelectFromCalendar = (date: Date) => {
+    if (disabled) return;
     const monthKey = formatMonthKey(date);
-    handleMonthPress(monthKey);
+    setExpandedMonth(monthKey);
+    onMonthSelect?.(monthKey);
     setShowCalendar(false);
   };
 
@@ -131,13 +140,13 @@ export default function ChargesDateSelector({
   };
 
   const selectedMonthDisplay = useMemo(() => {
-    if (!expandedMonth) return 'Select Month';
+    if (!expandedMonth) return t('charges.dateSelector.selectMonth');
     const date = parseMonthKey(expandedMonth);
     return date.toLocaleDateString('en-US', {
       month: 'long',
       year: 'numeric',
     });
-  }, [expandedMonth]);
+  }, [expandedMonth, t]);
 
 
   const canNavigateNext = useMemo(() => {
@@ -226,7 +235,7 @@ export default function ChargesDateSelector({
         >
           <Pressable onPress={(e) => e.stopPropagation()} style={styles.calendarContainer}>
             <View style={styles.calendarHeader}>
-              <Text style={styles.calendarTitle}>Select Month</Text>
+              <Text style={styles.calendarTitle}>{t('charges.dateSelector.selectMonth')}</Text>
               <Pressable onPress={() => setShowCalendar(false)}>
                 <Feather name="x" size={24} color={BluePalette.textPrimary} />
               </Pressable>

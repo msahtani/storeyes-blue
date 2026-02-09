@@ -1,33 +1,34 @@
 import { Text } from "@/components/Themed";
 import { BluePalette } from "@/constants/Colors";
+import { useI18n } from "@/constants/i18n/I18nContext";
 import { formatAmountMAD } from "@/utils/formatAmount";
 import Feather from "@expo/vector-icons/Feather";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    Alert,
-    Dimensions,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    View,
+  Alert,
+  Dimensions,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
 } from "react-native";
 import {
-    convertEmployeeTypeToFrontend,
-    formatAmountInput,
-    getAvailableEmployees,
-    parseAmountInput,
+  convertEmployeeTypeToFrontend,
+  formatAmountInput,
+  getAvailableEmployees,
+  parseAmountInput,
 } from "../services/chargesService";
 import { PersonnelEmployeeUI, PersonnelType } from "../types/charge";
 import {
-    getMonthForWeek,
-    getMonthKey,
-    getSundayOfWeek,
-    getWeeksForMonth,
-    parseWeekKey,
-    validateWeekKey,
-    validateWeekMonth,
+  getMonthForWeek,
+  getMonthKey,
+  getSundayOfWeek,
+  getWeeksForMonth,
+  parseWeekKey,
+  validateWeekKey,
+  validateWeekMonth,
 } from "../utils/weekUtils";
 
 interface EmployeeManagerProps {
@@ -47,6 +48,7 @@ export default function EmployeeManager({
   selectedWeek,
   autoLoadEmployees = false,
 }: EmployeeManagerProps) {
+  const { t } = useI18n();
   const [editingEmployee, setEditingEmployee] =
     useState<PersonnelEmployeeUI | null>(null);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -171,7 +173,7 @@ export default function EmployeeManager({
             emp.employeeId === employee.employeeId),
       )
     ) {
-      Alert.alert("Error", "This employee is already added");
+      Alert.alert(t("charges.common.error"), t("charges.employees.alreadyAdded"));
       return;
     }
 
@@ -224,12 +226,12 @@ export default function EmployeeManager({
 
   const handleDeleteEmployee = (employeeId: string) => {
     Alert.alert(
-      "Delete Employee",
-      "Are you sure you want to delete this employee?",
+      t("charges.employees.deleteConfirmTitle"),
+      t("charges.employees.deleteConfirmMessage"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("charges.employees.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("charges.employees.delete"),
           style: "destructive",
           onPress: () => {
             onEmployeesChange(employees.filter((emp) => emp.id !== employeeId));
@@ -256,7 +258,7 @@ export default function EmployeeManager({
 
   const handleSaveEmployee = () => {
     if (!employeeForm.name.trim()) {
-      Alert.alert("Error", "Name is required");
+      Alert.alert(t("charges.common.error"), t("charges.employees.nameRequired"));
       return;
     }
 
@@ -276,7 +278,7 @@ export default function EmployeeManager({
     if (employeeForm.salary.trim()) {
       const salaryValue = parseAmountInput(employeeForm.salary);
       if (isNaN(salaryValue) || salaryValue <= 0) {
-        Alert.alert("Error", "Salary must be a positive number");
+        Alert.alert(t("charges.common.error"), t("charges.employees.salaryPositive"));
         return;
       }
 
@@ -286,7 +288,7 @@ export default function EmployeeManager({
         // IMPORTANT: Weeks belong to the month where their Monday falls
         // Even if a week extends into the next month, it's fully attributed to the month of its Monday
         if (!selectedMonth) {
-          Alert.alert("Error", "Please select a month first");
+          Alert.alert(t("charges.common.error"), t("charges.employees.selectMonthFirst"));
           return;
         }
 
@@ -299,7 +301,7 @@ export default function EmployeeManager({
         });
 
         if (weeksInMonth.length === 0) {
-          Alert.alert("Error", "No weeks found for selected month");
+          Alert.alert(t("charges.common.error"), t("charges.employees.noWeeksForMonth"));
           return;
         }
 
@@ -336,15 +338,15 @@ export default function EmployeeManager({
       } else {
         // Weekly salary - only apply to selected week
         if (!selectedWeek) {
-          Alert.alert("Error", "Please select a week first");
+          Alert.alert(t("charges.common.error"), t("charges.employees.selectWeekFirst"));
           return;
         }
 
         // Validate that selectedWeek is a valid week key (Monday date)
         if (!validateWeekKey(selectedWeek)) {
           Alert.alert(
-            "Error",
-            "Invalid week selected. Week key must be a Monday date.",
+            t("charges.common.error"),
+            t("charges.common.weekInvalid"),
           );
           return;
         }
@@ -352,8 +354,8 @@ export default function EmployeeManager({
         // Validate that the week belongs to the selected month
         if (selectedMonth && !validateWeekMonth(selectedWeek, selectedMonth)) {
           Alert.alert(
-            "Error",
-            "Selected week does not belong to the selected month.",
+            t("charges.common.error"),
+            t("charges.common.weekMonthMismatch"),
           );
           return;
         }
@@ -484,27 +486,31 @@ export default function EmployeeManager({
     value: PersonnelType | "all";
     label: string;
   }> = [
-    { value: "all", label: "All" },
-    { value: "server", label: "Server" },
-    { value: "barman", label: "Barman" },
-    { value: "cleaner", label: "Cleaner" },
+    { value: "all", label: t("charges.employees.all") },
+    { value: "server", label: t("charges.employees.server") },
+    { value: "barman", label: t("charges.employees.barman") },
+    { value: "cleaner", label: t("charges.employees.cleaner") },
   ];
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.sectionTitle}>Employees</Text>
+        <Text style={styles.sectionTitle} numberOfLines={2}>
+          {t("charges.employees.sectionTitle")}
+        </Text>
         <View style={styles.headerButtons}>
           <Pressable
             style={styles.addExistingButton}
             onPress={handleAddExistingEmployee}
           >
             <Feather name="user-plus" size={16} color={BluePalette.merge} />
-            <Text style={styles.addExistingButtonText}>Add Existing</Text>
+            <Text style={styles.addExistingButtonText}>
+              {t("charges.employees.addExisting")}
+            </Text>
           </Pressable>
           <Pressable style={styles.addButton} onPress={handleAddEmployee}>
             <Feather name="plus" size={18} color={BluePalette.white} />
-            <Text style={styles.addButtonText}>New</Text>
+            <Text style={styles.addButtonText}>{t("charges.employees.new")}</Text>
           </Pressable>
         </View>
       </View>
@@ -546,8 +552,7 @@ export default function EmployeeManager({
         <Pressable style={styles.payButton} onPress={handlePayEmployees}>
           <Text style={styles.payButtonMAD}>MAD</Text>
           <Text style={styles.payButtonText}>
-            Set Salary for {employeesWithoutSalary.length} Employee
-            {employeesWithoutSalary.length > 1 ? "s" : ""}
+            {t("charges.employees.setSalaryFor")} {employeesWithoutSalary.length} {employeesWithoutSalary.length > 1 ? t("charges.employees.employees") : t("charges.employees.employee")}
           </Text>
         </Pressable>
       )}
@@ -557,11 +562,11 @@ export default function EmployeeManager({
           <Feather name="users" size={32} color={BluePalette.textDark} />
           <Text style={styles.emptyText}>
             {positionFilter !== "all"
-              ? `No ${positionFilter} employees`
-              : "No employees added yet"}
+              ? t("charges.employees.noEmployeesByType").replace("{{type}}", t(`charges.employees.${positionFilter}`))
+              : t("charges.employees.noEmployeesYet")}
           </Text>
           <Text style={styles.emptySubtext}>
-            Add employees to calculate total amount
+            {t("charges.employees.addEmployeesHint")}
           </Text>
         </View>
       ) : (
@@ -580,7 +585,7 @@ export default function EmployeeManager({
                         employee.type === "cleaner" && styles.typeBadgeCleaner,
                       ]}
                     >
-                      <Text style={styles.typeBadgeText}>{employee.type}</Text>
+                      <Text style={styles.typeBadgeText}>{employee.type ? t(`charges.employees.${employee.type}`) : employee.type}</Text>
                     </View>
                   )}
                 </View>
@@ -664,18 +669,18 @@ export default function EmployeeManager({
                           <Text style={styles.employeePeriod}>
                             {displayLabel}
                           </Text>
-                          {period === "month" &&
+                          {          period === "month" &&
                             employee.weekSalaries &&
                             Object.keys(employee.weekSalaries).length > 0 && (
                               <Text style={styles.employeePeriodInfo}>
                                 ({Object.keys(employee.weekSalaries).length}{" "}
-                                weeks)
+                                {t("charges.employees.weeks")})
                               </Text>
                             )}
                           {period === "week" &&
                             employee.monthSalary !== undefined && (
                               <Text style={styles.employeePeriodInfo}>
-                                (Month: {formatAmount(employee.monthSalary)})
+                                ({t("charges.employees.monthLabel")}: {formatAmount(employee.monthSalary)})
                               </Text>
                             )}
                         </>
@@ -688,9 +693,9 @@ export default function EmployeeManager({
                             size={14}
                             color={BluePalette.warning}
                           />
-                          <Text style={styles.noSalaryText}>
-                            Salary not set
-                          </Text>
+                            <Text style={styles.noSalaryText}>
+                              {t("charges.employees.salaryNotSet")}
+                            </Text>
                         </View>
                       );
                     }
@@ -718,7 +723,7 @@ export default function EmployeeManager({
 
       {employees.length > 0 && (
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total Amount ({period})</Text>
+          <Text style={styles.totalLabel}>{t("charges.employees.totalAmount")} ({period})</Text>
           <Text style={styles.totalAmount}>{formatAmount(totalAmount)}</Text>
         </View>
       )}
@@ -734,7 +739,7 @@ export default function EmployeeManager({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingEmployee ? "Edit Employee" : "Add Employee"}
+                {editingEmployee ? t("charges.employees.editEmployee") : t("charges.employees.addEmployee")}
               </Text>
               <Pressable onPress={() => setShowEmployeeModal(false)}>
                 <Feather name="x" size={24} color={BluePalette.textPrimary} />
@@ -749,7 +754,7 @@ export default function EmployeeManager({
               <View style={styles.modalForm}>
                 {/* Name */}
                 <View style={styles.modalInputGroup}>
-                  <Text style={styles.modalLabel}>Name *</Text>
+                  <Text style={styles.modalLabel}>{t("charges.employees.name")} *</Text>
                   <View style={styles.modalInputWrapper}>
                     <Feather
                       name="user"
@@ -759,7 +764,7 @@ export default function EmployeeManager({
                     />
                     <TextInput
                       style={styles.modalInput}
-                      placeholder="Employee name"
+                      placeholder={t("charges.employees.placeholderName")}
                       placeholderTextColor="rgba(10, 31, 58, 0.5)"
                       value={employeeForm.name}
                       onChangeText={(value) =>
@@ -772,7 +777,7 @@ export default function EmployeeManager({
 
                 {/* Type/Position */}
                 <View style={styles.modalInputGroup}>
-                  <Text style={styles.modalLabel}>Position/Type *</Text>
+                  <Text style={styles.modalLabel}>{t("charges.employees.positionType")} *</Text>
                   <View style={styles.typeSelector}>
                     {(["server", "barman", "cleaner"] as PersonnelType[]).map(
                       (type) => (
@@ -805,13 +810,13 @@ export default function EmployeeManager({
                 {/* Salary - Optional */}
                 <View style={styles.modalInputGroup}>
                   <Text style={styles.modalLabel}>
-                    Salary ({period}) (Optional)
+                    {t("charges.employees.salaryOptional").replace("{{period}}", period)}
                   </Text>
                   <View style={styles.modalInputWrapper}>
                     <Text style={styles.modalInputMAD}>MAD</Text>
                     <TextInput
                       style={styles.modalInput}
-                      placeholder={`0,00 per ${period}`}
+                      placeholder={t("charges.employees.placeholderSalary").replace("{{period}}", period)}
                       placeholderTextColor="rgba(10, 31, 58, 0.5)"
                       value={employeeForm.salary}
                       onChangeText={(value) =>
@@ -825,8 +830,8 @@ export default function EmployeeManager({
                   </View>
                   <Text style={styles.helperText}>
                     {period === "month"
-                      ? "Monthly salary will be divided by weeks and remaining days"
-                      : "Weekly salary will be accumulated to calculate monthly total"}
+                      ? t("charges.employees.helperMonthly")
+                      : t("charges.employees.helperWeekly")}
                   </Text>
                 </View>
               </View>
@@ -837,14 +842,14 @@ export default function EmployeeManager({
                 style={styles.modalCancelButton}
                 onPress={() => setShowEmployeeModal(false)}
               >
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>{t("charges.employees.cancel")}</Text>
               </Pressable>
               <Pressable
                 style={styles.modalSaveButton}
                 onPress={handleSaveEmployee}
               >
                 <Text style={styles.modalSaveText}>
-                  {editingEmployee ? "Update" : "Add"}
+                  {editingEmployee ? t("charges.employees.update") : t("charges.employees.add")}
                 </Text>
               </Pressable>
             </View>
@@ -862,7 +867,7 @@ export default function EmployeeManager({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Existing Employee</Text>
+              <Text style={styles.modalTitle}>{t("charges.employees.selectExisting")}</Text>
               <Pressable onPress={() => setShowExistingEmployeesModal(false)}>
                 <Feather name="x" size={24} color={BluePalette.textPrimary} />
               </Pressable>
@@ -909,7 +914,7 @@ export default function EmployeeManager({
               <View style={styles.existingEmployeesList}>
                 {loadingEmployees ? (
                   <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>Loading employees...</Text>
+                    <Text style={styles.emptyText}>{t("charges.employees.loading")}</Text>
                   </View>
                 ) : (
                   (() => {
@@ -923,7 +928,7 @@ export default function EmployeeManager({
 
                     return filteredAvailable.length === 0 ? (
                       <View style={styles.emptyState}>
-                        <Text style={styles.emptyText}>No employees found</Text>
+                        <Text style={styles.emptyText}>{t("charges.employees.noEmployeesFound")}</Text>
                       </View>
                     ) : (
                       filteredAvailable.map((employee) => {
@@ -1023,11 +1028,16 @@ export default function EmployeeManager({
 const styles = StyleSheet.create({
   container: {
     gap: 12,
+    width: "100%",
+    alignSelf: "stretch",
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: "column",
+    gap: 10,
+    width: "100%",
+    maxWidth: "100%",
+    alignSelf: "stretch",
+    overflow: "hidden",
   },
   sectionTitle: {
     fontSize: 18,
@@ -1038,13 +1048,18 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: "row",
     gap: 8,
+    width: "100%",
+    alignSelf: "stretch",
   },
   addButton: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     backgroundColor: BluePalette.merge,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
     shadowColor: BluePalette.merge,
@@ -1062,11 +1077,14 @@ const styles = StyleSheet.create({
     color: BluePalette.white,
   },
   addExistingButton: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     backgroundColor: BluePalette.surface,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
@@ -1076,6 +1094,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: BluePalette.merge,
+    textAlign: "center",
   },
   filterContainer: {
     marginTop: 4,

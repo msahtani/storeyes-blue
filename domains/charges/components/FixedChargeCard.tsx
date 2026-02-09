@@ -10,6 +10,8 @@ import { FixedCharge, FixedChargeCategory } from "../types/charge";
 interface FixedChargeCardProps {
   category: FixedChargeCategory;
   charge: FixedCharge | null;
+  /** When category is 'other', show this name instead of translated "Other" */
+  displayName?: string;
   isWarned?: boolean;
   onPress: () => void;
 }
@@ -19,24 +21,22 @@ const categoryIcons: Record<FixedChargeCategory, string> = {
   water: "droplet",
   electricity: "zap",
   wifi: "wifi",
+  other: "tag",
 };
 
-const categoryLabels: Record<FixedChargeCategory, string> = {
-  personnel: "Personnel",
-  water: "Water",
-  electricity: "Electricity",
-  wifi: "Wi-Fi",
-};
+const getCategoryLabelKey = (category: FixedChargeCategory): string =>
+  `charges.fixed.categories.${category}`;
 
 export default function FixedChargeCard({
   category,
   charge,
+  displayName,
   isWarned = false,
   onPress,
 }: FixedChargeCardProps) {
   const { t } = useI18n();
   const icon = categoryIcons[category];
-  const label = categoryLabels[category];
+  const label = displayName ?? t(getCategoryLabelKey(category));
   const isEmpty = !charge;
 
   const formatAmount = formatAmountMAD;

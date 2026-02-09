@@ -79,14 +79,14 @@ export default function VariableChargeDetailScreen() {
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||
-        "Failed to load charge details";
+        t("charges.common.loadFailed");
       setError(errorMessage);
       console.error("Error fetching variable charge:", err);
       setCharge(null);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   // Fetch charge detail when id changes
   useEffect(() => {
@@ -119,26 +119,26 @@ export default function VariableChargeDetailScreen() {
     if (isNaN(chargeId)) return;
 
     Alert.alert(
-      "Delete Charge",
-      "Are you sure you want to delete this variable charge? This action cannot be undone.",
+      t("charges.variable.details.deleteConfirmTitle"),
+      t("charges.variable.details.deleteConfirmMessage"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("charges.variable.form.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("charges.variable.details.delete"),
           style: "destructive",
           onPress: async () => {
             try {
               setDeleting(true);
               await deleteVariableCharge(chargeId);
-              Alert.alert("Success", "Charge deleted successfully", [
-                { text: "OK", onPress: () => router.back() },
+              Alert.alert(t("charges.common.success"), t("charges.variable.details.deleteSuccess"), [
+                { text: t("charges.common.ok"), onPress: () => router.back() },
               ]);
             } catch (err: any) {
               const errorMessage =
                 err?.response?.data?.message ||
                 err?.message ||
-                "Failed to delete charge";
-              Alert.alert("Error", errorMessage);
+                t("charges.common.loadFailed");
+              Alert.alert(t("charges.common.error"), errorMessage);
               console.error("Error deleting variable charge:", err);
             } finally {
               setDeleting(false);

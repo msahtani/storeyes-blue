@@ -4,7 +4,8 @@ import BottomBar from '@/domains/shared/components/BottomBar';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ChargesDateSelector from '../components/ChargesDateSelector';
 import FixedChargeCard from '../components/FixedChargeCard';
@@ -90,14 +91,22 @@ export default function FixedChargesTab() {
     return charges;
   }, [charges]);
 
-  // Create a map of category -> charge for easy lookup
+  // Predefined categories: at most one charge per category
   const chargesByCategory = useMemo(() => {
     const map = new Map<FixedChargeCategory, FixedCharge>();
     monthCharges.forEach((charge) => {
-      map.set(charge.category, charge);
+      if (charge.category !== 'other') {
+        map.set(charge.category, charge);
+      }
     });
     return map;
   }, [monthCharges]);
+
+  // Custom "other" charges (each has its own name, multiple per month)
+  const otherCharges = useMemo(
+    () => monthCharges.filter((c) => c.category === 'other'),
+    [monthCharges]
+  );
 
   // Get current month key
   const currentMonthKey = useMemo(() => selectedMonth || getMonthKey(0), [selectedMonth]);
@@ -109,18 +118,23 @@ export default function FixedChargesTab() {
     const monthKey = currentMonthKey;
 
     if (charge) {
-      // Navigate to detail screen (which has edit button)
       router.push({
         pathname: `/charges/fixed/${charge.id}` as any,
         params: { month: monthKey },
       });
     } else {
-      // Navigate to create form
       router.push({
         pathname: `/charges/fixed/create` as any,
         params: { month: monthKey, category },
       });
     }
+  };
+
+  const handleNewFixedChargePress = () => {
+    router.push({
+      pathname: `/charges/fixed/create` as any,
+      params: { month: currentMonthKey, category: 'other' },
+    });
   };
 
   const handleMonthSelect = (monthKey: string) => {
@@ -152,6 +166,20 @@ export default function FixedChargesTab() {
           </View>
         ) : (
           <View style={styles.cardsContainer}>
+            {/* New fixed charge button (like variable tab) */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.newChargeButton,
+                pressed && styles.newChargeButtonPressed,
+              ]}
+              onPress={handleNewFixedChargePress}
+            >
+              <Feather name="plus" size={20} color={BluePalette.white} />
+              <Text style={styles.newChargeButtonText}>
+                {t('charges.fixedTab.newFixedCharge')}
+              </Text>
+            </Pressable>
+
             {ALL_CATEGORIES.map((category) => {
               const charge = chargesByCategory.get(category) || null;
               const isWarned = !charge && monthEnded;
@@ -166,6 +194,18 @@ export default function FixedChargesTab() {
                 />
               );
             })}
+
+            {/* Other (custom) fixed charges - each with its own name */}
+            {otherCharges.map((charge) => (
+              <FixedChargeCard
+                key={charge.id}
+                category="other"
+                charge={charge}
+                displayName={charge.name ?? undefined}
+                isWarned={false}
+                onPress={() => handleCardPress('other', charge)}
+              />
+            ))}
           </View>
         )}
       </ScrollView>
@@ -208,6 +248,31 @@ const styles = StyleSheet.create({
     color: BluePalette.error,
     textAlign: 'center',
     fontWeight: '500',
+  },
+  newChargeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: BluePalette.merge,
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginBottom: 12,
+    shadowColor: BluePalette.merge,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  newChargeButtonPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
+  },
+  newChargeButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: BluePalette.white,
+    letterSpacing: -0.3,
   },
 });
 

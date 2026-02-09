@@ -29,7 +29,9 @@ import {
   formatAmountForDisplay,
   formatAmountInput,
   getFixedChargeById,
+  getPersonnelChargeLastPeriod,
   parseAmountInput,
+  setPersonnelChargeLastPeriod,
   updateFixedCharge,
 } from '../services/chargesService';
 import {
@@ -41,11 +43,12 @@ import {
 import { getMonthForWeek, validateWeekKey, validateWeekMonth } from '../utils/weekUtils';
 
 
-const fixedCategories: Array<{ value: FixedChargeCategory; label: string; icon: string }> = [
-  { value: 'personnel', label: 'Personnel', icon: 'users' },
-  { value: 'water', label: 'Water', icon: 'droplet' },
-  { value: 'electricity', label: 'Electricity', icon: 'zap' },
-  { value: 'wifi', label: 'Wi-Fi', icon: 'wifi' },
+const getFixedCategories = (t: (key: string) => string): Array<{ value: FixedChargeCategory; label: string; icon: string }> => [
+  { value: 'personnel', label: t('charges.fixed.categories.personnel'), icon: 'users' },
+  { value: 'water', label: t('charges.fixed.categories.water'), icon: 'droplet' },
+  { value: 'electricity', label: t('charges.fixed.categories.electricity'), icon: 'zap' },
+  { value: 'wifi', label: t('charges.fixed.categories.wifi'), icon: 'wifi' },
+  { value: 'other', label: t('charges.fixed.categories.other'), icon: 'file-text' },
 ];
 
 // Helper to get month key
@@ -81,6 +84,7 @@ export default function FixedChargeFormScreen() {
 
   const [formData, setFormData] = useState({
     category: initialCategory,
+    name: '', // Custom name when category is 'other'
     amount: '',
     period: 'month' as 'week' | 'month',
     notes: '',
@@ -96,7 +100,19 @@ export default function FixedChargeFormScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isPersonnel = formData.category === 'personnel';
-  const isMonthlyUtility = ['water', 'electricity', 'wifi'].includes(formData.category);
+  const isOther = formData.category === 'other';
+  const isMonthlyUtility = ['water', 'electricity', 'wifi', 'other'].includes(formData.category);
+
+  // Load user's last used period when creating a new personnel charge (synced per user on backend)
+  useEffect(() => {
+    if (!isEditMode && initialCategory === 'personnel') {
+      getPersonnelChargeLastPeriod()
+        .then((period) => {
+          setFormData((prev) => ({ ...prev, period }));
+        })
+        .catch(() => {});
+    }
+  }, [isEditMode, initialCategory]);
 
   // Reset period to month when switching to utility category
   useEffect(() => {
@@ -153,7 +169,7 @@ export default function FixedChargeFormScreen() {
       try {
         const chargeId = parseInt(id, 10);
         if (isNaN(chargeId)) {
-          Alert.alert('Error', 'Invalid charge ID');
+          Alert.alert(t('charges.common.error'), t('charges.common.invalidChargeId'));
           router.back();
           return;
         }
@@ -166,6 +182,7 @@ export default function FixedChargeFormScreen() {
 
         setFormData({
           category: chargeCategory,
+          name: frontendCharge.name ?? '',
           amount: formatAmountForDisplay(frontendCharge.amount),
           period: frontendCharge.period,
           notes: frontendCharge.notes || '',
@@ -211,14 +228,16 @@ export default function FixedChargeFormScreen() {
           err?.response?.data?.message ||
           err?.message ||
           'Failed to load charge data';
-        Alert.alert('Error', errorMessage);
+        Alert.alert(t('charges.common.error'), errorMessage || t('charges.common.loadFailed'));
         console.error('Error loading charge:', err);
         router.back();
       }
     };
 
     loadCharge();
-  }, [id, isEditMode, selectedMonth, router]);
+    // In edit mode, only load once (when id is set). Do not refetch when selectedMonth
+    // changes so the month selector stays on the charge's month and we edit exactly that one.
+  }, [id, isEditMode, router, t]);
 
   const updateField = (field: string, value: string | 'week' | 'month') => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -230,8 +249,8 @@ export default function FixedChargeFormScreen() {
 
   /**
    * Handle changing period between month and week for personnel charges.
-   * To avoid inconsistent data, switching period will clear employee salary data
-   * and require the user to fill again for the selected period.
+   * Keeps the same employee list but clears period-specific salary data so the user
+   * can re-enter salaries for the new period. Shows confirmation for better UX.
    */
   const handlePeriodChange = (nextPeriod: 'week' | 'month') => {
     if (!isPersonnel) {
@@ -243,27 +262,33 @@ export default function FixedChargeFormScreen() {
       return;
     }
 
+    const applyPeriodChange = () => {
+      updateField('period', nextPeriod);
+
+      // Keep employees; clear only salary data so user can re-enter for the new period
+      const employeesWithClearedSalaries: PersonnelEmployeeUI[] = employees.map((emp) => ({
+        ...emp,
+        monthSalary: undefined,
+        weekSalary: undefined,
+        salary: undefined,
+        weekSalaries: undefined,
+      }));
+      setEmployees(employeesWithClearedSalaries);
+      setFormData((prev) => ({ ...prev, amount: '' }));
+
+      if (nextPeriod === 'month') {
+        setSelectedWeek(undefined);
+      }
+    };
+
     Alert.alert(
-      'Change Period',
-      'Changing between month and week will reset employee salary data for this charge. You will need to fill the salaries again for the new period.',
+      t('charges.fixed.form.changePeriodTitle'),
+      t('charges.fixed.form.changePeriodMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('charges.fixed.form.cancel'), style: 'cancel' },
         {
-          text: 'Continue',
-          style: 'destructive',
-          onPress: () => {
-            // Update period
-            updateField('period', nextPeriod);
-
-            // Clear employees and amount to avoid mixing monthly and weekly data
-            setEmployees([]);
-            setFormData((prev) => ({ ...prev, amount: '' }));
-
-            // Reset selected week when switching back to month
-            if (nextPeriod === 'month') {
-              setSelectedWeek(undefined);
-            }
-          },
+          text: t('charges.fixed.form.continue'),
+          onPress: applyPeriodChange,
         },
       ]
     );
@@ -273,7 +298,7 @@ export default function FixedChargeFormScreen() {
     const newErrors: Record<string, string> = {};
 
     if (isPersonnel && employees.length === 0) {
-      newErrors.employees = 'At least one employee is required for personnel charges';
+      newErrors.employees = t('charges.common.employeesRequired');
     }
 
     // Check if all employees have salary set
@@ -291,29 +316,34 @@ export default function FixedChargeFormScreen() {
         }
       });
       if (employeesWithoutSalary.length > 0) {
-        newErrors.employees = 'Please set salary for all employees';
+        newErrors.employees = t('charges.common.salaryRequired');
       }
+    }
+
+    // Name required when category is 'other'
+    if (isOther && !formData.name.trim()) {
+      newErrors.name = t('charges.fixed.form.nameRequired');
     }
 
     // Amount is only required for non-personnel charges
     // For personnel charges, amount is calculated automatically from employees
     if (!isPersonnel) {
       if (!formData.amount.trim()) {
-        newErrors.amount = 'Amount is required';
+        newErrors.amount = t('charges.common.amountRequired');
       } else {
         const amountNum = parseAmountInput(formData.amount);
         if (isNaN(amountNum) || amountNum <= 0) {
-          newErrors.amount = 'Amount must be a positive number';
+          newErrors.amount = t('charges.common.amountInvalid');
         }
       }
     }
 
     if (!selectedMonth) {
-      newErrors.month = 'Month is required';
+      newErrors.month = t('charges.common.monthRequired');
     }
 
     if (isPersonnel && formData.period === 'week' && !selectedWeek) {
-      newErrors.week = 'Week is required for weekly personnel charges';
+      newErrors.week = t('charges.common.weekRequired');
     }
 
     setErrors(newErrors);
@@ -332,12 +362,12 @@ export default function FixedChargeFormScreen() {
         // Validate week key if creating/updating weekly charge
         if (formData.period === 'week' && selectedWeek) {
           if (!validateWeekKey(selectedWeek)) {
-            Alert.alert('Error', 'Invalid week selected. Week key must be a Monday date.');
+            Alert.alert(t('charges.common.error'), t('charges.common.weekInvalid'));
             setIsSubmitting(false);
             return;
           }
           if (!validateWeekMonth(selectedWeek, selectedMonth)) {
-            Alert.alert('Error', 'Selected week does not belong to the selected month.');
+            Alert.alert(t('charges.common.error'), t('charges.common.weekMonthMismatch'));
             setIsSubmitting(false);
             return;
           }
@@ -414,35 +444,44 @@ export default function FixedChargeFormScreen() {
           await createFixedCharge(createRequest);
         }
       } else {
-        // Utility charge (water, electricity, wifi)
+        // Utility or other charge (water, electricity, wifi, other)
         if (isEditMode && id) {
-          const updateRequest = {
+          const updateRequest: any = {
             amount: parseAmountInput(formData.amount),
             notes: formData.notes.trim() || undefined,
           };
-
+          if (isOther && formData.name.trim()) {
+            updateRequest.name = formData.name.trim();
+          }
           await updateFixedCharge(parseInt(id, 10), updateRequest);
         } else {
-          const createRequest = {
+          const createRequest: any = {
             category: convertCategoryFromFrontend(formData.category) as ChargeCategory,
-            period: ChargePeriod.MONTH, // Utilities are always monthly
+            period: ChargePeriod.MONTH,
             monthKey: selectedMonth,
             weekKey: null as string | null,
             amount: parseAmountInput(formData.amount),
             notes: formData.notes.trim() || undefined,
           };
-
+          if (isOther && formData.name.trim()) {
+            createRequest.name = formData.name.trim();
+          }
           await createFixedCharge(createRequest);
         }
       }
 
+      // Save period for next time (personnel only, per user on backend)
+      if (isPersonnel) {
+        setPersonnelChargeLastPeriod(formData.period).catch(() => {});
+      }
+
       // Show success message
       Alert.alert(
-        'Success',
-        isEditMode ? 'Charge updated successfully' : 'Charge created successfully',
+        t('charges.common.success'),
+        isEditMode ? t('charges.common.successUpdated') : t('charges.common.successSaved'),
         [
           {
-            text: 'OK',
+            text: t('charges.common.ok'),
             onPress: () => router.back(),
           },
         ]
@@ -453,13 +492,13 @@ export default function FixedChargeFormScreen() {
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
-        'Failed to save charge';
+        t('charges.common.saveFailed');
 
       // Log full error for debugging
       console.error('Error saving charge:', err);
       console.error('Error response data:', err?.response?.data);
 
-      Alert.alert('Error', errorMessage);
+      Alert.alert(t('charges.common.error'), errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -476,7 +515,7 @@ export default function FixedChargeFormScreen() {
           <Feather name="arrow-left" size={24} color={BluePalette.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>
-          {isEditMode ? 'Edit Fixed Charge' : 'New Fixed Charge'}
+          {isEditMode ? t('charges.fixed.form.titleEdit') : t('charges.fixed.form.titleNew')}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -498,9 +537,9 @@ export default function FixedChargeFormScreen() {
           {/* Category Selector (Hide if category provided in params or in edit mode) */}
           {!isEditMode && !categoryParam && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Category *</Text>
+              <Text style={styles.label}>{t('charges.fixed.form.category')} *</Text>
               <View style={styles.categoryGrid}>
-                {fixedCategories.map((cat) => (
+                {getFixedCategories(t).map((cat) => (
                   <Pressable
                     key={cat.value}
                     style={({ pressed }) => [
@@ -540,10 +579,28 @@ export default function FixedChargeFormScreen() {
             </View>
           )}
 
+          {/* Charge name (required when category is Other) */}
+          {isOther && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('charges.fixed.form.chargeName')} *</Text>
+              <View style={[styles.inputWrapper, errors.name && styles.inputError]}>
+                <TextInput
+                  style={styles.input}
+                  placeholder={t('charges.fixed.form.placeholderChargeName')}
+                  placeholderTextColor="rgba(10, 31, 58, 0.5)"
+                  value={formData.name}
+                  onChangeText={(value) => updateField('name', value)}
+                  maxLength={255}
+                />
+              </View>
+              {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+            </View>
+          )}
+
           {/* Period Selector (Only for Personnel) */}
           {isPersonnel && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Period *</Text>
+              <Text style={styles.label}>{t('charges.fixed.form.period')} *</Text>
               <View style={styles.periodContainer}>
                 <Pressable
                   style={({ pressed }) => [
@@ -559,7 +616,7 @@ export default function FixedChargeFormScreen() {
                       formData.period === 'month' && styles.periodButtonTextActive,
                     ]}
                   >
-                    Month
+                    {t('charges.fixed.form.periodMonth')}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -576,7 +633,7 @@ export default function FixedChargeFormScreen() {
                       formData.period === 'week' && styles.periodButtonTextActive,
                     ]}
                   >
-                    Week
+                    {t('charges.fixed.form.periodWeek')}
                   </Text>
                 </Pressable>
               </View>
@@ -585,11 +642,12 @@ export default function FixedChargeFormScreen() {
 
           {/* Month Selector */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Month *</Text>
+            <Text style={styles.sectionTitle}>{t('charges.fixed.form.month')} *</Text>
             <View style={[styles.dateSelectorContainer, errors.month && styles.inputError]}>
               <ChargesDateSelector
                 selectedMonth={selectedMonth}
                 onMonthSelect={setSelectedMonth}
+                disabled={isEditMode}
               />
             </View>
             {errors.month && <Text style={styles.errorText}>{errors.month}</Text>}
@@ -598,7 +656,7 @@ export default function FixedChargeFormScreen() {
           {/* Week Selector (Only for Personnel with Week Period) */}
           {isPersonnel && formData.period === 'week' && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Week *</Text>
+              <Text style={styles.sectionTitle}>{t('charges.fixed.form.week')} *</Text>
               <View style={[styles.weekSelectorContainer, errors.week && styles.inputError]}>
                 <WeekSelector
                   monthKey={selectedMonth}
@@ -625,7 +683,7 @@ export default function FixedChargeFormScreen() {
               {employees.length > 0 && (
                 <View style={styles.autoAmountContainer}>
                   <Text style={styles.autoAmountText}>
-                    Total calculated from employees ({formData.period}): {formatAmountForDisplay(employees.reduce((sum, emp) => {
+                    {t('charges.fixed.form.totalFromEmployees')} ({formData.period}): {formatAmountForDisplay(employees.reduce((sum, emp) => {
                       if (formData.period === 'month') {
                         if (emp.monthSalary !== undefined) {
                           return sum + emp.monthSalary;
@@ -662,12 +720,12 @@ export default function FixedChargeFormScreen() {
           {/* Amount Input - Only show for non-personnel charges */}
           {!isPersonnel && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Amount *</Text>
+              <Text style={styles.label}>{t('charges.fixed.form.amount')} *</Text>
               <View style={[styles.inputWrapper, errors.amount && styles.inputError]}>
                 <Text style={styles.amountCurrencyLabel}>MAD</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="0,00"
+                  placeholder={t('charges.fixed.form.placeholderAmount')}
                   placeholderTextColor="rgba(10, 31, 58, 0.5)"
                   value={formData.amount}
                   onChangeText={(value) => updateField('amount', formatAmountInput(value))}
@@ -680,11 +738,11 @@ export default function FixedChargeFormScreen() {
 
           {/* Notes Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Notes (Optional)</Text>
+            <Text style={styles.label}>{t('charges.fixed.form.notesOptional')}</Text>
             <View style={styles.textAreaWrapper}>
               <TextInput
                 style={styles.textArea}
-                placeholder="Add any additional notes..."
+                placeholder={t('charges.fixed.form.placeholderNotes')}
                 placeholderTextColor="rgba(10, 31, 58, 0.5)"
                 value={formData.notes}
                 onChangeText={(value) => updateField('notes', value)}
@@ -709,7 +767,7 @@ export default function FixedChargeFormScreen() {
               <ActivityIndicator color={BluePalette.white} />
             ) : (
               <Text style={styles.submitButtonText}>
-                {isEditMode ? 'Update Charge' : 'Create Charge'}
+                {isEditMode ? t('charges.fixed.form.buttonUpdate') : t('charges.fixed.form.buttonCreate')}
               </Text>
             )}
           </Pressable>
