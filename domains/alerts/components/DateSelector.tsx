@@ -199,6 +199,7 @@ export default function DateSelector({ variant = "alerts" }: DateSelectorProps) 
   );
 
   const isCharges = variant === "charges";
+  const activeTab = useAppSelector((state) => state.alerts.activeTab);
   const selectedDate =
     selectedDateFromStore ||
     (isCharges ? getDefaultDateCharges() : getDefaultDate());
@@ -246,7 +247,7 @@ export default function DateSelector({ variant = "alerts" }: DateSelectorProps) 
     const start = `${selectedDate}T00:00:00`;
     const end = `${selectedDate}T23:59:59`;
     dispatch(fetchAlerts({ date: start, endDate: end }));
-  }, [dispatch, selectedDate, isCharges]);
+  }, [dispatch, selectedDate, isCharges, activeTab]);
 
   // Scroll to selected date when it changes or dates array updates
   useEffect(() => {

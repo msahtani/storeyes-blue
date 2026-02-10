@@ -4,11 +4,14 @@ import apiClient from "@/api/client";
 import { Alert } from "@/domains/alerts/types/alert";
 import { getDisplayDateString } from "@/utils/getDisplayDate";
 
+export type AlertTabType = "notTapped" | "return";
+
 type AlertsState = {
   items: Alert[];
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
   selectedDate: string;
+  activeTab: AlertTabType;
 };
 
 const getDefaultDate = () => getDisplayDateString();
@@ -18,18 +21,34 @@ const initialState: AlertsState = {
   status: "idle",
   error: null,
   selectedDate: getDefaultDate(),
+  activeTab: "notTapped",
 };
 
 export const fetchAlerts = createAsyncThunk<
   Alert[],
-  { date: string; endDate?: string },
-  { rejectValue: string }
->("alerts/fetchAlerts", async ({ date, endDate }, { rejectWithValue }) => {
+  {
+    date: string;
+    endDate?: string;
+    alertType?: "NOT_TAPPED" | "RETURN";
+    /** When true, fetches all alerts (both types) - used e.g. for home screen count */
+    allAlerts?: boolean;
+  },
+  { rejectValue: string; state: { alerts: AlertsState } }
+>("alerts/fetchAlerts", async (payload, { getState, rejectWithValue }) => {
   try {
+    const state = getState();
+    const { date, endDate } = payload;
+    // allAlerts=true: no filter (both NOT_TAPPED and RETURN). Otherwise use activeTab or payload.alertType
+    const alertType = payload?.allAlerts
+      ? undefined
+      : (payload?.alertType ??
+        (state.alerts.activeTab === "return" ? "RETURN" : "NOT_TAPPED"));
+
     const { data } = await apiClient.get<Alert[]>("/alerts", {
       params: {
         date,
         ...(endDate ? { endDate } : {}),
+        ...(alertType ? { alertType } : {}),
       },
     });
     return data;
@@ -48,6 +67,9 @@ const alertsSlice = createSlice({
   reducers: {
     setSelectedDate: (state, action: PayloadAction<string>) => {
       state.selectedDate = action.payload;
+    },
+    setActiveTab: (state, action: PayloadAction<AlertTabType>) => {
+      state.activeTab = action.payload;
     },
     updateAlertHumanJudgement: (
       state,
@@ -76,5 +98,9 @@ const alertsSlice = createSlice({
   },
 });
 
-export const { setSelectedDate, updateAlertHumanJudgement } = alertsSlice.actions;
+export const {
+  setSelectedDate,
+  setActiveTab,
+  updateAlertHumanJudgement,
+} = alertsSlice.actions;
 export default alertsSlice.reducer;

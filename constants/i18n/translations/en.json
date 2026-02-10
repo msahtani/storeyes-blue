@@ -29,6 +29,10 @@
     "screen": {
       "title": "Alerts"
     },
+    "tabs": {
+      "notTapped": "Not Tapped",
+      "return": "Return"
+    },
     "details": {
       "title": "Alert",
       "notFound": "Alert not found",

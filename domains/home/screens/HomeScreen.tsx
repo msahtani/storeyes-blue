@@ -313,6 +313,7 @@ export default function HomeScreen() {
           fetchAlerts({
             date: `${dateString}T00:00:00`,
             endDate: `${dateString}T23:59:59`,
+            allAlerts: true,
           }),
         ).unwrap();
 

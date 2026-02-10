@@ -22,6 +22,7 @@ import {
 
 import {
     fetchAlerts,
+    setActiveTab,
     setSelectedDate,
 } from "@/domains/alerts/store/alertsSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -40,6 +41,7 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
   const params = useLocalSearchParams<{ date?: string }>();
   const dispatch = useAppDispatch();
   const selectedDate = useAppSelector((state) => state.alerts.selectedDate);
+  const activeTab = useAppSelector((state) => state.alerts.activeTab);
   const { t } = useI18n();
   const { isTablet } = useDeviceType();
   const maxContentWidth = getMaxContentWidth(isTablet);
@@ -212,6 +214,46 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
         </Pressable>
       </View>
 
+      {/* Tab Selector */}
+      <View style={styles.tabSelector}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.tabButton,
+            activeTab === "notTapped" && styles.tabButtonActive,
+            pressed && styles.tabButtonPressed,
+          ]}
+          onPress={() => dispatch(setActiveTab("notTapped"))}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "notTapped" && styles.tabTextActive,
+            ]}
+            numberOfLines={1}
+          >
+            {t("alerts.tabs.notTapped")}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [
+            styles.tabButton,
+            activeTab === "return" && styles.tabButtonActive,
+            pressed && styles.tabButtonPressed,
+          ]}
+          onPress={() => dispatch(setActiveTab("return"))}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "return" && styles.tabTextActive,
+            ]}
+            numberOfLines={1}
+          >
+            {t("alerts.tabs.return")}
+          </Text>
+        </Pressable>
+      </View>
+
       {/* Date Selector Blue Bar */}
       <Animated.View
         style={[
@@ -257,6 +299,44 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: BluePalette.white,
+  },
+  tabSelector: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+    backgroundColor: BluePalette.backgroundNew,
+    borderBottomWidth: 1,
+    borderBottomColor: BluePalette.border,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: BluePalette.surface,
+    borderWidth: 1,
+    borderColor: BluePalette.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabButtonActive: {
+    backgroundColor: BluePalette.selectedBackground,
+    borderColor: BluePalette.merge,
+    borderWidth: 1.5,
+  },
+  tabButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: BluePalette.textSecondary,
+  },
+  tabTextActive: {
+    color: BluePalette.merge,
+    fontWeight: "700",
   },
   topHeader: {
     flexDirection: "row",
