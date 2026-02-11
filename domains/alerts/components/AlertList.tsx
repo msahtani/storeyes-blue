@@ -13,7 +13,9 @@ const VISIBLE_JUDGEMENTS = ['NEW', 'TRUE_POSITIVE'];
 export default function AlertList() {
   const router = useRouter();
   const { t } = useI18n();
-  const { items, status, error } = useAppSelector((state) => state.alerts);
+  const { items, status, error, activeTab } = useAppSelector(
+    (state) => state.alerts
+  );
   const visibleItems = items.filter(
     (a) => !a.humanJudgement || VISIBLE_JUDGEMENTS.includes(a.humanJudgement)
   );
@@ -43,9 +45,13 @@ export default function AlertList() {
   }
 
   if (!visibleItems.length) {
+    const emptyKey =
+      activeTab === "notTapped"
+        ? "alerts.list.emptyNotTapped"
+        : "alerts.list.emptyReturn";
     return (
       <View style={styles.messageContainer}>
-        <Text style={styles.message}>{t('alerts.list.empty')}</Text>
+        <Text style={styles.message}>{t(emptyKey)}</Text>
       </View>
     );
   }
@@ -98,6 +104,7 @@ const styles = StyleSheet.create({
     color: BluePalette.textDark,
     fontSize: 16,
     fontWeight: '500',
+    textAlign: 'center',
   },
 });
 

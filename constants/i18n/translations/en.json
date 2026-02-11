@@ -59,6 +59,8 @@
       "loading": "Loading alerts…",
       "failed": "Failed to load alerts",
       "empty": "No alerts for this date",
+      "emptyNotTapped": "No not tapped alerts for this date",
+      "emptyReturn": "No return alerts for this date",
       "defaultTitle": "Alert"
     },
     "item": {

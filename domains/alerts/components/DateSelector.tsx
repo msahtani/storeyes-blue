@@ -1,7 +1,7 @@
 import { Text } from "@/components/Themed";
 import { BluePalette } from "@/constants/Colors";
 import {
-  fetchAlerts,
+  fetchAlertsForDate,
   setSelectedDate,
 } from "@/domains/alerts/store/alertsSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -246,7 +246,8 @@ export default function DateSelector({ variant = "alerts" }: DateSelectorProps) 
 
     const start = `${selectedDate}T00:00:00`;
     const end = `${selectedDate}T23:59:59`;
-    dispatch(fetchAlerts({ date: start, endDate: end }));
+    // Alerts screen: fetch both types for tab counts; charges screen doesn't use this
+    dispatch(fetchAlertsForDate({ date: start, endDate: end }));
   }, [dispatch, selectedDate, isCharges, activeTab]);
 
   // Scroll to selected date when it changes or dates array updates

@@ -59,6 +59,8 @@
       "loading": "Chargement des alertes…",
       "failed": "Échec du chargement des alertes",
       "empty": "Aucune alerte pour cette date",
+      "emptyNotTapped": "Aucune alerte non tappée pour cette date",
+      "emptyReturn": "Aucune alerte retour pour cette date",
       "defaultTitle": "Alerte"
     },
     "item": {

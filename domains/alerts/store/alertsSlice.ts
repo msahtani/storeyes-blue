@@ -8,6 +8,8 @@ export type AlertTabType = "notTapped" | "return";
 
 type AlertsState = {
   items: Alert[];
+  notTappedItems: Alert[];
+  returnItems: Alert[];
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
   selectedDate: string;
@@ -18,6 +20,8 @@ const getDefaultDate = () => getDisplayDateString();
 
 const initialState: AlertsState = {
   items: [],
+  notTappedItems: [],
+  returnItems: [],
   status: "idle",
   error: null,
   selectedDate: getDefaultDate(),
@@ -61,6 +65,34 @@ export const fetchAlerts = createAsyncThunk<
   }
 });
 
+/** Fetches both NOT_TAPPED and RETURN alerts in parallel - used for alerts screen (tabs + counts) */
+export const fetchAlertsForDate = createAsyncThunk<
+  { notTapped: Alert[]; return: Alert[] },
+  { date: string; endDate?: string },
+  { rejectValue: string }
+>("alerts/fetchAlertsForDate", async ({ date, endDate }, { rejectWithValue }) => {
+  try {
+    const [notTappedRes, returnRes] = await Promise.all([
+      apiClient.get<Alert[]>("/alerts", {
+        params: { date, ...(endDate ? { endDate } : {}), alertType: "NOT_TAPPED" },
+      }),
+      apiClient.get<Alert[]>("/alerts", {
+        params: { date, ...(endDate ? { endDate } : {}), alertType: "RETURN" },
+      }),
+    ]);
+    return {
+      notTapped: notTappedRes.data,
+      return: returnRes.data,
+    };
+  } catch (error: any) {
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to fetch alerts";
+    return rejectWithValue(message);
+  }
+});
+
 const alertsSlice = createSlice({
   name: "alerts",
   initialState,
@@ -70,6 +102,8 @@ const alertsSlice = createSlice({
     },
     setActiveTab: (state, action: PayloadAction<AlertTabType>) => {
       state.activeTab = action.payload;
+      state.items =
+        action.payload === "notTapped" ? state.notTappedItems : state.returnItems;
     },
     updateAlertHumanJudgement: (
       state,
@@ -92,6 +126,23 @@ const alertsSlice = createSlice({
         state.items = action.payload;
       })
       .addCase(fetchAlerts.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload || "Failed to fetch alerts";
+      })
+      .addCase(fetchAlertsForDate.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(fetchAlertsForDate.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.notTappedItems = action.payload.notTapped;
+        state.returnItems = action.payload.return;
+        state.items =
+          state.activeTab === "notTapped"
+            ? action.payload.notTapped
+            : action.payload.return;
+      })
+      .addCase(fetchAlertsForDate.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload || "Failed to fetch alerts";
       });

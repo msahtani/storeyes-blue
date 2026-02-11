@@ -21,7 +21,7 @@ import {
 } from "react-native-safe-area-context";
 
 import {
-    fetchAlerts,
+    fetchAlertsForDate,
     setActiveTab,
     setSelectedDate,
 } from "@/domains/alerts/store/alertsSlice";
@@ -42,6 +42,12 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
   const dispatch = useAppDispatch();
   const selectedDate = useAppSelector((state) => state.alerts.selectedDate);
   const activeTab = useAppSelector((state) => state.alerts.activeTab);
+  const notTappedCount = useAppSelector(
+    (state) => state.alerts.notTappedItems.length
+  );
+  const returnCount = useAppSelector(
+    (state) => state.alerts.returnItems.length
+  );
   const { t } = useI18n();
   const { isTablet } = useDeviceType();
   const maxContentWidth = getMaxContentWidth(isTablet);
@@ -168,11 +174,9 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
   );
 
   const handleRefresh = useCallback(() => {
-    // Use the selected date from DateSelector, or fallback to display date (21:00 GMT rule)
     const dateParam = selectedDate || getDisplayDateString();
-
     dispatch(
-      fetchAlerts({
+      fetchAlertsForDate({
         date: `${dateParam}T00:00:00`,
         endDate: `${dateParam}T23:59:59`,
       }),
@@ -231,7 +235,7 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
             ]}
             numberOfLines={1}
           >
-            {t("alerts.tabs.notTapped")}
+            {t("alerts.tabs.notTapped")} ({notTappedCount})
           </Text>
         </Pressable>
         <Pressable
@@ -249,7 +253,7 @@ export default function AlertScreen({ backgroundColor }: AlertScreenProps) {
             ]}
             numberOfLines={1}
           >
-            {t("alerts.tabs.return")}
+            {t("alerts.tabs.return")} ({returnCount})
           </Text>
         </Pressable>
       </View>

@@ -674,6 +674,26 @@ apiClient.interceptors.response.use(
       }
     }
 
+    // Network error (no connectivity, timeout, server unreachable) - redirect to login
+    const isNetworkError =
+      !error.response &&
+      (error.message === 'Network Error' ||
+        error.code === 'ERR_NETWORK' ||
+        error.code === 'ECONNABORTED');
+    if (isNetworkError && onLogoutRequired) {
+      console.warn('[API] Network error detected, redirecting to login', {
+        message: error.message,
+        code: error.code,
+      });
+      await clearTokens();
+      resetRefreshState();
+      try {
+        onLogoutRequired();
+      } catch (callbackError) {
+        console.error('[API] Error in logout callback:', callbackError);
+      }
+    }
+
     return Promise.reject(error);
   }
 );
