@@ -22,6 +22,10 @@
         "title": "Statistiques",
         "subtitle": "Voir les stats"
       },
+      "documents": {
+        "title": "Documents",
+        "subtitle": "Gestion des documents"
+      },
       "datePrefix": "Pour"
     }
   },
@@ -378,6 +382,50 @@
         "performance": "Performance",
         "best": "Meilleur"
       }
+    }
+  },
+  "documents": {
+    "screen": {
+      "title": "Documents"
+    },
+    "list": {
+      "newDocument": "Nouveau document",
+      "empty": "Aucun document disponible",
+      "failed": "Échec du chargement des documents",
+      "open": "Ouvrir"
+    },
+    "form": {
+      "titleNew": "Nouveau document",
+      "titleEdit": "Modifier le document",
+      "name": "Nom",
+      "description": "Description (optionnel)",
+      "file": "Fichier",
+      "placeholderName": "Nom du document",
+      "placeholderDescription": "Ajoutez une courte description...",
+      "pickFile": "Choisir un fichier",
+      "pickFileSubtext": "Sélectionner un document à télécharger",
+      "changeFile": "Appuyez pour remplacer le fichier",
+      "currentFile": "Fichier actuel (remplacement optionnel)",
+      "buttonCreate": "Créer le document",
+      "buttonUpdate": "Mettre à jour le document",
+      "nameRequired": "Le nom est requis",
+      "fileRequired": "Le fichier est requis",
+      "saveFailed": "Échec de l'enregistrement du document",
+      "networkError": "Impossible de se connecter. Vérifiez votre connexion et réessayez."
+    },
+    "details": {
+      "title": "Document",
+      "notFound": "Document introuvable",
+      "loadFailed": "Échec du chargement du document",
+      "open": "Ouvrir le document",
+      "share": "Partager / Transférer",
+      "edit": "Modifier",
+      "downloading": "Téléchargement…",
+      "openFailed": "Impossible d'ouvrir le document. Ouverture dans le navigateur.",
+      "shareFailed": "Impossible de partager le document.",
+      "deleteConfirmTitle": "Supprimer le document",
+      "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer ce document ? Cette action est irréversible.",
+      "deleteFailed": "Échec de la suppression du document"
     }
   }
 }

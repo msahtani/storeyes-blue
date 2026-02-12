@@ -21,6 +21,7 @@ export const FeatureFlags = {
   CHARGES_ENABLED: true,          // Charges service - expense management (Disabled in v1)
   CAISSE_ENABLED: true,           // Cash Register service - daily KPI reports (Disabled in v1)
   STATISTIQUES_ENABLED: true,     // Statistics service - financial analytics (Disabled in v1)
+  DOCUMENTS_ENABLED: true,        // Documents service - store document management
 
   // Navigation Tabs
   SUPPORT_TAB_ENABLED: false,      // Hidden in v1

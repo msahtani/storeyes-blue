@@ -428,12 +428,12 @@ export default function HomeScreen() {
       enabled: FeatureFlags.CHARGES_ENABLED,
     },
     {
-      icon: "log-in",
-      title: "Check In/Out",
-      subtitle: "Employee attendance",
-      color: BluePalette.textTertiary,
-      route: "/check-in-out" as const,
-      enabled: false, // Disabled as requested
+      icon: "file-text",
+      title: t("home.features.documents.title"),
+      subtitle: t("home.features.documents.subtitle"),
+      color: BluePalette.white,
+      route: "/documents" as const,
+      enabled: true,
     },
   ];
 
@@ -512,7 +512,7 @@ export default function HomeScreen() {
               }}
             />
 
-            {/* Second Row: Charges, Check In/Out */}
+            {/* Second Row: Charges, Documents */}
             <FeatureCard
               icon={features[2].icon}
               title={features[2].title}
@@ -529,7 +529,7 @@ export default function HomeScreen() {
               color={features[3].color}
               disabled={!features[3].enabled}
               cardWidth={cardWidth}
-              onPress={() => {}}
+              onPress={() => router.push(features[3].route as any)}
             />
           </View>
         </ScrollView>

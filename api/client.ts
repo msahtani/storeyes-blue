@@ -2,7 +2,8 @@ import { isTokenExpired, keycloakApi } from '@/domains/auth/services/keycloakSer
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
 
-const baseURL = 'https://api.storeyes.io/api';
+const apiBase = process.env.EXPO_PUBLIC_API_URL || 'https://api.storeyes.io';
+const baseURL = apiBase.replace(/\/$/, '') + '/api';
 
 // Storage keys
 const TOKEN_STORAGE_KEY = 'accessToken';
@@ -438,6 +439,11 @@ const refreshTokenIfNeeded = async (): Promise<string | null> => {
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
+      // For FormData (multipart), remove Content-Type so the client sets it with the correct boundary
+      if (config.data instanceof FormData && config.headers) {
+        delete config.headers['Content-Type'];
+      }
+
       // Skip token check for auth endpoints to avoid interceptor loops
       const isAuthEndpoint = config.url?.includes('/auth/refresh') ||
         config.url?.includes('/auth/login') ||
