@@ -9,10 +9,12 @@ import {
 import { Document } from "@/domains/documents/types/document";
 import Feather from "@expo/vector-icons/Feather";
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -87,6 +89,7 @@ export default function DocumentFormScreen({
   const handlePickFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
         copyToCacheDirectory: true,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -103,6 +106,61 @@ export default function DocumentFormScreen({
     } catch (e) {
       console.error("Error picking document:", e);
     }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          t("documents.form.takePhoto"),
+          t("documents.form.cameraPermissionRequired"),
+          [{ text: "OK" }]
+        );
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        quality: 1,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const fileName =
+          asset.fileName || `document-${Date.now()}.jpg`;
+        setFile({
+          uri: asset.uri,
+          name: fileName,
+          type: asset.mimeType || "image/jpeg",
+        });
+        if (errors.file) {
+          setErrors((prev) => ({ ...prev, file: "" }));
+        }
+      }
+    } catch (e) {
+      console.error("Error taking photo:", e);
+    }
+  };
+
+  const handleFileSourceSelect = () => {
+    Alert.alert(
+      t("documents.form.file"),
+      t("documents.form.pickFileSubtext"),
+      [
+        {
+          text: t("documents.form.chooseFromDevice"),
+          onPress: handlePickFile,
+        },
+        {
+          text: t("documents.form.takePhoto"),
+          onPress: handleTakePhoto,
+        },
+        {
+          text: t("charges.fixed.form.cancel"),
+          style: "cancel",
+        },
+      ]
+    );
   };
 
   const updateField = (field: string, value: string) => {
@@ -253,7 +311,7 @@ export default function DocumentFormScreen({
                 errors.file && styles.inputError,
                 pressed && styles.addFileButtonPressed,
               ]}
-              onPress={handlePickFile}
+              onPress={handleFileSourceSelect}
             >
               <Feather
                 name="paperclip"
