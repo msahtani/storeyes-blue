@@ -5,6 +5,9 @@ import { deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
 const apiBase = process.env.EXPO_PUBLIC_API_URL || 'https://api.storeyes.io';
 const baseURL = apiBase.replace(/\/$/, '') + '/api';
 
+/** Same base URL for fetch-based requests (e.g. document uploads). Use this instead of duplicating env logic. */
+export const getApiBaseUrl = () => baseURL;
+
 // Storage keys
 const TOKEN_STORAGE_KEY = 'accessToken';
 const REFRESH_TOKEN_STORAGE_KEY = 'refreshToken';

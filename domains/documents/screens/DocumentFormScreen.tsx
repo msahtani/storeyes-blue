@@ -1,12 +1,14 @@
 import { Text } from "@/components/Themed";
 import { BluePalette } from "@/constants/Colors";
 import { useI18n } from "@/constants/i18n/I18nContext";
+import { getDocumentCategories } from "@/domains/documents/services/documentCategoriesService";
 import {
   createDocument,
   getDocuments,
   updateDocument,
 } from "@/domains/documents/services/documentsService";
 import { Document } from "@/domains/documents/types/document";
+import { DocumentCategory } from "@/domains/documents/types/documentCategory";
 import Feather from "@expo/vector-icons/Feather";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -37,12 +39,16 @@ export default function DocumentFormScreen({
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{ id?: string; categoryId?: string }>();
 
   const [name, setName] = useState(initialDocument?.name ?? "");
   const [description, setDescription] = useState(
     initialDocument?.description ?? "",
   );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    initialDocument?.categoryId ?? null,
+  );
+  const [categories, setCategories] = useState<DocumentCategory[]>([]);
   const [file, setFile] = useState<{
     uri: string;
     name: string;
@@ -67,6 +73,27 @@ export default function DocumentFormScreen({
     }
   };
 
+  // Load categories once
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const list = await getDocumentCategories();
+        setCategories(list);
+      } catch (e) {
+        console.error("Error loading categories:", e);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  // Pre-fill category from URL when creating
+  useEffect(() => {
+    if (!isEdit && params.categoryId && categories.length > 0 && selectedCategoryId === null) {
+      const exists = categories.some((c) => c.id === params.categoryId);
+      if (exists) setSelectedCategoryId(params.categoryId);
+    }
+  }, [isEdit, params.categoryId, categories, selectedCategoryId]);
+
   // Load document data when in edit mode to pre-fill the form
   useEffect(() => {
     const loadDocument = async () => {
@@ -78,6 +105,7 @@ export default function DocumentFormScreen({
           setName(doc.name);
           setDescription(doc.description ?? "");
           setExistingFileName(doc.url ? getFileNameFromUrl(doc.url) : null);
+          if (doc.categoryId != null) setSelectedCategoryId(doc.categoryId);
         }
       } catch (e) {
         console.error("Error loading document for edit:", e);
@@ -192,12 +220,15 @@ export default function DocumentFormScreen({
         await updateDocument(documentId, {
           name: name.trim(),
           description: description.trim(),
+          categoryId: selectedCategoryId ?? undefined,
+          unsetCategory: selectedCategoryId === null,
           file: file || undefined,
         });
       } else if (file) {
         await createDocument({
           name: name.trim(),
           description: description.trim() || undefined,
+          categoryId: selectedCategoryId || undefined,
           file,
         });
       }
@@ -214,7 +245,11 @@ export default function DocumentFormScreen({
         err?.response?.data?.error ||
         err?.message ||
         t("documents.form.saveFailed");
-      if (err?.message === "Network Error" || err?.code === "ERR_NETWORK") {
+      if (
+        err?.message === "Network Error" ||
+        err?.message === "Network request failed" ||
+        err?.code === "ERR_NETWORK"
+      ) {
         message = t("documents.form.networkError");
       }
       setErrors((prev) => ({ ...prev, submit: message }));
@@ -278,6 +313,69 @@ export default function DocumentFormScreen({
               />
             </View>
             {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+          </View>
+
+          {/* Category: read-only when creating from a category or in edit mode; otherwise picker */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>
+              {t("documents.form.category")}
+            </Text>
+            {(!isEdit && params.categoryId) || isEdit ? (
+              <View style={styles.categoryReadOnlyWrapper}>
+                <Feather
+                  name="folder"
+                  size={18}
+                  color={BluePalette.textDark}
+                  style={styles.inputIcon}
+                />
+                <Text style={styles.categoryReadOnlyText} numberOfLines={1}>
+                  {isEdit
+                    ? (selectedCategoryId
+                        ? categories.find((c) => c.id === selectedCategoryId)?.name ?? "—"
+                        : t("documents.form.noCategory"))
+                    : (categories.find((c) => c.id === params.categoryId)?.name ?? "—")}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.categoryChipsRow}>
+                <Pressable
+                  style={[
+                    styles.categoryChip,
+                    selectedCategoryId === null && styles.categoryChipSelected,
+                  ]}
+                  onPress={() => setSelectedCategoryId(null)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      selectedCategoryId === null && styles.categoryChipTextSelected,
+                    ]}
+                  >
+                    {t("documents.form.noCategory")}
+                  </Text>
+                </Pressable>
+                {categories.map((cat) => (
+                  <Pressable
+                    key={cat.id}
+                    style={[
+                      styles.categoryChip,
+                      selectedCategoryId === cat.id && styles.categoryChipSelected,
+                    ]}
+                    onPress={() => setSelectedCategoryId(cat.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        selectedCategoryId === cat.id && styles.categoryChipTextSelected,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {cat.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Description Input */}
@@ -458,6 +556,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: BluePalette.textDark,
     minHeight: 80,
+  },
+  categoryReadOnlyWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: BluePalette.white,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "rgba(10, 31, 58, 0.2)",
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    minHeight: 52,
+  },
+  categoryReadOnlyText: {
+    flex: 1,
+    fontSize: 16,
+    color: BluePalette.textDark,
+  },
+  categoryChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: "rgba(10, 31, 58, 0.25)",
+    backgroundColor: BluePalette.white,
+  },
+  categoryChipSelected: {
+    backgroundColor: BluePalette.merge,
+    borderColor: BluePalette.merge,
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: BluePalette.textDark,
+  },
+  categoryChipTextSelected: {
+    color: BluePalette.white,
   },
   addFileButton: {
     backgroundColor: BluePalette.backgroundNew,

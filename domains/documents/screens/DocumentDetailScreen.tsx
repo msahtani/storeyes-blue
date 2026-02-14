@@ -8,8 +8,8 @@ import {
 import { useDocumentActions } from "@/domains/documents/hooks/useDocumentActions";
 import { Document } from "@/domains/documents/types/document";
 import Feather from "@expo/vector-icons/Feather";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -37,31 +37,36 @@ export default function DocumentDetailScreen() {
     shareLoading,
   } = useDocumentActions(document);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const all = await getDocuments();
-        const found = all.find((d) => d.id === params.id);
-        if (!found) {
-          setError(t("documents.details.notFound"));
-        } else {
-          setDocument(found);
-        }
-      } catch (err: any) {
-        console.error("Error loading document:", err);
-        const message =
-          err?.response?.data?.message ||
-          err?.response?.data?.error ||
-          err?.message ||
-          t("documents.details.loadFailed");
-        setError(message);
-      } finally {
-        setLoading(false);
+  const loadDocument = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const all = await getDocuments();
+      const found = all.find((d) => d.id === params.id);
+      if (!found) {
+        setError(t("documents.details.notFound"));
+        setDocument(null);
+      } else {
+        setDocument(found);
       }
-    };
-
-    load();
+    } catch (err: any) {
+      console.error("Error loading document:", err);
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        t("documents.details.loadFailed");
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   }, [params.id, t]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDocument();
+    }, [loadDocument])
+  );
 
   const confirmDelete = () => {
     if (!document) return;
@@ -90,11 +95,18 @@ export default function DocumentDetailScreen() {
       router.back();
     } catch (err: any) {
       console.error("Error deleting document:", err);
-      const message =
+      let message =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
         t("documents.details.deleteFailed");
+      if (
+        err?.message === "Network Error" ||
+        err?.message === "Network request failed" ||
+        err?.code === "ERR_NETWORK"
+      ) {
+        message = t("documents.form.networkError");
+      }
       setError(message);
       setDeleting(false);
     }

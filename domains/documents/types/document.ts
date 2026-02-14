@@ -2,6 +2,8 @@ export interface DocumentDto {
   id: number;
   storeId: number;
   storeCode: string;
+  categoryId?: number | null;
+  categoryName?: string | null;
   name: string;
   description?: string | null;
   url: string;
@@ -14,6 +16,8 @@ export interface Document {
   name: string;
   description?: string;
   url: string;
+  categoryId?: string | null;
+  categoryName?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -2,14 +2,17 @@ import { Text } from "@/components/Themed";
 import { BluePalette } from "@/constants/Colors";
 import { useI18n } from "@/constants/i18n/I18nContext";
 import BottomBar from "@/domains/shared/components/BottomBar";
-import { getDocuments } from "@/domains/documents/services/documentsService";
-import { useDocumentActions } from "@/domains/documents/hooks/useDocumentActions";
-import { Document } from "@/domains/documents/types/document";
+import {
+  deleteDocumentCategory,
+  getDocumentCategories,
+} from "@/domains/documents/services/documentCategoriesService";
+import { DocumentCategory } from "@/domains/documents/types/documentCategory";
 import Feather from "@expo/vector-icons/Feather";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,83 +20,70 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-function DocumentCard({
-  doc,
+function CategoryCard({
+  category,
   onPress,
+  onEdit,
+  onDelete,
 }: {
-  doc: Document;
+  category: DocumentCategory;
   onPress: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const { t } = useI18n();
-  const {
-    handleOpen,
-    handleShare,
-    openLoading,
-    shareLoading,
-  } = useDocumentActions(doc);
 
   return (
-    <View style={styles.itemCard}>
+    <View style={styles.card}>
       <Pressable
         style={({ pressed }) => [
-          styles.itemCardMain,
-          pressed && styles.itemCardPressed,
+          styles.cardMain,
+          pressed && styles.cardMainPressed,
         ]}
         onPress={onPress}
       >
-        <View style={styles.itemIconContainer}>
-          <Feather name="file-text" size={28} color={BluePalette.merge} />
+        <View style={styles.iconWrap}>
+          <Feather name="folder" size={32} color={BluePalette.merge} />
         </View>
-        <View style={styles.itemContent}>
-          <Text style={styles.itemTitle} numberOfLines={1}>
-            {doc.name}
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {category.name}
           </Text>
-          {doc.description && (
-            <Text style={styles.itemDescription} numberOfLines={2}>
-              {doc.description}
+          {category.description ? (
+            <Text style={styles.cardDescription} numberOfLines={2}>
+              {category.description}
             </Text>
-          )}
+          ) : null}
         </View>
         <Feather
           name="chevron-right"
           size={22}
           color={BluePalette.textTertiary}
-          style={styles.itemCardChevron}
+          style={styles.chevron}
         />
       </Pressable>
-      <View style={styles.itemActionsRow}>
+      <View style={styles.actionsRow}>
         <Pressable
           style={({ pressed }) => [
-            styles.cardActionButton,
-            pressed && styles.cardActionButtonPressed,
+            styles.actionBtn,
+            pressed && styles.actionBtnPressed,
           ]}
-          onPress={() => handleOpen()}
-          disabled={openLoading}
+          onPress={onEdit}
         >
-          {openLoading ? (
-            <ActivityIndicator size="small" color={BluePalette.textPrimary} />
-          ) : (
-            <Feather name="external-link" size={16} color={BluePalette.textPrimary} />
-          )}
-          <Text style={styles.cardActionText}>
-            {t("documents.details.open")}
-          </Text>
+          <Feather name="edit-2" size={18} color={BluePalette.merge} />
+          <Text style={styles.actionBtnText}>{t("documents.categories.edit")}</Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [
-            styles.cardActionButton,
-            pressed && styles.cardActionButtonPressed,
+            styles.actionBtn,
+            styles.actionBtnDanger,
+            pressed && styles.actionBtnPressed,
           ]}
-          onPress={() => handleShare()}
-          disabled={shareLoading}
+          onPress={onDelete}
         >
-          {shareLoading ? (
-            <ActivityIndicator size="small" color={BluePalette.textPrimary} />
-          ) : (
-            <Feather name="share-2" size={16} color={BluePalette.textPrimary} />
-          )}
-          <Text style={styles.cardActionText}>
-            {t("documents.details.share")}
+          <Feather name="trash-2" size={18} color={BluePalette.error} />
+          <Text style={[styles.actionBtnText, styles.actionBtnTextDanger]}>
+            {t("documents.categories.delete")}
           </Text>
         </Pressable>
       </View>
@@ -101,61 +91,79 @@ function DocumentCard({
   );
 }
 
-interface DocumentsScreenProps {
-  categoryId?: string;
-}
-
-export default function DocumentsScreen({ categoryId }: DocumentsScreenProps) {
+export default function DocumentCategoriesScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [categories, setCategories] = useState<DocumentCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const bottomBarHeight = 15;
   const bottomBarTotalHeight = bottomBarHeight + insets.bottom;
 
-  const fetchDocuments = useCallback(async () => {
+  const fetchCategories = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getDocuments(categoryId ?? undefined);
-      setDocuments(data);
+      const data = await getDocumentCategories();
+      setCategories(data);
     } catch (err: any) {
-      console.error("Error fetching documents:", {
-        error: err,
-        response: err?.response?.data,
-        status: err?.response?.status,
-      });
+      console.error("Error fetching categories:", err);
       const message =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
-        t("documents.list.failed");
+        t("documents.categories.loadFailed");
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, [t, categoryId]);
+  }, [t]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchDocuments();
-    }, [fetchDocuments])
+      fetchCategories();
+    }, [fetchCategories])
   );
 
-  const handleCreatePress = () => {
-    const createPath =
-      categoryId != null && categoryId !== ""
-        ? `/documents/create?categoryId=${encodeURIComponent(categoryId)}`
-        : "/documents/create";
-    router.push(createPath as any);
+  const handleCreateCategory = () => {
+    router.push("/documents/categories/create" as any);
   };
 
-  const handleItemPress = (id: string) => {
-    router.push(`/documents/${id}` as any);
+  const handleCategoryPress = (categoryId: string) => {
+    router.push(`/documents/category/${categoryId}` as any);
+  };
+
+  const handleEdit = (categoryId: string) => {
+    router.push(`/documents/categories/edit/${categoryId}` as any);
+  };
+
+  const handleDelete = (category: DocumentCategory) => {
+    Alert.alert(
+      t("documents.categories.deleteConfirmTitle"),
+      t("documents.categories.deleteConfirmMessage"),
+      [
+        { text: t("documents.categories.cancel"), style: "cancel" },
+        {
+          text: t("documents.categories.delete"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDocumentCategory(category.id);
+              setCategories((prev) => prev.filter((c) => c.id !== category.id));
+            } catch (err: any) {
+              const msg =
+                err?.response?.data?.message ||
+                err?.message ||
+                t("documents.categories.deleteFailed");
+              Alert.alert(t("documents.categories.error"), msg);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -163,7 +171,6 @@ export default function DocumentsScreen({ categoryId }: DocumentsScreenProps) {
       edges={["left", "right"]}
       style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}
     >
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Feather
@@ -173,25 +180,22 @@ export default function DocumentsScreen({ categoryId }: DocumentsScreenProps) {
           />
         </Pressable>
         <Text style={styles.headerTitle}>
-          {categoryId
-            ? t("documents.list.titleInCategory")
-            : t("documents.screen.title")}
+          {t("documents.categories.screenTitle")}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      {/* Create Button */}
-      <View style={styles.createButtonContainer}>
+      <View style={styles.createSection}>
         <Pressable
           style={({ pressed }) => [
             styles.createButton,
             pressed && styles.createButtonPressed,
           ]}
-          onPress={handleCreatePress}
+          onPress={handleCreateCategory}
         >
           <Feather name="plus" size={20} color={BluePalette.white} />
           <Text style={styles.createButtonText}>
-            {t("documents.list.newDocument")}
+            {t("documents.categories.newCategory")}
           </Text>
         </Pressable>
       </View>
@@ -216,26 +220,34 @@ export default function DocumentsScreen({ categoryId }: DocumentsScreenProps) {
                 styles.retryButton,
                 pressed && styles.retryButtonPressed,
               ]}
-              onPress={fetchDocuments}
+              onPress={fetchCategories}
             >
               <Text style={styles.retryButtonText}>
                 {t("statistics.common.retry")}
               </Text>
             </Pressable>
           </View>
-        ) : documents.length === 0 ? (
+        ) : categories.length === 0 ? (
           <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconWrap}>
+              <Feather name="folder" size={48} color={BluePalette.textTertiary} />
+            </View>
             <Text style={styles.emptyText}>
-              {t("documents.list.empty")}
+              {t("documents.categories.empty")}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {t("documents.categories.emptyHint")}
             </Text>
           </View>
         ) : (
           <View style={styles.listContainer}>
-            {documents.map((doc) => (
-              <DocumentCard
-                key={doc.id}
-                doc={doc}
-                onPress={() => handleItemPress(doc.id)}
+            {categories.map((cat) => (
+              <CategoryCard
+                key={cat.id}
+                category={cat}
+                onPress={() => handleCategoryPress(cat.id)}
+                onEdit={() => handleEdit(cat.id)}
+                onDelete={() => handleDelete(cat)}
               />
             ))}
           </View>
@@ -283,7 +295,7 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
   },
-  createButtonContainer: {
+  createSection: {
     paddingHorizontal: 20,
     paddingVertical: 12,
     backgroundColor: BluePalette.backgroundNew,
@@ -299,10 +311,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     shadowColor: BluePalette.merge,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
@@ -323,28 +332,42 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 16,
   },
   listContainer: {
-    gap: 12,
+    gap: 14,
   },
   loaderContainer: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 60,
   },
   emptyContainer: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 60,
     gap: 12,
   },
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: BluePalette.backgroundNew,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
   emptyText: {
-    fontSize: 16,
-    color: BluePalette.textTertiary,
-    fontWeight: "500",
+    fontSize: 17,
+    fontWeight: "600",
+    color: BluePalette.textDark,
+    textAlign: "center",
+  },      
+  emptySubtext: {
+    fontSize: 14,
+    color: BluePalette.textDark,
+    textAlign: "center",
+    paddingHorizontal: 24,
   },
   errorText: {
     fontSize: 16,
@@ -367,84 +390,85 @@ const styles = StyleSheet.create({
     color: BluePalette.merge,
     fontWeight: "600",
   },
-  itemCard: {
-    flexDirection: "column",
-    padding: 16,
+  card: {
     borderRadius: 16,
     backgroundColor: BluePalette.backgroundNew,
     borderWidth: 1.5,
     borderColor: BluePalette.border,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
-    gap: 12,
+    overflow: "hidden",
   },
-  itemCardMain: {
+  cardMain: {
     flexDirection: "row",
-    gap: 12,
+    alignItems: "center",
+    padding: 16,
   },
-  itemCardPressed: {
+  cardMainPressed: {
     opacity: 0.9,
   },
-  itemActionsRow: {
-    flexDirection: "row",
-    gap: 8,
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: `${BluePalette.merge}18`,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  cardContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: BluePalette.textPrimary,
+  },
+  cardDescription: {
+    fontSize: 13,
+    color: BluePalette.textSecondary,
     marginTop: 4,
-    paddingTop: 12,
+  },
+  chevron: {
+    marginLeft: 8,
+  },
+  actionsRow: {
+    flexDirection: "row",
     borderTopWidth: 1,
     borderTopColor: BluePalette.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
   },
-  cardActionButton: {
+  actionBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: BluePalette.mergeDark,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: BluePalette.surface,
     borderWidth: 1,
     borderColor: BluePalette.border,
   },
-  cardActionButtonPressed: {
+  actionBtnPressed: {
     opacity: 0.8,
   },
-  cardActionText: {
+  actionBtnDanger: {
+    backgroundColor: `${BluePalette.error}12`,
+    borderColor: `${BluePalette.error}30`,
+  },
+  actionBtnText: {
     fontSize: 13,
     fontWeight: "600",
     color: BluePalette.textPrimary,
   },
-  itemIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: `${BluePalette.merge}15`,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  itemContent: {
-    flex: 1,
-    minWidth: 0,
-    gap: 4,
-  },
-  itemCardChevron: {
-    marginLeft: 8,
-    alignSelf: "center",
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: BluePalette.textPrimary,
-  },
-  itemDescription: {
-    fontSize: 13,
-    color: BluePalette.textSecondary,
+  actionBtnTextDanger: {
+    color: BluePalette.error,
   },
 });
-

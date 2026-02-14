@@ -1,4 +1,4 @@
-import { apiClient } from "@/api/client";
+import { apiClient, getApiBaseUrl } from "@/api/client";
 import { getItemAsync } from "expo-secure-store";
 import { Document, DocumentDto } from "../types/document";
 
@@ -14,10 +14,15 @@ import { Document, DocumentDto } from "../types/document";
 
 const TOKEN_STORAGE_KEY = "accessToken";
 
-const getBaseUrl = (): string => {
-  const apiBase =
-    process.env.EXPO_PUBLIC_API_URL || "https://api.storeyes.io";
-  return apiBase.replace(/\/$/, "") + "/api";
+/** Throws with err.code = "ERR_NETWORK" and a clear message when fetch fails before getting a response. */
+const wrapNetworkError = (err: unknown, context: string): never => {
+  const out = err instanceof Error ? err : new Error(String(err));
+  (out as any).code = "ERR_NETWORK";
+  (out as any).response = undefined;
+  if (!out.message || out.message === "Network request failed") {
+    out.message = "Network request failed";
+  }
+  throw out;
 };
 
 const mapDocumentDtoToDocument = (dto: DocumentDto): Document => ({
@@ -25,18 +30,29 @@ const mapDocumentDtoToDocument = (dto: DocumentDto): Document => ({
   name: dto.name,
   description: dto.description ?? undefined,
   url: dto.url,
+  categoryId: dto.categoryId != null ? dto.categoryId.toString() : null,
+  categoryName: dto.categoryName ?? undefined,
   createdAt: dto.createdAt,
   updatedAt: dto.updatedAt,
 });
 
-export const getDocuments = async (): Promise<Document[]> => {
-  const { data } = await apiClient.get<DocumentDto[]>("/documents");
+export const getDocuments = async (
+  categoryId?: string | null,
+): Promise<Document[]> => {
+  const params =
+    categoryId != null && categoryId !== ""
+      ? { categoryId }
+      : undefined;
+  const { data } = await apiClient.get<DocumentDto[]>("/documents", {
+    params,
+  });
   return data.map(mapDocumentDtoToDocument);
 };
 
 interface CreateDocumentPayload {
   name: string;
   description?: string;
+  categoryId?: string | null;
   file: {
     uri: string;
     name: string;
@@ -57,6 +73,9 @@ export const createDocument = async (
   if (payload.description) {
     formData.append("description", payload.description);
   }
+  if (payload.categoryId != null && payload.categoryId !== "") {
+    formData.append("categoryId", payload.categoryId);
+  }
 
   formData.append("file", {
     uri: payload.file.uri,
@@ -64,20 +83,25 @@ export const createDocument = async (
     type: payload.file.type,
   } as any);
 
-  const url = `${getBaseUrl()}/documents`;
+  const url = `${getApiBaseUrl()}/documents`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-    },
-    body: formData,
-    signal: controller.signal,
-  });
-
+  let response!: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+      body: formData,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    wrapNetworkError(err, "createDocument");
+  }
   clearTimeout(timeoutId);
 
   if (!response.ok) {
@@ -96,6 +120,9 @@ export const createDocument = async (
 interface UpdateDocumentPayload {
   name?: string;
   description?: string | null;
+  categoryId?: string | null;
+  /** When true, unlink document from any category */
+  unsetCategory?: boolean;
   file?: {
     uri: string;
     name: string;
@@ -121,6 +148,17 @@ export const updateDocument = async (
   if (payload.description !== undefined) {
     formData.append("description", payload.description ?? "");
   }
+  if (payload.categoryId !== undefined) {
+    formData.append(
+      "categoryId",
+      payload.categoryId != null && payload.categoryId !== ""
+        ? payload.categoryId
+        : "",
+    );
+  }
+  if (payload.unsetCategory === true) {
+    formData.append("unsetCategory", "true");
+  }
 
   if (payload.file) {
     formData.append("file", {
@@ -130,20 +168,25 @@ export const updateDocument = async (
     } as any);
   }
 
-  const url = `${getBaseUrl()}/documents/${id}`;
+  const url = `${getApiBaseUrl()}/documents/${id}`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-  const response = await fetch(url, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-    },
-    body: formData,
-    signal: controller.signal,
-  });
-
+  let response!: Response;
+  try {
+    response = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+      body: formData,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    wrapNetworkError(err, "updateDocument");
+  }
   clearTimeout(timeoutId);
 
   if (!response.ok) {

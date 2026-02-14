@@ -1,6 +1,6 @@
-import DocumentsScreen from "@/domains/documents/screens/DocumentsScreen";
+import DocumentCategoriesScreen from "@/domains/documents/screens/DocumentCategoriesScreen";
 
 export default function DocumentsRoute() {
-  return <DocumentsScreen />;
+  return <DocumentCategoriesScreen />;
 }
 
