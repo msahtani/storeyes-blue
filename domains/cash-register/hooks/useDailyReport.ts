@@ -102,18 +102,21 @@ export const useDailyReport = () => {
           setReportData(data);
         }
       } catch (err: any) {
-        // Verify this error is still for the current selected date
         if (currentRequestDateRef.current !== dateString) {
-          // Date changed while request was in flight, ignore this error
           return;
         }
 
-        const errorMessage =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to fetch daily report";
-        setError(errorMessage);
-        setReportData(null);
+        const status = err?.response?.status;
+        if (status === 404) {
+          setError(null);
+          setReportData(null);
+        } else if (status >= 500 && status < 600) {
+          setError("SERVER_ERROR");
+          setReportData(null);
+        } else {
+          setError("GENERIC_ERROR");
+          setReportData(null);
+        }
         console.error("Error fetching daily report:", err);
       } finally {
         // Only update loading state if this is still the current date

@@ -282,7 +282,9 @@ export default function DailyReportScreen() {
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={BluePalette.merge} />
-            <Text style={styles.loadingText}>Loading daily report...</Text>
+            <Text style={styles.loadingText}>
+              {t("statistics.dailyReport.loading")}
+            </Text>
           </View>
         )}
 
@@ -294,7 +296,13 @@ export default function DailyReportScreen() {
               size={24}
               color={BluePalette.error || "#FF3B30"}
             />
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorText}>
+              {error === "SERVER_ERROR"
+                ? t("statistics.dailyReport.errorServer")
+                : error === "GENERIC_ERROR"
+                  ? t("statistics.dailyReport.errorGeneric")
+                  : error}
+            </Text>
           </View>
         )}
 
@@ -304,8 +312,8 @@ export default function DailyReportScreen() {
             <Feather name="inbox" size={32} color={BluePalette.textTertiary} />
             <Text style={styles.noDataText}>
               {isViewingDisplayDate
-                ? "Data for today is not yet available. Please check back later."
-                : "No data available for this date"}
+                ? t("statistics.dailyReport.noDataForToday")
+                : t("statistics.dailyReport.noDataForDate")}
             </Text>
           </View>
         )}

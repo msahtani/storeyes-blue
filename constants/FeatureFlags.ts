@@ -22,6 +22,7 @@ export const FeatureFlags = {
   CAISSE_ENABLED: true,           // Cash Register service - daily KPI reports (Disabled in v1)
   STATISTIQUES_ENABLED: true,     // Statistics service - financial analytics (Disabled in v1)
   DOCUMENTS_ENABLED: true,        // Documents service - store document management
+  STOCK_ENABLED: true,            // Stock / Inventory management (value, restock, manual inventory)
 
   // Navigation Tabs
   SUPPORT_TAB_ENABLED: false,      // Hidden in v1

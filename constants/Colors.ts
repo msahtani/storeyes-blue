@@ -52,6 +52,7 @@ export const BluePalette = {
   warning: '#F59E0B',        // Amber for warnings
   error: '#EF4444',          // Red for errors
   info: '#06B6D4',           // Cyan for info (using merge color)
+  smartStock: '#A855F7',     // Purple for smart stock value (lamp/idea)
   
   // Overlay
   overlay: 'rgba(10, 31, 58, 0.85)',

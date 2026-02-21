@@ -26,6 +26,10 @@
         "title": "Documents",
         "subtitle": "Gestion des documents"
       },
+      "stock": {
+        "title": "Stock",
+        "subtitle": "Valeur, réappro & inventaire"
+      },
       "datePrefix": "Pour"
     }
   },
@@ -326,6 +330,11 @@
     "dailyReport": {
       "date": "Date",
       "title": "Rapport KPI Quotidien",
+      "loading": "Chargement du rapport…",
+      "errorServer": "Le serveur est temporairement indisponible. Veuillez réessayer plus tard.",
+      "errorGeneric": "Impossible de charger le rapport. Veuillez réessayer.",
+      "noDataForDate": "Aucune donnée pour cette date.",
+      "noDataForToday": "Les données du jour ne sont pas encore disponibles. Revenez plus tard.",
       "revenueMetrics": {
         "title": "Aperçu des Métriques de Revenus",
         "totalTTC": "Revenu Total (TTC)",
@@ -456,6 +465,55 @@
       "deleteConfirmTitle": "Supprimer le document",
       "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer ce document ? Cette action est irréversible.",
       "deleteFailed": "Échec de la suppression du document"
+    }
+  },
+  "stock": {
+    "screen": {
+      "title": "Stock",
+      "subtitle": "Valeur, réapprovisionnement et inventaire"
+    },
+    "tabs": {
+      "value": "Valeur",
+      "tobuy": "À acheter",
+      "smartStockValue": "Valeur stock intelligent",
+      "inventory": "Inventaire"
+    },
+    "smartStock": {
+      "subtitle": "Recommandations et indicateurs"
+    },
+    "totalValue": {
+      "title": "Valeur totale du stock",
+      "products": "produits",
+      "realStockFromCount": "Stock réel (votre comptage)"
+    },
+    "tobuy": {
+      "toRestock": "à réapprovisionner",
+      "actual": "Actuel",
+      "threshold": "Seuil",
+      "buy": "Acheter",
+      "allGood": "Tout est bon !",
+      "noRestock": "Aucun produit à réapprovisionner."
+    },
+    "inventory": {
+      "compareHint": "Comparez le calcul automatique (système) et votre comptage réel. Utilisez l'écart pour les statistiques et améliorer votre activité.",
+      "systemTotal": "Système (auto)",
+      "realTotal": "Réel (votre comptage)",
+      "ecart": "Écart",
+      "statsHint": "La différence vous aide à repérer pertes, vols ou erreurs de saisie et à mieux décider.",
+      "differences": "écarts",
+      "noModifications": "Aucune modification à consulter",
+      "system": "Système",
+      "manual": "Réel",
+      "diff": "Δ Écart",
+      "shareSectionTitle": "Partagez le lien avec la personne qui renseignera le stock",
+      "shareSectionHint": "Envoyez le lien du backoffice pour qu'elle saisisse les quantités réelles. Après envoi, les écarts s'affichent ici et vous pourrez les valider pour mettre à jour le système.",
+      "shareLink": "Partager le lien",
+      "shareTitle": "Inventaire stock – Backoffice",
+      "differencesDate": "depuis le",
+      "acceptAndValidate": "Accepter et valider"
+    },
+    "units": {
+      "piece": "pièce"
     }
   }
 }

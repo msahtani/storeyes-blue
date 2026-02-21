@@ -435,6 +435,14 @@ export default function HomeScreen() {
       route: "/documents" as const,
       enabled: true,
     },
+    {
+      icon: "package",
+      title: t("home.features.stock.title"),
+      subtitle: t("home.features.stock.subtitle"),
+      color: BluePalette.merge,
+      route: "/(tabs)/stock" as const,
+      enabled: FeatureFlags.STOCK_ENABLED,
+    },
   ];
 
   return (
@@ -530,6 +538,15 @@ export default function HomeScreen() {
               disabled={!features[3].enabled}
               cardWidth={cardWidth}
               onPress={() => router.push(features[3].route as any)}
+            />
+            <FeatureCard
+              icon={features[4].icon}
+              title={features[4].title}
+              subtitle={features[4].subtitle}
+              color={features[4].color}
+              disabled={!features[4].enabled}
+              cardWidth={cardWidth}
+              onPress={() => router.push(features[4].route as any)}
             />
           </View>
         </ScrollView>

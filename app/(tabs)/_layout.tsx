@@ -93,6 +93,17 @@ export default function TabLayout() {
           headerShown: false,
         }}
       />
+      {/* Stock tab */}
+      <Tabs.Screen
+        name="stock"
+        options={{
+          title: 'Stock',
+          tabBarLabel: 'Stock',
+          tabBarIcon: ({ color }) => <TabBarIcon name="archive" color={color} />,
+          headerShown: false,
+          href: FeatureFlags.STOCK_ENABLED ? undefined : null,
+        }}
+      />
       {/* Support tab - Hidden in v1 */}
       <Tabs.Screen
         name="support"

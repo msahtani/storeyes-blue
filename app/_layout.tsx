@@ -11,6 +11,7 @@ import { setLogoutCallback } from '@/api/client';
 import { useColorScheme } from '@/components/useColorScheme';
 import { I18nProvider } from '@/constants/i18n/I18nContext';
 import { loadStoredTokens, logout } from '@/domains/auth/store/authSlice';
+import { StockProvider } from '@/domains/stock/context/StockContext';
 import { store } from '@/store';
 
 export {
@@ -51,7 +52,7 @@ function RootLayoutNav() {
     if (isLoading) return; // Wait for auth check to complete
 
     const inAuthGroup = segments[0] === 'login';
-    const inAppGroup = segments[0] === '(tabs)' || segments[0] === 'alerts' || segments[0] === 'alert' || segments[0] === 'charges' || segments[0] === 'statistics' || segments[0] === 'caisse';
+    const inAppGroup = segments[0] === '(tabs)' || segments[0] === 'alerts' || segments[0] === 'alert' || segments[0] === 'charges' || segments[0] === 'statistics' || segments[0] === 'caisse' || segments[0] === 'stock';
 
     if (!isAuthenticated && !skipAuth && !inAuthGroup) {
       // Not authenticated and not skipped, redirect to login
@@ -64,21 +65,24 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="alerts" options={{ headerShown: false }} />
-        <Stack.Screen name="alert/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="charges" options={{ headerShown: false }} />
-        <Stack.Screen name="charges/fixed/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="charges/variable/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="statistics" options={{ headerShown: false }} />
-        <Stack.Screen name="statistics/charges" options={{ headerShown: false }} />
-        <Stack.Screen name="caisse" options={{ headerShown: false }} />
-        <Stack.Screen name="caisse/daily-report" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
+      <StockProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="register" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="alerts" options={{ headerShown: false }} />
+          <Stack.Screen name="alert/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="charges" options={{ headerShown: false }} />
+          <Stack.Screen name="charges/fixed/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="charges/variable/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="statistics" options={{ headerShown: false }} />
+          <Stack.Screen name="statistics/charges" options={{ headerShown: false }} />
+          <Stack.Screen name="caisse" options={{ headerShown: false }} />
+          <Stack.Screen name="caisse/daily-report" options={{ headerShown: false }} />
+          <Stack.Screen name="stock" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        </Stack>
+      </StockProvider>
     </ThemeProvider>
   );
 }

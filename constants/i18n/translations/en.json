@@ -26,6 +26,10 @@
         "title": "Documents",
         "subtitle": "Document management"
       },
+      "stock": {
+        "title": "Stock",
+        "subtitle": "Value, restock & inventory"
+      },
       "datePrefix": "For"
     }
   },
@@ -326,6 +330,11 @@
     "dailyReport": {
       "date": "Date",
       "title": "Daily KPI Report",
+      "loading": "Loading daily report…",
+      "errorServer": "The server is temporarily unavailable. Please try again later.",
+      "errorGeneric": "Could not load the report. Please try again.",
+      "noDataForDate": "No data available for this date.",
+      "noDataForToday": "Data for today is not yet available. Please check back later.",
       "revenueMetrics": {
         "title": "Revenue Metrics Overview",
         "totalTTC": "Total Revenue (TTC)",
@@ -456,6 +465,55 @@
       "deleteConfirmTitle": "Delete document",
       "deleteConfirmMessage": "Are you sure you want to delete this document? This action cannot be undone.",
       "deleteFailed": "Failed to delete document"
+    }
+  },
+  "stock": {
+    "screen": {
+      "title": "Stock",
+      "subtitle": "Value, restock & inventory"
+    },
+    "tabs": {
+      "value": "Value",
+      "tobuy": "To Buy",
+      "smartStockValue": "Smart stock value",
+      "inventory": "Inventory"
+    },
+    "smartStock": {
+      "subtitle": "Insights and recommendations"
+    },
+    "totalValue": {
+      "title": "Total Stock Value",
+      "products": "products",
+      "realStockFromCount": "Real stock (from your count)"
+    },
+    "tobuy": {
+      "toRestock": "to restock",
+      "actual": "Actual",
+      "threshold": "Threshold",
+      "buy": "Buy",
+      "allGood": "All good!",
+      "noRestock": "No products need restocking."
+    },
+    "inventory": {
+      "compareHint": "Compare automatic calculation (system) vs your real count. Use the gap for statistics and to improve your business.",
+      "systemTotal": "System (auto)",
+      "realTotal": "Real (your count)",
+      "ecart": "Variance (écart)",
+      "statsHint": "The difference helps you spot loss, theft, or input errors and make better decisions.",
+      "differences": "differences",
+      "noModifications": "No modifications to review",
+      "system": "System",
+      "manual": "Real",
+      "diff": "Δ Diff",
+      "shareSectionTitle": "Share the link with the person who will fill the stock",
+      "shareSectionHint": "Send the backoffice link so they can enter the real stock counts. After they submit, you'll see differences here and can accept to update the system.",
+      "shareLink": "Share link",
+      "shareTitle": "Stock inventory – Backoffice",
+      "differencesDate": "since",
+      "acceptAndValidate": "Accept and validate"
+    },
+    "units": {
+      "piece": "pc"
     }
   }
 }
