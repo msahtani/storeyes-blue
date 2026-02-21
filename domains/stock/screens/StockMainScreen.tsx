@@ -3,10 +3,17 @@ import { BluePalette } from '@/constants/Colors';
 import { useI18n } from '@/constants/i18n/I18nContext';
 import { useStock } from '@/domains/stock/context/StockContext';
 import Feather from '@expo/vector-icons/Feather';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useRef } from 'react';
+import {
+  Animated,
+  Easing,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -44,6 +51,52 @@ export default function StockMainScreen() {
 
   const tabBarTotalHeight = 60 + insets.bottom;
   const bottomPadding = tabBarTotalHeight + 24;
+
+  // Brain icon: subtle pulse + glow opacity pulse for “illuminated” effect
+  const brainScale = useRef(new Animated.Value(1)).current;
+  const brainGlowOpacity = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const duration = 2400;
+    const ease = Easing.inOut(Easing.ease);
+    const pulseScale = Animated.loop(
+      Animated.sequence([
+        Animated.timing(brainScale, {
+          toValue: 1.1,
+          duration: duration / 2,
+          easing: ease,
+          useNativeDriver: true,
+        }),
+        Animated.timing(brainScale, {
+          toValue: 1,
+          duration: duration / 2,
+          easing: ease,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    const pulseGlow = Animated.loop(
+      Animated.sequence([
+        Animated.timing(brainGlowOpacity, {
+          toValue: 0.6,
+          duration: duration / 2,
+          easing: ease,
+          useNativeDriver: true,
+        }),
+        Animated.timing(brainGlowOpacity, {
+          toValue: 0.3,
+          duration: duration / 2,
+          easing: ease,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulseScale.start();
+    pulseGlow.start();
+    return () => {
+      pulseScale.stop();
+      pulseGlow.stop();
+    };
+  }, [brainScale, brainGlowOpacity]);
 
   return (
     <View style={[styles.container, { backgroundColor: BluePalette.backgroundNew }]}>
@@ -133,10 +186,16 @@ export default function StockMainScreen() {
           <Feather name="chevron-right" size={22} color={BluePalette.textTertiary} />
         </Pressable>
 
-        {/* Smart stock value card (disabled / coming soon) */}
+        {/* Smart stock value card (disabled / coming soon) – brain icon stays illuminated */}
         <View style={[styles.secondaryCard, styles.secondaryCardDisabled]}>
           <View style={[styles.secondaryCardIconWrap, styles.smartIconWrap]}>
-            <Ionicons name="bulb-outline" size={28} color={BluePalette.textTertiary} />
+            <View style={styles.smartIconRing} />
+            <Animated.View style={[styles.smartIconGlowWrap, { opacity: brainGlowOpacity }]}>
+              <View style={styles.smartIconGlow} />
+            </Animated.View>
+            <Animated.View style={{ transform: [{ scale: brainScale }] }}>
+              <FontAwesome5 name="brain" size={26} color={BluePalette.smartStock} solid />
+            </Animated.View>
           </View>
           <View style={styles.secondaryCardContent}>
             <Text style={styles.secondaryCardTitleDisabled}>{t('stock.tabs.smartStockValue')}</Text>
@@ -251,7 +310,33 @@ const styles = StyleSheet.create({
   },
   tobuyIconWrap: { backgroundColor: `${BluePalette.warning}20` },
   inventoryIconWrap: { backgroundColor: `${BluePalette.merge}20` },
-  smartIconWrap: { backgroundColor: 'rgba(255,255,255,0.08)' },
+  smartIconWrap: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1.5,
+    borderColor: `${BluePalette.smartStock}50`,
+    shadowColor: BluePalette.smartStock,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  smartIconRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: `${BluePalette.smartStock}35`,
+  },
+  smartIconGlowWrap: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  smartIconGlow: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 24,
+    backgroundColor: BluePalette.smartStock,
+    opacity: 1,
+  },
   secondaryCardDisabled: { opacity: 0.7 },
   secondaryCardContent: { flex: 1, marginLeft: 14 },
   secondaryCardTitle: {
